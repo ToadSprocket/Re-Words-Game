@@ -9,8 +9,8 @@ class AppStyles {
   static const Color primaryColor = Color(0xFF538D4E); // Green for correct (also primary)
 
   // Title Styles
-  static const TextStyle titleTextStyle = TextStyle(color: textColor, fontSize: 20, fontWeight: FontWeight.bold);
-  static const TextStyle subtitleTextStyle = TextStyle(color: textColor, fontSize: 16);
+  static const double headerFontSize = 36.0; // Example size
+  static const Color headerTextColor = Color.fromARGB(255, 3, 240, 23);
 
   // Square colors
   static const Color usedMultipleColor = Color(0xFF818384); // Gray for 2+ uses

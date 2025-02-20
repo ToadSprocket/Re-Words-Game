@@ -35,6 +35,6 @@ class LayoutCalculator {
     // Calculate grid size
     double gridSize = (squareSize * AppStyles.gridCols) + (gridSpacing * (AppStyles.gridCols - 1));
 
-    return {'squareSize': squareSize, 'letterFontSize': letterFontSize, 'valueFontSize': valueFontSize, 'gridSize': gridSize};
+    return {'squareSize': squareSize, 'letterFontSize': letterFontSize, 'valueFontSize': valueFontSize, 'gridSize': gridSize, 'gridSpacing': gridSpacing};
   }
 }
