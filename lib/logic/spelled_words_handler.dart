@@ -1,12 +1,13 @@
+// logic/spelled_words_handler.dart
 import 'scoring.dart';
+import 'word_loader.dart';
 
 class SpelledWordsLogic {
-  // Static state (for now, until you refactor to a proper state manager)
   static List<String> spelledWords = [];
   static int score = 0;
 
   static int _wordsPerColumn(double columnHeight, double fontSize, double spacing) {
-    const lineHeightFactor = 1.4; // Your adjusted value
+    const lineHeightFactor = 1.4;
     final totalItemHeight = (fontSize * lineHeightFactor) + spacing;
     final maxWords = (columnHeight / totalItemHeight).floor();
     print("Column height: $columnHeight, Item height: $totalItemHeight, Max words: $maxWords");
@@ -42,17 +43,16 @@ class SpelledWordsLogic {
   }
 
   static void addWord(String word, {int multiplier = 1}) {
-    // Case the word
     String casedWord = word.isEmpty ? '' : word.substring(0, 1).toUpperCase() + word.substring(1).toLowerCase();
 
-    // Placeholder spell check (replace with real validation)
-    bool isValid = true; // e.g., checkDictionary(casedWord);
-
-    if (isValid) {
+    // Check length and validity
+    if (casedWord.length <= 12 && WordLoader.words.contains(casedWord.toLowerCase())) {
       int wordScore = Scoring.calculateWordScore(casedWord, multiplier);
       spelledWords.add(casedWord);
       score += wordScore;
       print("Added '$casedWord', Score: $score, Words: ${spelledWords.length}");
+    } else {
+      print("'$casedWord' rejected: ${casedWord.length > 12 ? 'too long' : 'not valid'}");
     }
   }
 }

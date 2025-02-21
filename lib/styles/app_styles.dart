@@ -1,5 +1,6 @@
 // Centralized styles for the app
 import 'package:flutter/material.dart';
+import '/logic/layout_calculator.dart';
 
 class AppStyles {
   // Wordle-inspired colors
@@ -33,6 +34,12 @@ class AppStyles {
   static const double baseWordColumnWidth = 100.0; // Width of word columns
   static const double baseWordColumnHeight = 480.0; // Height of word columns
   static const double basedSpelledWordsGridSpacing = 6.0; // Spacing between columns
+  static const double baseButtonFontSize = 16.0;
+  static const double baseButtonVerticalPadding = 18.0;
+  static const double baseButtonHorizontalPadding = 24.0;
+  static const double baseButtonBorderRadius = 20.0;
+  static const double baseButtonBorderThickness = 2.0;
+
   static const int gridRows = 7; // 7x7 grid
   static const int gridCols = 7;
 
@@ -40,30 +47,70 @@ class AppStyles {
   static const double spelledWordsTitleFontSize = 15.0; // Title for right column
   static const Color spelledWordsTitleColor = Color(0xFFFFFFFF); // White for title
   static const double spelledWordsFontSize = 15.0; // Size for word list
-  static const Color spelledWordsTextColor = Color(0xFFB4B4B6); // Light gray for words
+  static const Color spelledWordsTextColor = Color.fromARGB(255, 251, 251, 255); // Light gray for words
   static const double spelledWordsColumnWidth = 100.0; // Min width per column (was minColumnWidth)
-  static const double spelledWordsVerticalPadding = 1.0; // Vertical padding between words
+  static const double spelledWordsVerticalPadding = 0.5; // Vertical padding between words
   static const double spelledWordsScoreRightPadding = 16.0; // Right padding for score title
   static const Color spelledWordsOuterBorderColor = Colors.green; // Outer border
   static const Color spelledWordsHeaderBorderColor = Colors.yellow; // Header boxes
   static const Color spelledWordsColumnBorderColor = Colors.cyan; // Word columns
-  static const double spelledWordsBorderWidth = 1.0; // Border thickness
+  static const double spelledWordsBorderWidth = .5; // Border thickness
+
+  // Dialog Styles
+  static const double dialogWidth = 400.0; // Wider
+  static const double dialogHeight = 550.0; // Taller
+  static const Color dialogBackgroundColor = backgroundColor; // 0xFF121213
+  static const Color dialogBorderColor = Colors.white;
+  static const double dialogBorderWidth = 2.0;
+  static const double dialogBorderRadius = 8.0;
+  static const double dialogPadding = 16.0;
+  static const double dialogButtonPadding = 8.0;
+
+  // Button Base Styles
+
+  // Button Styles
+  static ButtonStyle buttonStyle(BuildContext context) {
+    final sizes = LayoutCalculator.calculateSizes(context);
+    return ElevatedButton.styleFrom(
+      backgroundColor: normalSquareColor, // 0xFF1F1F21
+      foregroundColor: const Color.fromARGB(255, 221, 220, 220), // White text
+      padding: EdgeInsets.symmetric(
+        horizontal: sizes['buttonHorizontalPadding']!,
+        vertical: sizes['buttonVerticalPadding']!,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(sizes['buttonBorderRadius']!),
+        side: const BorderSide(color: Colors.white, width: 2.5),
+      ),
+      textStyle: TextStyle(fontSize: sizes['buttonFontSize'], fontWeight: FontWeight.bold),
+    );
+  }
+
+  static const TextStyle dialogTitleStyle = TextStyle(
+    fontSize: 18.0,
+    fontWeight: FontWeight.bold,
+    color: Color.fromARGB(255, 255, 255, 255), // Brighter white
+  );
+  static const TextStyle dialogContentStyle = TextStyle(
+    fontSize: 14.0,
+    color: Color.fromARGB(255, 240, 240, 240), // Slightly off-white for contrast
+  );
+  static const TextStyle dialogCloseStyle = TextStyle(
+    fontSize: 14.0,
+    color: Color.fromARGB(255, 200, 200, 200), // Light grey for button
+  );
 
   // Define the app theme
   static ThemeData get appTheme => ThemeData(
-    // Set the main background color
     scaffoldBackgroundColor: backgroundColor,
-    // App bar styling
     appBarTheme: const AppBarTheme(
       backgroundColor: appBarColor,
       titleTextStyle: TextStyle(color: textColor, fontSize: 20, fontWeight: FontWeight.bold),
     ),
-    // Text styling
     textTheme: const TextTheme(
       bodyMedium: TextStyle(color: textColor, fontSize: 16),
       bodyLarge: TextStyle(color: textColor, fontSize: 20),
     ),
-    // Primary color for buttons, etc.
     primaryColor: primaryColor,
   );
 }
