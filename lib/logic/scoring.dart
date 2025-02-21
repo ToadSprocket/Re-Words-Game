@@ -31,15 +31,18 @@ class Scoring {
   };
 
   // Calculate the score for a word
-  static int calculateWordScore(String word) {
+  static int calculateWordScore(String word, int multiplier) {
     // Convert to lowercase and split into letters
     String lowerWord = word.toLowerCase();
     int score = 0;
 
     // Add up the value of each letter
     for (String letter in lowerWord.split('')) {
-      score +=
-          _letterValues[letter] ?? 0; // 0 if letter not found (e.g., wildcard)
+      score += _letterValues[letter] ?? 0; // 0 if letter not found (e.g., wildcard)
+    }
+
+    if (multiplier > 1) {
+      score *= multiplier;
     }
 
     return score;

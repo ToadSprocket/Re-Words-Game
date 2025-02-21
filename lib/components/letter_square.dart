@@ -27,6 +27,9 @@ class LetterSquare extends StatelessWidget {
         bgColor = AppStyles.usedMultipleColor; // 2+ uses (same gray)
     }
 
+    int displayValue = isWildcard ? value * 2 : value;
+    String valueText = isWildcard ? '${displayValue}x' : '$displayValue';
+
     return Container(
       width: squareSize,
       height: squareSize,
@@ -41,7 +44,7 @@ class LetterSquare extends StatelessWidget {
             left: 4,
             top: 2,
             child: Text(
-              isWildcard ? '$value×2' : '$value',
+              valueText,
               style: TextStyle(
                 fontSize: valueFontSize,
                 color: AppStyles.normalvalueTextColor, // Light gray

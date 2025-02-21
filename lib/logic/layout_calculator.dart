@@ -1,40 +1,60 @@
-// Calculates layout sizes based on platform and screen size
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 
 class LayoutCalculator {
-  // Calculate sizes based on BuildContext
   static Map<String, double> calculateSizes(BuildContext context) {
-    // Get screen info
     double screenWidth = MediaQuery.of(context).size.width;
-    bool isWeb = MediaQuery.of(context).size.width > 800; // Rough web threshold
+    bool isWeb = MediaQuery.of(context).size.width > 800;
 
-    // Base sizes from AppStyles
     double squareSize = AppStyles.baseSquareSize;
     double letterFontSize = AppStyles.baseLetterFontSize;
     double valueFontSize = AppStyles.baseValueFontSize;
     double gridSpacing = AppStyles.baseGridSpacing;
+    double sideSpacing = AppStyles.baseSideSpacing;
+    double sideColumnWidth = AppStyles.baseSideColumnWidth;
+    double spelledWordsGridSpacing = AppStyles.basedSpelledWordsGridSpacing;
 
-    // Adjust squareSize based on platform and screen width
     if (isWeb) {
-      // Web: Larger squares, capped
-      squareSize = screenWidth / 30; // Bigger divisor = smaller squares
-      squareSize = squareSize.clamp(40.0, 100.0); // Min 60, max 100
-      gridSpacing = 4.0; // Consistent spacing for web
+      squareSize = screenWidth / 30;
+      squareSize = squareSize.clamp(40.0, 100.0);
+      gridSpacing = 4.0;
+      sideSpacing = 30.0;
+      sideColumnWidth = 300.0;
     } else {
-      // Mobile: Smaller, scaled to screen
-      squareSize = screenWidth / 8; // Smaller divisor = larger relative to screen
-      squareSize = squareSize.clamp(40.0, 80.0); // Min 40, max 80
-      gridSpacing = 2.0; // Tighter spacing for mobile
+      squareSize = screenWidth / 8;
+      squareSize = squareSize.clamp(40.0, 80.0);
+      gridSpacing = 2.0;
+      sideSpacing = 20.0;
+      sideColumnWidth = 150.0;
     }
 
-    // Scale fonts proportionally
-    letterFontSize = squareSize * 0.5; // 40% of squareSize (e.g., 24 at 60)
-    valueFontSize = squareSize * 0.2; // 20% of squareSize (e.g., 12 at 60)
-
-    // Calculate grid size
     double gridSize = (squareSize * AppStyles.gridCols) + (gridSpacing * (AppStyles.gridCols - 1));
+    letterFontSize = squareSize * 0.5;
+    valueFontSize = squareSize * 0.2;
 
-    return {'squareSize': squareSize, 'letterFontSize': letterFontSize, 'valueFontSize': valueFontSize, 'gridSize': gridSize};
+    const double charWidthFactor = 0.4;
+    const double wordPadding = 16.0;
+    double wordColumnWidth = (AppStyles.spelledWordsFontSize * charWidthFactor * 12) + wordPadding;
+
+    // Word column height: Exact grid height minus header with buffer
+    double headerHeight =
+        AppStyles.spelledWordsTitleFontSize + // 18.0
+        (AppStyles.spelledWordsTitleFontSize * 0.2) + // ~3.6
+        gridSpacing + // 2.0 or 4.0
+        8.0; // Top padding
+    double wordColumnHeight = gridSize - headerHeight - 10.0; // Extra buffer to match visible area
+
+    return {
+      'squareSize': squareSize,
+      'letterFontSize': letterFontSize,
+      'valueFontSize': valueFontSize,
+      'gridSize': gridSize,
+      'gridSpacing': gridSpacing,
+      'sideSpacing': sideSpacing,
+      'sideColumnWidth': sideColumnWidth,
+      'wordColumnWidth': wordColumnWidth,
+      'wordColumnHeight': wordColumnHeight,
+      'spelledWordsGridSpacing': spelledWordsGridSpacing,
+    };
   }
 }

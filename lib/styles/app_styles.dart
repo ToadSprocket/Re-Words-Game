@@ -9,8 +9,8 @@ class AppStyles {
   static const Color primaryColor = Color(0xFF538D4E); // Green for correct (also primary)
 
   // Title Styles
-  static const TextStyle titleTextStyle = TextStyle(color: textColor, fontSize: 20, fontWeight: FontWeight.bold);
-  static const TextStyle subtitleTextStyle = TextStyle(color: textColor, fontSize: 16);
+  static const double headerFontSize = 36.0; // Example size
+  static const Color headerTextColor = Color.fromARGB(255, 3, 240, 23);
 
   // Square colors
   static const Color usedMultipleColor = Color(0xFF818384); // Gray for 2+ uses
@@ -28,17 +28,41 @@ class AppStyles {
   static const double baseGridSpacing = 4.0; // Gap between squares
   static const double baseLetterFontSize = 24.0; // Font size for the letter
   static const double baseValueFontSize = 10.0; // Font size for the value
+  static const double baseSideSpacing = 20.0;
+  static const double baseSideColumnWidth = 300.0; // Width of side columns
+  static const double baseWordColumnWidth = 100.0; // Width of word columns
+  static const double baseWordColumnHeight = 480.0; // Height of word columns
+  static const double basedSpelledWordsGridSpacing = 6.0; // Spacing between columns
   static const int gridRows = 7; // 7x7 grid
   static const int gridCols = 7;
+
+  // Spelled Words Styles
+  static const double spelledWordsTitleFontSize = 15.0; // Title for right column
+  static const Color spelledWordsTitleColor = Color(0xFFFFFFFF); // White for title
+  static const double spelledWordsFontSize = 15.0; // Size for word list
+  static const Color spelledWordsTextColor = Color(0xFFB4B4B6); // Light gray for words
+  static const double spelledWordsColumnWidth = 100.0; // Min width per column (was minColumnWidth)
+  static const double spelledWordsVerticalPadding = 1.0; // Vertical padding between words
+  static const double spelledWordsScoreRightPadding = 16.0; // Right padding for score title
+  static const Color spelledWordsOuterBorderColor = Colors.green; // Outer border
+  static const Color spelledWordsHeaderBorderColor = Colors.yellow; // Header boxes
+  static const Color spelledWordsColumnBorderColor = Colors.cyan; // Word columns
+  static const double spelledWordsBorderWidth = 1.0; // Border thickness
 
   // Define the app theme
   static ThemeData get appTheme => ThemeData(
     // Set the main background color
     scaffoldBackgroundColor: backgroundColor,
     // App bar styling
-    appBarTheme: const AppBarTheme(backgroundColor: appBarColor, titleTextStyle: TextStyle(color: textColor, fontSize: 20, fontWeight: FontWeight.bold)),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: appBarColor,
+      titleTextStyle: TextStyle(color: textColor, fontSize: 20, fontWeight: FontWeight.bold),
+    ),
     // Text styling
-    textTheme: const TextTheme(bodyMedium: TextStyle(color: textColor, fontSize: 16), bodyLarge: TextStyle(color: textColor, fontSize: 20)),
+    textTheme: const TextTheme(
+      bodyMedium: TextStyle(color: textColor, fontSize: 16),
+      bodyLarge: TextStyle(color: textColor, fontSize: 20),
+    ),
     // Primary color for buttons, etc.
     primaryColor: primaryColor,
   );
