@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../components/letter_square.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class HowToPlayDialog {
   static void show(BuildContext context) {
@@ -28,7 +29,11 @@ class HowToPlayDialog {
                       right: 0,
                       child: GestureDetector(
                         onTap: () => Navigator.of(context).pop(),
-                        child: const Text('[x]', style: TextStyle(fontSize: 16.0, color: AppStyles.textColor)),
+                        child: const FaIcon(
+                          FontAwesomeIcons.circleXmark,
+                          size: 20.0, // Match other icons
+                          color: AppStyles.textColor,
+                        ),
                       ),
                     ),
                   ],
@@ -56,7 +61,7 @@ class HowToPlayDialog {
                           ),
                           const SizedBox(width: 4.0),
                           LetterSquare(
-                            letter: '*',
+                            letter: 'G',
                             value: 2,
                             isWildcard: true,
                             squareSize: 40.0,

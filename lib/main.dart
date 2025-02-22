@@ -4,20 +4,17 @@ import 'package:flutter/material.dart';
 import 'styles/app_styles.dart';
 import 'logic/word_loader.dart';
 import 'logic/grid_loader.dart';
-import 'logic/scoring.dart';
+//import 'logic/scoring.dart';
 import 'logic/layout_calculator.dart';
-import 'components/letter_square.dart';
-import 'layouts/spelled_words_column.dart';
+import 'screens/wide_screen.dart';
+import 'screens/narrow_screen.dart';
 import 'logic/spelled_words_handler.dart';
-import 'layouts/game_title.dart';
-import 'layouts/game_grid.dart';
-import 'layouts/wildcard_column.dart';
-import 'layouts/game_buttons.dart';
-import 'layouts/game_scores.dart';
-import 'layouts/game_top_bar.dart';
 import 'layouts/how_to_play_dialog.dart';
 import 'layouts/high_scores_dialog.dart';
 import 'layouts/legal_dialog.dart';
+
+const bool debugShowBorders = false; // Toggle borders for testing
+const bool? debugForceIsWeb = false; // Set to true or false to force isWeb
 
 void main() {
   runApp(const ReWordApp());
@@ -70,8 +67,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const bool showBorders = false; // Turned off borders
     Map<String, double> sizes = LayoutCalculator.calculateSizes(context);
+    bool isWeb = debugForceIsWeb ?? sizes['isWeb'] == true;
     double squareSize = sizes['squareSize'] ?? AppStyles.baseSquareSize;
     double letterFontSize = sizes['letterFontSize'] ?? AppStyles.baseLetterFontSize;
     double valueFontSize = sizes['valueFontSize'] ?? AppStyles.baseValueFontSize;
@@ -87,62 +84,44 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            GameTopBar(
-              onInstructions: () => HowToPlayDialog.show(context),
-              onHighScores: () => HighScoresDialog.show(context),
-              onLegal: () => LegalDialog.show(context),
-            ),
-            const Divider(height: 1.0, thickness: .5, color: Color.fromARGB(127, 158, 158, 158)),
-            SizedBox(height: 10.0),
-            GameTitle(width: gridSize, showBorders: showBorders),
-            SizedBox(height: 20.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                WildcardColumn(
-                  width: sideColumnWidth,
-                  height: gridSize,
+        child:
+            isWeb
+                ? WideScreen(
                   squareSize: squareSize,
                   letterFontSize: letterFontSize,
                   valueFontSize: valueFontSize,
+                  gridSize: gridSize,
                   gridSpacing: gridSpacing,
-                  showBorders: showBorders, // Updated to false
-                ),
-                SizedBox(width: sideSpacing),
-                Column(
-                  children: [
-                    GameScores(width: gridSize),
-                    SizedBox(height: gridSpacing),
-                    GameGrid(
-                      gridSize: gridSize,
-                      squareSize: squareSize,
-                      letterFontSize: letterFontSize,
-                      valueFontSize: valueFontSize,
-                      gridSpacing: gridSpacing,
-                      showBorders: showBorders,
-                    ),
-                  ],
-                ),
-                SizedBox(width: sideSpacing),
-                SpelledWordsColumn(
-                  words: SpelledWordsLogic.spelledWords,
-                  columnWidth: sideColumnWidth,
-                  columnHeight: gridSize,
-                  gridSpacing: spelledWordsGridSpacing,
-                  showBorders: showBorders, // Updated to false
+                  sideSpacing: sideSpacing,
+                  sideColumnWidth: sideColumnWidth,
                   wordColumnWidth: wordColumnWidth,
                   wordColumnHeight: wordColumnHeight,
+                  spelledWordsGridSpacing: spelledWordsGridSpacing,
+                  showBorders: debugShowBorders,
+                  onSubmit: addWord,
+                  onClear: clearWords,
+                  onInstructions: () => HowToPlayDialog.show(context),
+                  onHighScores: () => HighScoresDialog.show(context),
+                  onLegal: () => LegalDialog.show(context),
+                )
+                : NarrowScreen(
+                  squareSize: squareSize,
+                  letterFontSize: letterFontSize,
+                  valueFontSize: valueFontSize,
+                  gridSize: gridSize,
+                  gridSpacing: gridSpacing,
+                  sideSpacing: sideSpacing,
+                  sideColumnWidth: sideColumnWidth,
+                  wordColumnWidth: wordColumnWidth,
+                  wordColumnHeight: wordColumnHeight,
+                  spelledWordsGridSpacing: spelledWordsGridSpacing,
+                  showBorders: debugShowBorders,
+                  onSubmit: addWord,
+                  onClear: clearWords,
+                  onInstructions: () => HowToPlayDialog.show(context),
+                  onHighScores: () => HighScoresDialog.show(context),
+                  onLegal: () => LegalDialog.show(context),
                 ),
-              ],
-            ),
-            SizedBox(height: 20.0),
-            GameButtons(onSubmit: addWord, onClear: clearWords),
-          ],
-        ),
       ),
     );
   }

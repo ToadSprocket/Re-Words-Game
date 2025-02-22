@@ -9,6 +9,9 @@ class AppStyles {
   static const Color textColor = Color(0xFFFFFFFF); // White text
   static const Color primaryColor = Color(0xFF538D4E); // Green for correct (also primary)
 
+  // Help bar icon color
+  static const Color helpIconColor = Color(0xFFB4B4B6); // Light gray for help icon
+
   // Title Styles
   static const double headerFontSize = 36.0; // Example size
   static const Color headerTextColor = Color.fromARGB(255, 3, 240, 23);
@@ -40,6 +43,20 @@ class AppStyles {
   static const double baseButtonBorderRadius = 20.0;
   static const double baseButtonBorderThickness = 2.0;
 
+  static const double tickerWidthFactor = 1.0; // Multiplier for gridSize + squareSize
+  static const double tickerHeight = 43.0; // Total height (title + ticker)
+  static const Color tickerBorderColor = Color.fromARGB(54, 255, 255, 255); // Base color—opacity applied later
+  static const double tickerBorderWidth = 1.0;
+  static const double tickerTitleFontSize = 16.0; // Larger title
+  static const double tickerFontSize = 16.0;
+
+  static const double tickerPopupWidth = 600.0; // Bigger than dialogWidth
+  static const double tickerPopupHeight = 800.0;
+  static const double tickerPadding = 100.0;
+  static const double tickerPopupCrossSpacing = 0.1; // Horizontal spacing between columns
+  static const double tickerPopupMainSpacing = 0.1; // Vertical spacing between rows
+  static const double tickerPopupChildAspectRatio = 5.0;
+
   static const int gridRows = 7; // 7x7 grid
   static const int gridCols = 7;
 
@@ -65,8 +82,6 @@ class AppStyles {
   static const double dialogBorderRadius = 8.0;
   static const double dialogPadding = 16.0;
   static const double dialogButtonPadding = 8.0;
-
-  // Button Base Styles
 
   // Button Styles
   static ButtonStyle buttonStyle(BuildContext context) {

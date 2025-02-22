@@ -1,6 +1,7 @@
 // layouts/legal_dialog.dart
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class LegalDialog {
   static void show(BuildContext context) {
@@ -27,7 +28,11 @@ class LegalDialog {
                       right: 0,
                       child: GestureDetector(
                         onTap: () => Navigator.of(context).pop(),
-                        child: const Text('[x]', style: TextStyle(fontSize: 16.0, color: AppStyles.textColor)),
+                        child: const FaIcon(
+                          FontAwesomeIcons.circleXmark,
+                          size: 20.0, // Match other icons
+                          color: AppStyles.textColor,
+                        ),
                       ),
                     ),
                   ],
