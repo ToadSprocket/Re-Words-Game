@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'layout_calculator.dart';
 
 class GameLayout extends InheritedWidget {
-  final Map<String, double> sizes;
+  final Map<String, dynamic> sizes; // Changed to dynamic for bool
 
   const GameLayout({super.key, required this.sizes, required super.child});
 

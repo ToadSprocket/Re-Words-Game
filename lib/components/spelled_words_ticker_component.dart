@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../logic/spelled_words_handler.dart';
-import 'spelled_words_popup.dart';
+import '../dialogs/spelled_words_popup.dart';
 
 class SpelledWordsTicker extends StatelessWidget {
   final double gridSize;

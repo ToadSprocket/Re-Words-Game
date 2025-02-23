@@ -1,13 +1,13 @@
 // lib/screens/narrow_screen.dart
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
-import '../layouts/wildcard_column.dart';
-import '../layouts/game_top_bar.dart';
-import '../layouts/game_title.dart';
-import '../layouts/game_scores.dart';
-import '../layouts/game_grid.dart';
-import '../layouts/game_buttons.dart';
-import '../layouts/spelled_words_ticker.dart';
+import '../components/wildcard_column_component.dart';
+import '../components/game_top_bar_component.dart';
+import '../components/game_title_component.dart';
+import '../dialogs/game_scores_dialog.dart';
+import '../components/game_grid_component.dart';
+import '../components/game_buttons_component.dart';
+import '../components/spelled_words_ticker_component.dart';
 import '../logic/spelled_words_handler.dart';
 import '../logic/game_layout.dart'; // Add for GameLayout
 
@@ -35,6 +35,8 @@ class NarrowScreen extends StatelessWidget {
     final gridSize = sizes['gridSize']!;
     final squareSize = sizes['squareSize']!;
     final gridSpacing = sizes['gridSpacing']!;
+
+    print("NarrowScreen");
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,

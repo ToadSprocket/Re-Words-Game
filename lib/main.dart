@@ -1,19 +1,18 @@
-// main.dart
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'styles/app_styles.dart';
 import 'logic/word_loader.dart';
 import 'logic/grid_loader.dart';
-import 'logic/game_layout.dart'; // Add for GameLayout
+import 'logic/game_layout.dart';
 import 'screens/wide_screen.dart';
 import 'screens/narrow_screen.dart';
 import 'logic/spelled_words_handler.dart';
-import 'layouts/how_to_play_dialog.dart';
-import 'layouts/high_scores_dialog.dart';
-import 'layouts/legal_dialog.dart';
+import 'dialogs/how_to_play_dialog.dart';
+import 'dialogs/high_scores_dialog.dart';
+import 'dialogs/legal_dialog.dart';
 
 const bool debugShowBorders = false;
-const bool? debugForceIsWeb = false;
+const bool? debugForceIsWeb = null;
 
 void main() {
   runApp(const ReWordApp());
@@ -68,7 +67,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    bool isWeb = debugForceIsWeb ?? MediaQuery.of(context).size.width > 800;
+    final sizes = GameLayout.of(context).sizes;
+    final isWebOverride = debugForceIsWeb ?? sizes['isWeb'] as bool; // Fetch from GameLayout
+    print(
+      'screenWidth: ${MediaQuery.of(context).size.width}, debugForceIsWeb: $debugForceIsWeb, isWeb: $isWebOverride',
+    );
+    final isWeb = isWebOverride;
 
     return Scaffold(
       body: Center(

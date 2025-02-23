@@ -1,6 +1,5 @@
 // styles/app_styles.dart
 import 'package:flutter/material.dart';
-import '../logic/layout_calculator.dart';
 
 class AppStyles {
   // Core Colors
@@ -37,7 +36,7 @@ class AppStyles {
   static const double baseButtonBorderThickness = 2.0;
 
   // Button Styles (New Addition)
-  static const double buttonTextOffset = -2.0; // Moves text up slightly
+  static const double buttonTextOffset = -1.4; // Moves text up slightly
 
   // Title Styles
   static const double headerFontSize = 36.0;

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../logic/grid_loader.dart';
 import '../logic/tile.dart'; // Add for Tile
-import '../components/letter_square.dart';
+import 'letter_square_component.dart';
 import '../logic/game_layout.dart'; // Add for GameLayout
 
 class WildcardColumn extends StatelessWidget {

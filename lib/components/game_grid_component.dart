@@ -4,7 +4,7 @@ import '../styles/app_styles.dart';
 import '../logic/grid_loader.dart';
 import '../logic/tile.dart';
 import '../logic/game_layout.dart';
-import '../components/letter_square.dart';
+import 'letter_square_component.dart';
 
 class GameGrid extends StatelessWidget {
   final bool showBorders;

@@ -3,13 +3,17 @@ import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 
 class LayoutCalculator {
-  static Map<String, double> calculateSizes(BuildContext context) {
+  static Map<String, dynamic> calculateSizes(BuildContext context) {
+    // Changed to dynamic for bool
     double screenWidth = MediaQuery.of(context).size.width;
     bool isWeb = screenWidth > 800;
 
+    print('Screen width: $screenWidth');
+    print('isWeb: $isWeb');
+
     double squareSize = AppStyles.baseSquareSize;
-    double squareLetterSize = AppStyles.baseLetterFontSize; // Renamed
-    double squareValueSize = AppStyles.baseValueFontSize; // Renamed
+    double squareLetterSize = AppStyles.baseLetterFontSize;
+    double squareValueSize = AppStyles.baseValueFontSize;
     double gridSpacing = AppStyles.baseGridSpacing;
     double sideSpacing = AppStyles.baseSideSpacing;
     double sideColumnWidth = AppStyles.baseSideColumnWidth;
@@ -39,8 +43,8 @@ class LayoutCalculator {
     }
 
     double gridSize = (squareSize * AppStyles.gridCols) + (gridSpacing * (AppStyles.gridCols - 1));
-    squareLetterSize = squareSize * 0.5; // Updated
-    squareValueSize = squareSize * 0.2; // Updated
+    squareLetterSize = squareSize * 0.49;
+    squareValueSize = squareSize * 0.22;
 
     const double charWidthFactor = 0.48;
     const double wordPadding = 16.0;
@@ -49,8 +53,8 @@ class LayoutCalculator {
 
     return {
       'squareSize': squareSize,
-      'squareLetterSize': squareLetterSize, // Renamed key
-      'squareValueSize': squareValueSize, // Renamed key
+      'squareLetterSize': squareLetterSize,
+      'squareValueSize': squareValueSize,
       'gridSize': gridSize,
       'gridSpacing': gridSpacing,
       'sideSpacing': sideSpacing,
@@ -63,6 +67,7 @@ class LayoutCalculator {
       'buttonHorizontalPadding': buttonHorizontalPadding,
       'buttonBorderRadius': buttonBorderRadius,
       'buttonBorderThickness': buttonBorderThickness,
+      'isWeb': isWeb, // Added
     };
   }
 }
