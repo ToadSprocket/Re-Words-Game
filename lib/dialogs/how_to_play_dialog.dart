@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../components/letter_square_component.dart';
-import '../logic/tile.dart';
+import '../models/tile.dart';
 import '../logic/game_layout.dart'; // Add for GameLayoutProvider
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
@@ -50,9 +50,9 @@ class HowToPlayDialog {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            LetterSquare(tile: Tile(letter: 'A', value: 1, isExtra: false)),
+                            LetterSquareComponent(tile: Tile(letter: 'A', value: 1, isExtra: false)),
                             const SizedBox(width: 4.0),
-                            LetterSquare(tile: Tile(letter: 'G', value: 2, isExtra: true)),
+                            LetterSquareComponent(tile: Tile(letter: 'G', value: 2, isExtra: true)),
                           ],
                         ),
                         const SizedBox(height: 8.0),

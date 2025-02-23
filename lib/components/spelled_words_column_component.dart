@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../logic/spelled_words_handler.dart';
 
-class SpelledWordsColumn extends StatelessWidget {
+class SpelledWordsColumnComponent extends StatelessWidget {
   final List<String> words;
   final double columnWidth;
   final double columnHeight;
@@ -11,7 +11,7 @@ class SpelledWordsColumn extends StatelessWidget {
   final double wordColumnHeight;
   final bool showBorders;
 
-  const SpelledWordsColumn({
+  const SpelledWordsColumnComponent({
     super.key,
     required this.words,
     required this.columnWidth,

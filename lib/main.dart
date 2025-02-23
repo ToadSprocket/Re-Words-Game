@@ -1,3 +1,4 @@
+// main.dart
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'styles/app_styles.dart';
@@ -10,6 +11,8 @@ import 'logic/spelled_words_handler.dart';
 import 'dialogs/how_to_play_dialog.dart';
 import 'dialogs/high_scores_dialog.dart';
 import 'dialogs/legal_dialog.dart';
+import 'components/game_grid_component.dart'; // Add this
+import 'components/wildcard_column_component.dart'; // Add this
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
@@ -39,6 +42,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final _gridKey = GlobalKey<GameGridComponentState>();
+  final _wildcardKey = GlobalKey<WildcardColumnComponentState>();
+
   @override
   void initState() {
     super.initState();
@@ -47,7 +53,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadData() async {
     await WordLoader.loadWords();
-    await GridLoader.loadGrid();
     setState(() {});
   }
 
@@ -60,15 +65,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void clearWords() {
-    SpelledWordsLogic.spelledWords.clear();
-    SpelledWordsLogic.score = 0;
-    setState(() {});
+    setState(() {
+      _gridKey.currentState?.clearSelectedTiles();
+      _wildcardKey.currentState?.clearSelectedTiles();
+      SpelledWordsLogic.spelledWords.clear();
+      SpelledWordsLogic.score = 0;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final sizes = GameLayout.of(context).sizes;
-    final isWebOverride = debugForceIsWeb ?? sizes['isWeb'] as bool; // Fetch from GameLayout
+    final isWebOverride = debugForceIsWeb ?? sizes['isWeb'] as bool;
     print(
       'screenWidth: ${MediaQuery.of(context).size.width}, debugForceIsWeb: $debugForceIsWeb, isWeb: $isWebOverride',
     );
@@ -85,6 +93,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   onInstructions: () => HowToPlayDialog.show(context),
                   onHighScores: () => HighScoresDialog.show(context),
                   onLegal: () => LegalDialog.show(context),
+                  gridKey: _gridKey,
+                  wildcardKey: _wildcardKey,
                 )
                 : NarrowScreen(
                   showBorders: debugShowBorders,
@@ -93,6 +103,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   onInstructions: () => HowToPlayDialog.show(context),
                   onHighScores: () => HighScoresDialog.show(context),
                   onLegal: () => LegalDialog.show(context),
+                  gridKey: _gridKey,
+                  wildcardKey: _wildcardKey,
                 ),
       ),
     );

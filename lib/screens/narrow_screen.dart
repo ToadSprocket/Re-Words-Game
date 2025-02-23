@@ -1,4 +1,4 @@
-// lib/screens/narrow_screen.dart
+// screens/narrow_screen.dart
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../components/wildcard_column_component.dart';
@@ -9,7 +9,7 @@ import '../components/game_grid_component.dart';
 import '../components/game_buttons_component.dart';
 import '../components/spelled_words_ticker_component.dart';
 import '../logic/spelled_words_handler.dart';
-import '../logic/game_layout.dart'; // Add for GameLayout
+import '../logic/game_layout.dart';
 
 class NarrowScreen extends StatelessWidget {
   final bool showBorders;
@@ -18,6 +18,8 @@ class NarrowScreen extends StatelessWidget {
   final VoidCallback onInstructions;
   final VoidCallback onHighScores;
   final VoidCallback onLegal;
+  final GlobalKey<GameGridComponentState>? gridKey; // Add key
+  final GlobalKey<WildcardColumnComponentState>? wildcardKey; // Add key
 
   const NarrowScreen({
     super.key,
@@ -27,6 +29,8 @@ class NarrowScreen extends StatelessWidget {
     required this.onInstructions,
     required this.onHighScores,
     required this.onLegal,
+    this.gridKey,
+    this.wildcardKey,
   });
 
   @override
@@ -36,12 +40,10 @@ class NarrowScreen extends StatelessWidget {
     final squareSize = sizes['squareSize']!;
     final gridSpacing = sizes['gridSpacing']!;
 
-    print("NarrowScreen");
-
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        GameTopBar(
+        GameTopBarComponent(
           onInstructions: onInstructions,
           onHighScores: onHighScores,
           onLegal: onLegal,
@@ -49,17 +51,26 @@ class NarrowScreen extends StatelessWidget {
         ),
         const Divider(height: 1.0, thickness: 1.0, color: Colors.grey),
         const SizedBox(height: 10.0),
-        GameTitle(width: gridSize, showBorders: showBorders),
+        GameTitleComponent(width: gridSize, showBorders: showBorders),
         const SizedBox(height: 20.0),
-        SpelledWordsTicker(gridSize: gridSize, squareSize: squareSize),
+        SpelledWordsTickerComponent(gridSize: gridSize, squareSize: squareSize),
         const SizedBox(height: 20.0),
         GameScores(width: gridSize),
         SizedBox(height: gridSpacing),
-        GameGrid(showBorders: showBorders),
+        GameGridComponent(
+          key: gridKey, // Pass key
+          showBorders: showBorders,
+        ),
         SizedBox(height: gridSpacing),
-        WildcardColumn(width: gridSize, height: squareSize * 2, showBorders: showBorders, isHorizontal: true),
+        WildcardColumnComponent(
+          key: wildcardKey, // Pass key
+          width: gridSize,
+          height: squareSize * 2,
+          showBorders: showBorders,
+          isHorizontal: true,
+        ),
         const SizedBox(height: 20.0),
-        GameButtons(onSubmit: onSubmit, onClear: onClear),
+        GameButtonsComponent(onSubmit: onSubmit, onClear: onClear),
       ],
     );
   }

@@ -1,4 +1,4 @@
-// lib/screens/wide_screen.dart
+// screens/wide_screen.dart
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../components/wildcard_column_component.dart';
@@ -9,7 +9,7 @@ import '../components/game_grid_component.dart';
 import '../components/game_buttons_component.dart';
 import '../components/spelled_words_column_component.dart';
 import '../logic/spelled_words_handler.dart';
-import '../logic/game_layout.dart'; // Add for GameLayout
+import '../logic/game_layout.dart';
 
 class WideScreen extends StatelessWidget {
   final bool showBorders;
@@ -18,6 +18,8 @@ class WideScreen extends StatelessWidget {
   final VoidCallback onInstructions;
   final VoidCallback onHighScores;
   final VoidCallback onLegal;
+  final GlobalKey<GameGridComponentState>? gridKey; // Public state
+  final GlobalKey<WildcardColumnComponentState>? wildcardKey; // Public state
 
   const WideScreen({
     super.key,
@@ -27,6 +29,8 @@ class WideScreen extends StatelessWidget {
     required this.onInstructions,
     required this.onHighScores,
     required this.onLegal,
+    this.gridKey,
+    this.wildcardKey,
   });
 
   @override
@@ -46,7 +50,7 @@ class WideScreen extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        GameTopBar(
+        GameTopBarComponent(
           onInstructions: onInstructions,
           onHighScores: onHighScores,
           onLegal: onLegal,
@@ -62,20 +66,26 @@ class WideScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const SizedBox(height: topSectionHeight),
-                WildcardColumn(width: sideColumnWidth, height: gridSize, showBorders: showBorders, isHorizontal: false),
+                WildcardColumnComponent(
+                  key: wildcardKey,
+                  width: sideColumnWidth,
+                  height: gridSize,
+                  showBorders: showBorders,
+                  isHorizontal: false,
+                ),
               ],
             ),
             SizedBox(width: sideSpacing),
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                GameTitle(width: gridSize, showBorders: showBorders),
+                GameTitleComponent(width: gridSize, showBorders: showBorders),
                 const SizedBox(height: 20.0),
                 GameScores(width: gridSize),
-                const SizedBox(height: 8.0), // Static—could use gridSpacing if dynamic
-                GameGrid(showBorders: showBorders),
+                const SizedBox(height: 8.0),
+                GameGridComponent(key: gridKey, showBorders: showBorders),
                 const SizedBox(height: 20.0),
-                GameButtons(onSubmit: onSubmit, onClear: onClear),
+                GameButtonsComponent(onSubmit: onSubmit, onClear: onClear),
               ],
             ),
             SizedBox(width: sideSpacing),
@@ -83,7 +93,7 @@ class WideScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const SizedBox(height: topSectionHeight),
-                SpelledWordsColumn(
+                SpelledWordsColumnComponent(
                   words: SpelledWordsLogic.spelledWords,
                   columnWidth: sideColumnWidth,
                   columnHeight: gridSize,

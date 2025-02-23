@@ -2,11 +2,11 @@
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 
-class GameButtons extends StatelessWidget {
+class GameButtonsComponent extends StatelessWidget {
   final VoidCallback onSubmit;
   final VoidCallback onClear;
 
-  const GameButtons({super.key, required this.onSubmit, required this.onClear});
+  const GameButtonsComponent({super.key, required this.onSubmit, required this.onClear});
 
   @override
   Widget build(BuildContext context) {

@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import '/styles/app_styles.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-class GameTopBar extends StatelessWidget {
+class GameTopBarComponent extends StatelessWidget {
   final VoidCallback onInstructions;
   final VoidCallback onHighScores;
   final VoidCallback onLegal;
   final bool showBorders;
 
-  const GameTopBar({
+  const GameTopBarComponent({
     super.key,
     required this.onInstructions,
     required this.onHighScores,

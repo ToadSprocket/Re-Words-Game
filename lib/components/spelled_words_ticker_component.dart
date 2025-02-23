@@ -4,12 +4,12 @@ import '../styles/app_styles.dart';
 import '../logic/spelled_words_handler.dart';
 import '../dialogs/spelled_words_popup.dart';
 
-class SpelledWordsTicker extends StatelessWidget {
+class SpelledWordsTickerComponent extends StatelessWidget {
   final double gridSize;
   final double squareSize;
   final VoidCallback? onTap;
 
-  const SpelledWordsTicker({super.key, required this.gridSize, required this.squareSize, this.onTap});
+  const SpelledWordsTickerComponent({super.key, required this.gridSize, required this.squareSize, this.onTap});
 
   List<String> _getFittingWords(BuildContext context, double maxWidth) {
     final textStyle = TextStyle(fontSize: AppStyles.tickerFontSize, color: AppStyles.spelledWordsTextColor);

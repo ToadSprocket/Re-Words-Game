@@ -1,13 +1,13 @@
 // components/letter_square.dart
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
-import '../logic/tile.dart';
+import '../models/tile.dart';
 import '../logic/game_layout.dart';
 
-class LetterSquare extends StatelessWidget {
+class LetterSquareComponent extends StatelessWidget {
   final Tile tile;
 
-  const LetterSquare({super.key, required this.tile});
+  const LetterSquareComponent({super.key, required this.tile});
 
   @override
   Widget build(BuildContext context) {

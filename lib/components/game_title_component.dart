@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 
 // Displays the game title
-class GameTitle extends StatelessWidget {
+class GameTitleComponent extends StatelessWidget {
   final double width;
   final bool showBorders;
 
-  const GameTitle({super.key, required this.width, this.showBorders = false});
+  const GameTitleComponent({super.key, required this.width, this.showBorders = false});
 
   @override
   Widget build(BuildContext context) {
