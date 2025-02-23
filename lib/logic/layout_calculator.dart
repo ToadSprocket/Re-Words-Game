@@ -8,8 +8,8 @@ class LayoutCalculator {
     bool isWeb = screenWidth > 800;
 
     double squareSize = AppStyles.baseSquareSize;
-    double letterFontSize = AppStyles.baseLetterFontSize;
-    double valueFontSize = AppStyles.baseValueFontSize;
+    double squareLetterSize = AppStyles.baseLetterFontSize; // Renamed
+    double squareValueSize = AppStyles.baseValueFontSize; // Renamed
     double gridSpacing = AppStyles.baseGridSpacing;
     double sideSpacing = AppStyles.baseSideSpacing;
     double sideColumnWidth = AppStyles.baseSideColumnWidth;
@@ -32,15 +32,15 @@ class LayoutCalculator {
       gridSpacing = 2.0;
       sideSpacing = 20.0;
       sideColumnWidth = 155.0;
-      buttonFontSize = 16.0; // Slightly smaller for mobile
-      buttonVerticalPadding = 14.0; // Slightly smaller
-      buttonHorizontalPadding = 20.0; // Slightly smaller
-      buttonBorderRadius = 16.0; // Slightly smaller
+      buttonFontSize = 16.0;
+      buttonVerticalPadding = 14.0;
+      buttonHorizontalPadding = 20.0;
+      buttonBorderRadius = 16.0;
     }
 
     double gridSize = (squareSize * AppStyles.gridCols) + (gridSpacing * (AppStyles.gridCols - 1));
-    letterFontSize = squareSize * 0.5;
-    valueFontSize = squareSize * 0.2;
+    squareLetterSize = squareSize * 0.5; // Updated
+    squareValueSize = squareSize * 0.2; // Updated
 
     const double charWidthFactor = 0.48;
     const double wordPadding = 16.0;
@@ -49,8 +49,8 @@ class LayoutCalculator {
 
     return {
       'squareSize': squareSize,
-      'letterFontSize': letterFontSize,
-      'valueFontSize': valueFontSize,
+      'squareLetterSize': squareLetterSize, // Renamed key
+      'squareValueSize': squareValueSize, // Renamed key
       'gridSize': gridSize,
       'gridSpacing': gridSpacing,
       'sideSpacing': sideSpacing,

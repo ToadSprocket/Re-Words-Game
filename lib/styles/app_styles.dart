@@ -1,121 +1,135 @@
-// Centralized styles for the app
+// styles/app_styles.dart
 import 'package:flutter/material.dart';
-import '/logic/layout_calculator.dart';
+import '../logic/layout_calculator.dart';
 
 class AppStyles {
-  // Wordle-inspired colors
-  static const Color backgroundColor = Color(0xFF121213); // Dark gray background
-  static const Color appBarColor = Color(0xFF3A3A3C); // Lighter gray for app bar
-  static const Color textColor = Color(0xFFFFFFFF); // White text
-  static const Color primaryColor = Color(0xFF538D4E); // Green for correct (also primary)
+  // Core Colors
+  static const Color backgroundColor = Color(0xFF121213);
+  static const Color appBarColor = Color(0xFF3A3A3C);
+  static const Color textColor = Color(0xFFFFFFFF);
+  static const Color primaryColor = Color(0xFF538D4E);
+  static const Color helpIconColor = Color(0xFFB4B4B6);
 
-  // Help bar icon color
-  static const Color helpIconColor = Color(0xFFB4B4B6); // Light gray for help icon
+  // Square Base Sizes
+  static const double baseSquareSize = 60.0;
+  static const double baseLetterFontSize = 28.0;
+  static const double baseValueFontSize = 12.0;
 
-  // Title Styles
-  static const double headerFontSize = 36.0; // Example size
-  static const Color headerTextColor = Color.fromARGB(255, 3, 240, 23);
+  // Square Styles (New Additions)
+  static const double squareBorderRadius = 8.0;
+  static const double squareBorderWidth = 2.0;
+  static const double squareValueLeft = 5.0;
+  static const double squareValueTop = 0.0;
 
-  // Square colors
-  static const Color usedMultipleColor = Color(0xFF818384); // Gray for 2+ uses
-  static const Color normalvalueTextColor = Color.fromARGB(230, 4, 190, 29); // Light gray for values
-  static const Color normalletterTextColor = Color.fromARGB(209, 255, 255, 255); // White for letters
-  static const Color usedOnceTextColor = Color(0xFFB4B4B6); // Lighter gray for 1 use
-  static const Color usedLetterValueTextColor = Color.fromARGB(255, 180, 71, 57); // Gray for used values
-  static const Color normalSquareColor = Color(0xFF1F1F21); // Base square color
-  static const Color selectedSquareColor = Color(0xFF3A3A3C); // Selected square color
-  static const Color usedSquareColor = Color(0xFF818384); // Used square color
-  static const Color stackedSquareColor = Color(0xFF3A3A3C); // Stacked square color
+  // Grid Layout Constants
+  static const int gridRows = 7;
+  static const int gridCols = 7;
 
-  // Grid layout constants
-  static const double baseSquareSize = 60.0; // Size of each letter square
-  static const double baseGridSpacing = 4.0; // Gap between squares
-  static const double baseLetterFontSize = 24.0; // Font size for the letter
-  static const double baseValueFontSize = 10.0; // Font size for the value
+  // Base Layout Constants
+  static const double baseGridSpacing = 4.0;
   static const double baseSideSpacing = 20.0;
-  static const double baseSideColumnWidth = 300.0; // Width of side columns
-  static const double baseWordColumnWidth = 100.0; // Width of word columns
-  static const double baseWordColumnHeight = 480.0; // Height of word columns
-  static const double basedSpelledWordsGridSpacing = 6.0; // Spacing between columns
+  static const double baseSideColumnWidth = 300.0;
+  static const double basedSpelledWordsGridSpacing = 6.0;
   static const double baseButtonFontSize = 16.0;
   static const double baseButtonVerticalPadding = 18.0;
   static const double baseButtonHorizontalPadding = 24.0;
   static const double baseButtonBorderRadius = 20.0;
   static const double baseButtonBorderThickness = 2.0;
 
-  static const double tickerWidthFactor = 1.0; // Multiplier for gridSize + squareSize
-  static const double tickerHeight = 43.0; // Total height (title + ticker)
-  static const Color tickerBorderColor = Color.fromARGB(54, 255, 255, 255); // Base color—opacity applied later
-  static const double tickerBorderWidth = 1.0;
-  static const double tickerTitleFontSize = 16.0; // Larger title
-  static const double tickerFontSize = 16.0;
+  // Button Styles (New Addition)
+  static const double buttonTextOffset = -2.0; // Moves text up slightly
 
-  static const double tickerPopupWidth = 600.0; // Bigger than dialogWidth
-  static const double tickerPopupHeight = 800.0;
-  static const double tickerPadding = 100.0;
-  static const double tickerPopupCrossSpacing = 0.1; // Horizontal spacing between columns
-  static const double tickerPopupMainSpacing = 0.1; // Vertical spacing between rows
-  static const double tickerPopupChildAspectRatio = 5.0;
+  // Title Styles
+  static const double headerFontSize = 36.0;
+  static const Color headerTextColor = Color.fromARGB(255, 3, 240, 23);
 
-  static const int gridRows = 7; // 7x7 grid
-  static const int gridCols = 7;
+  // Square Styles
+  static const Color normalSquareColor = Color(0xFF1F1F21);
+  static const Color selectedSquareColor = Color(0xFF538D4E);
+  static const Color usedSquareColor = Color(0xFF818384);
+  static const Color usedMultipleColor = Color(0xFF818384);
+  static const Color stackedSquareColor = Color(0xFF3A3A3C);
+  static const Color specialSquareColor = Color(0xFF6A1B9A);
+  static const Color disabledSquareColor = Color(0xFF818384);
+
+  static const Color normalBorderColor = Color.fromARGB(209, 255, 255, 255);
+  static const Color selectedBorderColor = Color.fromARGB(209, 255, 255, 255);
+  static const Color usedBorderColor = Color.fromARGB(209, 255, 255, 255);
+  static const Color stackedBorderColor = Color.fromARGB(209, 255, 255, 255);
+  static const Color specialBorderColor = Color.fromARGB(255, 255, 255, 255);
+  static const Color disabledBorderColor = Color.fromARGB(209, 255, 255, 255);
+
+  static const Color normalLetterTextColor = Color.fromARGB(209, 255, 255, 255);
+  static const Color selectedLetterTextColor = Color.fromARGB(209, 255, 255, 255);
+  static const Color usedLetterTextColor = Color(0xFFB4B4B6);
+  static const Color stackedLetterTextColor = Color.fromARGB(209, 255, 255, 255);
+  static const Color specialLetterTextColor = Color.fromARGB(255, 255, 255, 255);
+  static const Color disabledLetterTextColor = Color.fromARGB(150, 255, 255, 255);
+
+  static const Color normalValueTextColor = Color.fromARGB(230, 4, 190, 29);
+  static const Color selectedValueTextColor = Color.fromARGB(230, 4, 190, 29);
+  static const Color usedValueTextColor = Color.fromARGB(255, 180, 71, 57);
+  static const Color stackedValueTextColor = Color.fromARGB(230, 4, 190, 29);
+  static const Color specialValueTextColor = Color.fromARGB(255, 255, 255, 255);
+  static const Color disabledValueTextColor = Color.fromARGB(150, 180, 71, 57);
 
   // Spelled Words Styles
-  static const double spelledWordsTitleFontSize = 15.0; // Title for right column
-  static const Color spelledWordsTitleColor = Color(0xFFFFFFFF); // White for title
-  static const double spelledWordsFontSize = 15.0; // Size for word list
-  static const Color spelledWordsTextColor = Color.fromARGB(255, 251, 251, 255); // Light gray for words
-  static const double spelledWordsColumnWidth = 100.0; // Min width per column (was minColumnWidth)
-  static const double spelledWordsVerticalPadding = 0.5; // Vertical padding between words
-  static const double spelledWordsScoreRightPadding = 16.0; // Right padding for score title
-  static const Color spelledWordsOuterBorderColor = Colors.green; // Outer border
-  static const Color spelledWordsHeaderBorderColor = Colors.yellow; // Header boxes
-  static const Color spelledWordsColumnBorderColor = Colors.cyan; // Word columns
-  static const double spelledWordsBorderWidth = .5; // Border thickness
+  static const double spelledWordsTitleFontSize = 15.0;
+  static const Color spelledWordsTitleColor = Color(0xFFFFFFFF);
+  static const double spelledWordsFontSize = 15.0;
+  static const Color spelledWordsTextColor = Color.fromARGB(255, 251, 251, 255);
+  static const double spelledWordsVerticalPadding = 0.5;
+  static const Color spelledWordsOuterBorderColor = Colors.green;
+  static const Color spelledWordsColumnBorderColor = Colors.cyan;
+  static const double spelledWordsBorderWidth = 0.5;
+
+  // Ticker Styles
+  static const double tickerWidthFactor = 1.0;
+  static const double tickerHeight = 43.0;
+  static const Color tickerBorderColor = Color.fromARGB(54, 255, 255, 255);
+  static const double tickerBorderWidth = 1.0;
+  static const double tickerTitleFontSize = 16.0;
+  static const double tickerFontSize = 16.0;
+
+  static const double tickerPopupWidth = 600.0;
+  static const double tickerPopupHeight = 800.0;
+  static const double tickerPopupCrossSpacing = 0.1;
+  static const double tickerPopupMainSpacing = 0.1;
 
   // Dialog Styles
-  static const double dialogWidth = 400.0; // Wider
-  static const double dialogHeight = 550.0; // Taller
-  static const Color dialogBackgroundColor = backgroundColor; // 0xFF121213
+  static const double dialogWidth = 400.0;
+  static const double dialogHeight = 550.0;
+  static const Color dialogBackgroundColor = backgroundColor;
   static const Color dialogBorderColor = Colors.white;
   static const double dialogBorderWidth = 2.0;
   static const double dialogBorderRadius = 8.0;
   static const double dialogPadding = 16.0;
   static const double dialogButtonPadding = 8.0;
 
-  // Button Styles
-  static ButtonStyle buttonStyle(BuildContext context) {
-    final sizes = LayoutCalculator.calculateSizes(context);
-    return ElevatedButton.styleFrom(
-      backgroundColor: normalSquareColor, // 0xFF1F1F21
-      foregroundColor: const Color.fromARGB(255, 221, 220, 220), // White text
-      padding: EdgeInsets.symmetric(
-        horizontal: sizes['buttonHorizontalPadding']!,
-        vertical: sizes['buttonVerticalPadding']!,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(sizes['buttonBorderRadius']!),
-        side: const BorderSide(color: Colors.white, width: 2.5),
-      ),
-      textStyle: TextStyle(fontSize: sizes['buttonFontSize'], fontWeight: FontWeight.bold),
-    );
-  }
-
   static const TextStyle dialogTitleStyle = TextStyle(
     fontSize: 18.0,
     fontWeight: FontWeight.bold,
-    color: Color.fromARGB(255, 255, 255, 255), // Brighter white
+    color: Color.fromARGB(255, 255, 255, 255),
   );
-  static const TextStyle dialogContentStyle = TextStyle(
-    fontSize: 14.0,
-    color: Color.fromARGB(255, 240, 240, 240), // Slightly off-white for contrast
-  );
-  static const TextStyle dialogCloseStyle = TextStyle(
-    fontSize: 14.0,
-    color: Color.fromARGB(255, 200, 200, 200), // Light grey for button
-  );
+  static const TextStyle dialogContentStyle = TextStyle(fontSize: 14.0, color: Color.fromARGB(255, 240, 240, 240));
 
-  // Define the app theme
+  // Button Styles
+  static ButtonStyle buttonStyle(BuildContext context) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: normalSquareColor,
+      foregroundColor: const Color.fromARGB(255, 221, 220, 220),
+      padding: const EdgeInsets.symmetric(horizontal: baseButtonHorizontalPadding, vertical: baseButtonVerticalPadding),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(baseButtonBorderRadius),
+        side: const BorderSide(color: Colors.white, width: baseButtonBorderThickness),
+      ),
+      textStyle: const TextStyle(fontSize: baseButtonFontSize, fontWeight: FontWeight.bold),
+      // Apply text offset
+      alignment: Alignment(0, buttonTextOffset / baseButtonVerticalPadding), // Normalize offset
+    );
+  }
+
+  // ThemeData
   static ThemeData get appTheme => ThemeData(
     scaffoldBackgroundColor: backgroundColor,
     appBarTheme: const AppBarTheme(
@@ -125,7 +139,154 @@ class AppStyles {
     textTheme: const TextTheme(
       bodyMedium: TextStyle(color: textColor, fontSize: 16),
       bodyLarge: TextStyle(color: textColor, fontSize: 20),
+      labelLarge: TextStyle(fontSize: baseLetterFontSize, fontWeight: FontWeight.bold, color: normalLetterTextColor),
+      labelSmall: TextStyle(fontSize: baseValueFontSize, fontWeight: FontWeight.bold, color: normalValueTextColor),
     ),
     primaryColor: primaryColor,
+    extensions: const [SquareTheme()],
   );
+}
+
+// SquareTheme Extension (Unchanged)
+class SquareTheme extends ThemeExtension<SquareTheme> {
+  final Color normalBackground;
+  final Color selectedBackground;
+  final Color usedBackground;
+  final Color stackedBackground;
+  final Color specialBackground;
+  final Color disabledBackground;
+
+  final Color normalBorder;
+  final Color selectedBorder;
+  final Color usedBorder;
+  final Color stackedBorder;
+  final Color specialBorder;
+  final Color disabledBorder;
+
+  final Color normalLetter;
+  final Color selectedLetter;
+  final Color usedLetter;
+  final Color stackedLetter;
+  final Color specialLetter;
+  final Color disabledLetter;
+
+  final Color normalValue;
+  final Color selectedValue;
+  final Color usedValue;
+  final Color stackedValue;
+  final Color specialValue;
+  final Color disabledValue;
+
+  const SquareTheme({
+    this.normalBackground = AppStyles.normalSquareColor,
+    this.selectedBackground = AppStyles.selectedSquareColor,
+    this.usedBackground = AppStyles.usedSquareColor,
+    this.stackedBackground = AppStyles.stackedSquareColor,
+    this.specialBackground = AppStyles.specialSquareColor,
+    this.disabledBackground = AppStyles.disabledSquareColor,
+    this.normalBorder = AppStyles.normalBorderColor,
+    this.selectedBorder = AppStyles.selectedBorderColor,
+    this.usedBorder = AppStyles.usedBorderColor,
+    this.stackedBorder = AppStyles.stackedBorderColor,
+    this.specialBorder = AppStyles.specialBorderColor,
+    this.disabledBorder = AppStyles.disabledBorderColor,
+    this.normalLetter = AppStyles.normalLetterTextColor,
+    this.selectedLetter = AppStyles.selectedLetterTextColor,
+    this.usedLetter = AppStyles.usedLetterTextColor,
+    this.stackedLetter = AppStyles.stackedLetterTextColor,
+    this.specialLetter = AppStyles.specialLetterTextColor,
+    this.disabledLetter = AppStyles.disabledLetterTextColor,
+    this.normalValue = AppStyles.normalValueTextColor,
+    this.selectedValue = AppStyles.selectedValueTextColor,
+    this.usedValue = AppStyles.usedValueTextColor,
+    this.stackedValue = AppStyles.stackedValueTextColor,
+    this.specialValue = AppStyles.specialValueTextColor,
+    this.disabledValue = AppStyles.disabledValueTextColor,
+  });
+
+  @override
+  SquareTheme copyWith({
+    Color? normalBackground,
+    Color? selectedBackground,
+    Color? usedBackground,
+    Color? stackedBackground,
+    Color? specialBackground,
+    Color? disabledBackground,
+    Color? normalBorder,
+    Color? selectedBorder,
+    Color? usedBorder,
+    Color? stackedBorder,
+    Color? specialBorder,
+    Color? disabledBorder,
+    Color? normalLetter,
+    Color? selectedLetter,
+    Color? usedLetter,
+    Color? stackedLetter,
+    Color? specialLetter,
+    Color? disabledLetter,
+    Color? normalValue,
+    Color? selectedValue,
+    Color? usedValue,
+    Color? stackedValue,
+    Color? specialValue,
+    Color? disabledValue,
+  }) {
+    return SquareTheme(
+      normalBackground: normalBackground ?? this.normalBackground,
+      selectedBackground: selectedBackground ?? this.selectedBackground,
+      usedBackground: usedBackground ?? this.usedBackground,
+      stackedBackground: stackedBackground ?? this.stackedBackground,
+      specialBackground: specialBackground ?? this.specialBackground,
+      disabledBackground: disabledBackground ?? this.disabledBackground,
+      normalBorder: normalBorder ?? this.normalBorder,
+      selectedBorder: selectedBorder ?? this.selectedBorder,
+      usedBorder: usedBorder ?? this.usedBorder,
+      stackedBorder: stackedBorder ?? this.stackedBorder,
+      specialBorder: specialBorder ?? this.specialBorder,
+      disabledBorder: disabledBorder ?? this.disabledBorder,
+      normalLetter: normalLetter ?? this.normalLetter,
+      selectedLetter: selectedLetter ?? this.selectedLetter,
+      usedLetter: usedLetter ?? this.usedLetter,
+      stackedLetter: stackedLetter ?? this.stackedLetter,
+      specialLetter: specialLetter ?? this.specialLetter,
+      disabledLetter: disabledLetter ?? this.disabledLetter,
+      normalValue: normalValue ?? this.normalValue,
+      selectedValue: selectedValue ?? this.selectedValue,
+      usedValue: usedValue ?? this.usedValue,
+      stackedValue: stackedValue ?? this.stackedValue,
+      specialValue: specialValue ?? this.specialValue,
+      disabledValue: disabledValue ?? this.disabledValue,
+    );
+  }
+
+  @override
+  SquareTheme lerp(ThemeExtension<SquareTheme>? other, double t) {
+    if (other is! SquareTheme) return this;
+    return SquareTheme(
+      normalBackground: Color.lerp(normalBackground, other.normalBackground, t)!,
+      selectedBackground: Color.lerp(selectedBackground, other.selectedBackground, t)!,
+      usedBackground: Color.lerp(usedBackground, other.usedBackground, t)!,
+      stackedBackground: Color.lerp(stackedBackground, other.stackedBackground, t)!,
+      specialBackground: Color.lerp(specialBackground, other.specialBackground, t)!,
+      disabledBackground: Color.lerp(disabledBackground, other.disabledBackground, t)!,
+      normalBorder: Color.lerp(normalBorder, other.normalBorder, t)!,
+      selectedBorder: Color.lerp(selectedBorder, other.selectedBorder, t)!,
+      usedBorder: Color.lerp(usedBorder, other.usedBorder, t)!,
+      stackedBorder: Color.lerp(stackedBorder, other.stackedBorder, t)!,
+      specialBorder: Color.lerp(specialBorder, other.specialBorder, t)!,
+      disabledBorder: Color.lerp(disabledBorder, other.disabledBorder, t)!,
+      normalLetter: Color.lerp(normalLetter, other.normalLetter, t)!,
+      selectedLetter: Color.lerp(selectedLetter, other.selectedLetter, t)!,
+      usedLetter: Color.lerp(usedLetter, other.usedLetter, t)!,
+      stackedLetter: Color.lerp(stackedLetter, other.stackedLetter, t)!,
+      specialLetter: Color.lerp(specialLetter, other.specialLetter, t)!,
+      disabledLetter: Color.lerp(disabledLetter, other.disabledLetter, t)!,
+      normalValue: Color.lerp(normalValue, other.normalValue, t)!,
+      selectedValue: Color.lerp(selectedValue, other.selectedValue, t)!,
+      usedValue: Color.lerp(usedValue, other.usedValue, t)!,
+      stackedValue: Color.lerp(stackedValue, other.stackedValue, t)!,
+      specialValue: Color.lerp(specialValue, other.specialValue, t)!,
+      disabledValue: Color.lerp(disabledValue, other.disabledValue, t)!,
+    );
+  }
 }

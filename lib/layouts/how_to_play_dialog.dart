@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../components/letter_square.dart';
+import '../logic/tile.dart'; // Add for Tile
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class HowToPlayDialog {
@@ -18,7 +19,7 @@ class HowToPlayDialog {
           child: Container(
             width: AppStyles.dialogWidth,
             height: AppStyles.dialogHeight,
-            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0), // Adjusted bottom padding
+            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -29,18 +30,13 @@ class HowToPlayDialog {
                       right: 0,
                       child: GestureDetector(
                         onTap: () => Navigator.of(context).pop(),
-                        child: const FaIcon(
-                          FontAwesomeIcons.circleXmark,
-                          size: 20.0, // Match other icons
-                          color: AppStyles.textColor,
-                        ),
+                        child: const FaIcon(FontAwesomeIcons.circleXmark, size: 20.0, color: AppStyles.textColor),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16.0),
                 Expanded(
-                  // Pushes content up, button down
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
@@ -52,22 +48,9 @@ class HowToPlayDialog {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          LetterSquare(
-                            letter: 'A',
-                            value: 1,
-                            squareSize: 40.0,
-                            letterFontSize: 20.0,
-                            valueFontSize: 10.0,
-                          ),
+                          LetterSquare(tile: Tile(letter: 'A', value: 1, isExtra: false)),
                           const SizedBox(width: 4.0),
-                          LetterSquare(
-                            letter: 'G',
-                            value: 2,
-                            isWildcard: true,
-                            squareSize: 40.0,
-                            letterFontSize: 20.0,
-                            valueFontSize: 10.0,
-                          ),
+                          LetterSquare(tile: Tile(letter: 'G', value: 2, isExtra: true)),
                         ],
                       ),
                       const SizedBox(height: 8.0),
@@ -78,7 +61,7 @@ class HowToPlayDialog {
                     ],
                   ),
                 ),
-                const SizedBox(height: AppStyles.dialogButtonPadding), // Padding above button
+                const SizedBox(height: AppStyles.dialogButtonPadding),
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: AppStyles.buttonStyle(context),

@@ -9,18 +9,9 @@ import '../layouts/game_grid.dart';
 import '../layouts/game_buttons.dart';
 import '../layouts/spelled_words_column.dart';
 import '../logic/spelled_words_handler.dart';
+import '../logic/game_layout.dart'; // Add for GameLayout
 
 class WideScreen extends StatelessWidget {
-  final double squareSize;
-  final double letterFontSize;
-  final double valueFontSize;
-  final double gridSize;
-  final double gridSpacing;
-  final double sideSpacing;
-  final double sideColumnWidth;
-  final double wordColumnWidth;
-  final double wordColumnHeight;
-  final double spelledWordsGridSpacing;
   final bool showBorders;
   final VoidCallback onSubmit;
   final VoidCallback onClear;
@@ -30,16 +21,6 @@ class WideScreen extends StatelessWidget {
 
   const WideScreen({
     super.key,
-    required this.squareSize,
-    required this.letterFontSize,
-    required this.valueFontSize,
-    required this.gridSize,
-    required this.gridSpacing,
-    required this.sideSpacing,
-    required this.sideColumnWidth,
-    required this.wordColumnWidth,
-    required this.wordColumnHeight,
-    required this.spelledWordsGridSpacing,
     required this.showBorders,
     required this.onSubmit,
     required this.onClear,
@@ -50,6 +31,14 @@ class WideScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sizes = GameLayout.of(context).sizes;
+    final gridSize = sizes['gridSize']!;
+    final squareSize = sizes['squareSize']!;
+    final sideSpacing = sizes['sideSpacing']!;
+    final sideColumnWidth = sizes['sideColumnWidth']!;
+    final wordColumnWidth = sizes['wordColumnWidth']!;
+    final wordColumnHeight = sizes['wordColumnHeight']!;
+    final spelledWordsGridSpacing = sizes['spelledWordsGridSpacing']!;
     const double topSectionHeight = 100.0;
 
     return Column(
@@ -70,17 +59,8 @@ class WideScreen extends StatelessWidget {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: topSectionHeight), // Adjusted for top bar (40) + divider (1) + spacing (10)
-                WildcardColumn(
-                  width: sideColumnWidth,
-                  height: gridSize,
-                  squareSize: squareSize,
-                  letterFontSize: letterFontSize,
-                  valueFontSize: valueFontSize,
-                  gridSpacing: gridSpacing,
-                  showBorders: showBorders,
-                  isHorizontal: false,
-                ),
+                const SizedBox(height: topSectionHeight),
+                WildcardColumn(width: sideColumnWidth, height: gridSize, showBorders: showBorders, isHorizontal: false),
               ],
             ),
             SizedBox(width: sideSpacing),
@@ -90,15 +70,8 @@ class WideScreen extends StatelessWidget {
                 GameTitle(width: gridSize, showBorders: showBorders),
                 const SizedBox(height: 20.0),
                 GameScores(width: gridSize),
-                SizedBox(height: gridSpacing),
-                GameGrid(
-                  gridSize: gridSize,
-                  squareSize: squareSize,
-                  letterFontSize: letterFontSize,
-                  valueFontSize: valueFontSize,
-                  gridSpacing: gridSpacing,
-                  showBorders: showBorders,
-                ),
+                const SizedBox(height: 8.0), // Static—could use gridSpacing if dynamic
+                GameGrid(showBorders: showBorders),
                 const SizedBox(height: 20.0),
                 GameButtons(onSubmit: onSubmit, onClear: onClear),
               ],

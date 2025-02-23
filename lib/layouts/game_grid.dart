@@ -2,29 +2,24 @@
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../logic/grid_loader.dart';
+import '../logic/tile.dart';
+import '../logic/game_layout.dart';
 import '../components/letter_square.dart';
 
-// Displays the main grid of letter tiles
 class GameGrid extends StatelessWidget {
-  final double gridSize;
-  final double squareSize;
-  final double letterFontSize;
-  final double valueFontSize;
-  final double gridSpacing;
   final bool showBorders;
 
-  const GameGrid({
-    super.key,
-    required this.gridSize,
-    required this.squareSize,
-    required this.letterFontSize,
-    required this.valueFontSize,
-    required this.gridSpacing,
-    this.showBorders = false,
-  });
+  const GameGrid({super.key, this.showBorders = false});
 
   @override
   Widget build(BuildContext context) {
+    final sizes = GameLayout.of(context).sizes;
+    final gridSize = sizes['gridSize']!;
+    final squareSize = sizes['squareSize']!;
+    final squareLetterSize = sizes['squareLetterSize']!;
+    final squareValueSize = sizes['squareValueSize']!;
+    final gridSpacing = sizes['gridSpacing']!;
+
     return Container(
       width: gridSize,
       height: gridSize,
@@ -36,15 +31,9 @@ class GameGrid extends StatelessWidget {
         mainAxisSpacing: gridSpacing,
         crossAxisSpacing: gridSpacing,
         children:
-            GridLoader.gridTiles.map((tile) {
-              return LetterSquare(
-                letter: tile['letter'],
-                value: tile['value'],
-                useCount: 0,
-                squareSize: squareSize,
-                letterFontSize: letterFontSize,
-                valueFontSize: valueFontSize,
-              );
+            GridLoader.gridTiles.map((tileData) {
+              Tile tile = Tile(letter: tileData['letter'], value: tileData['value'], isExtra: false);
+              return LetterSquare(tile: tile);
             }).toList(),
       ),
     );
