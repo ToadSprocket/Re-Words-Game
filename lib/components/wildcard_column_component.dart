@@ -11,6 +11,9 @@ class WildcardColumnComponent extends StatefulWidget {
   final double height;
   final bool showBorders;
   final bool isHorizontal;
+  final double gridSpacing;
+  final Map<String, dynamic> sizes;
+  final VoidCallback? onWildcardUsed;
 
   const WildcardColumnComponent({
     super.key,
@@ -18,6 +21,9 @@ class WildcardColumnComponent extends StatefulWidget {
     required this.height,
     this.showBorders = false,
     this.isHorizontal = false,
+    required this.gridSpacing,
+    required this.sizes,
+    this.onWildcardUsed,
   });
 
   @override
@@ -26,7 +32,7 @@ class WildcardColumnComponent extends StatefulWidget {
 
 class WildcardColumnComponentState extends State<WildcardColumnComponent> {
   late Future<List<Tile>> _wildcardTilesFuture;
-  List<Tile> tiles = []; // Define as state variable
+  List<Tile> tiles = [];
 
   @override
   void initState() {
@@ -42,16 +48,16 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
         }).toList();
     print('Wildcard tiles initialized: ${loadedTiles.length}');
     setState(() {
-      tiles = loadedTiles; // Initialize state
+      tiles = loadedTiles;
     });
     return loadedTiles;
   }
 
   void _onWildcardTapped(int index) {
-    // Simplify—no need for tiles param
     setState(() {
+      print('WildcardColumn - Tapping $index, state before: ${tiles[index].state}');
       tiles[index].select();
-      print('Wildcard $index state: ${tiles[index].state}');
+      print('WildcardColumn - Tapped $index, state after: ${tiles[index].state}');
     });
   }
 
@@ -64,11 +70,17 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
     });
   }
 
+  void removeWildcard(int index) {
+    setState(() {
+      tiles.removeAt(index);
+      print('Wildcard removed, remaining: ${tiles.length}');
+      widget.onWildcardUsed?.call();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final sizes = GameLayout.of(context).sizes;
-    final gridSpacing = sizes['gridSpacing']!;
-
+    print('WildcardColumn build - Starting');
     return Container(
       width: widget.width,
       height: widget.height,
@@ -86,16 +98,27 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
             return const Center(child: Text('No wildcards'));
           }
 
-          // tiles is already updated in _loadWildcardTiles
           return widget.isHorizontal
               ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(tiles.length, (index) {
+                  final isAvailable = tiles[index].state != 'used';
                   return Padding(
-                    padding: EdgeInsets.symmetric(horizontal: gridSpacing / 2),
-                    child: GestureDetector(
-                      onTap: () => _onWildcardTapped(index),
-                      child: LetterSquareComponent(tile: tiles[index]),
+                    padding: EdgeInsets.symmetric(horizontal: widget.gridSpacing / 2),
+                    child: Draggable<Tile>(
+                      data: tiles[index],
+                      child: Opacity(
+                        opacity: isAvailable ? 1.0 : AppStyles.wildcardDisabledOpacity,
+                        child: LetterSquareComponent(tile: tiles[index], sizes: widget.sizes),
+                      ),
+                      feedback: Opacity(
+                        opacity: 0.7,
+                        child: LetterSquareComponent(tile: tiles[index], sizes: widget.sizes),
+                      ),
+                      childWhenDragging: Container(),
+                      onDragCompleted: () {
+                        removeWildcard(index); // Fixed syntax
+                      },
                     ),
                   );
                 }),
@@ -104,11 +127,23 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: List.generate(tiles.length, (index) {
+                  final isAvailable = tiles[index].state != 'used';
                   return Padding(
-                    padding: EdgeInsets.symmetric(vertical: gridSpacing / 2),
-                    child: GestureDetector(
-                      onTap: () => _onWildcardTapped(index),
-                      child: LetterSquareComponent(tile: tiles[index]),
+                    padding: EdgeInsets.symmetric(vertical: widget.gridSpacing / 2),
+                    child: Draggable<Tile>(
+                      data: tiles[index],
+                      child: Opacity(
+                        opacity: isAvailable ? 1.0 : AppStyles.wildcardDisabledOpacity,
+                        child: LetterSquareComponent(tile: tiles[index], sizes: widget.sizes),
+                      ),
+                      feedback: Opacity(
+                        opacity: 0.7,
+                        child: LetterSquareComponent(tile: tiles[index], sizes: widget.sizes),
+                      ),
+                      childWhenDragging: Container(),
+                      onDragCompleted: () {
+                        removeWildcard(index); // Fixed syntax
+                      },
                     ),
                   );
                 }),

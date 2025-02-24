@@ -5,14 +5,19 @@ import '../logic/grid_loader.dart';
 import '../logic/scoring.dart';
 import '../logic/spelled_words_handler.dart';
 import '../models/tile.dart';
-import '../logic/game_layout.dart';
 import 'letter_square_component.dart';
 
 class GameGridComponent extends StatefulWidget {
   final bool showBorders;
-  final ValueChanged<String>? onMessage; // Add callback
+  final ValueChanged<String>? onMessage;
+  final Map<String, dynamic> sizes; // Add sizes
 
-  const GameGridComponent({super.key, this.showBorders = false, this.onMessage});
+  const GameGridComponent({
+    super.key,
+    this.showBorders = false,
+    this.onMessage,
+    required this.sizes, // Required
+  });
 
   @override
   GameGridComponentState createState() => GameGridComponentState();
@@ -83,7 +88,7 @@ class GameGridComponentState extends State<GameGridComponent> {
   void submitWord() {
     setState(() {
       final selectedTiles = selectedIndices.map((i) => tiles[i]).toList();
-      final (success, message) = SpelledWordsLogic.addWord(selectedTiles); // Unpack record
+      final (success, message) = SpelledWordsLogic.addWord(selectedTiles);
       if (success) {
         for (var index in selectedIndices) {
           tiles[index].markUsed();
@@ -103,10 +108,9 @@ class GameGridComponentState extends State<GameGridComponent> {
 
   @override
   Widget build(BuildContext context) {
-    final sizes = GameLayout.of(context).sizes;
-    final gridSize = sizes['gridSize']!;
-    final squareSize = sizes['squareSize']!;
-    final gridSpacing = sizes['gridSpacing']!;
+    final gridSize = widget.sizes['gridSize'] as double;
+    final squareSize = widget.sizes['squareSize'] as double;
+    final gridSpacing = widget.sizes['gridSpacing'] as double;
     print('Grid sizes - gridSize: $gridSize, squareSize: $squareSize, gridSpacing: $gridSpacing');
 
     return Container(
@@ -134,9 +138,27 @@ class GameGridComponentState extends State<GameGridComponent> {
             crossAxisSpacing: gridSpacing,
             children: List.generate(tiles.length, (index) {
               print('Rendering tile $index: ${tiles[index].letter}');
-              return GestureDetector(
-                onTap: () => _onTileTapped(index),
-                child: LetterSquareComponent(tile: tiles[index]),
+              return DragTarget<Tile>(
+                onWillAccept: (data) => tiles[index].state == 'unused' && !selectedIndices.contains(index),
+                onAcceptWithDetails: (details) {
+                  setState(() {
+                    tiles[index].applyWildcard(details.data.letter, details.data.value);
+                    print('Dropped wildcard on tile $index: ${tiles[index].letter}');
+                  });
+                  widget.onMessage?.call('Wildcard "${details.data.letter}" placed!');
+                },
+                onLeave: (data) {
+                  if (tiles[index].state != 'unused' || selectedIndices.contains(index)) {
+                    widget.onMessage?.call('Can only drop on unused tiles!');
+                    print('Drop rejected on tile $index: ${tiles[index].state}');
+                  }
+                },
+                builder: (context, candidateData, rejectedData) {
+                  return GestureDetector(
+                    onTap: () => _onTileTapped(index),
+                    child: LetterSquareComponent(tile: tiles[index], sizes: widget.sizes),
+                  );
+                },
               );
             }),
           );

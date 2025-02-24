@@ -2,7 +2,10 @@
 class Tile {
   String letter;
   int value;
-  final bool isExtra;
+  bool isExtra;
+  bool isHybrid;
+  String? originalLetter;
+  int? originalValue;
   String state;
   String? previousState;
   int useCount;
@@ -12,6 +15,9 @@ class Tile {
     required this.letter,
     required this.value,
     required this.isExtra,
+    this.isHybrid = false,
+    this.originalLetter,
+    this.originalValue,
     this.state = 'unused',
     this.previousState,
     this.useCount = 0,
@@ -56,6 +62,17 @@ class Tile {
         multiplier /= 2; // Undo doubling
       }
       previousState = null;
+    }
+  }
+
+  void applyWildcard(String wildcardLetter, int wildcardValue) {
+    if (state == 'unused') {
+      originalLetter ??= letter;
+      originalValue ??= value;
+      letter = wildcardLetter;
+      value = wildcardValue;
+      isHybrid = true; // Mark as hybrid
+      state = 'unused'; // Keep selectable
     }
   }
 }

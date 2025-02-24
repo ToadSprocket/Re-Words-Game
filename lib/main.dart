@@ -45,11 +45,19 @@ class _HomeScreenState extends State<HomeScreen> {
   final _gridKey = GlobalKey<GameGridComponentState>();
   final _wildcardKey = GlobalKey<WildcardColumnComponentState>();
   String submitMessage = '';
+  Map<String, dynamic>? sizes; // Store sizes
 
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    sizes = GameLayout.of(context).sizes; // Move here
+    print('HomeScreen didChangeDependencies - sizes set');
   }
 
   Future<void> _loadData() async {
@@ -80,8 +88,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final sizes = GameLayout.of(context).sizes;
-    final isWebOverride = debugForceIsWeb ?? sizes['isWeb'] as bool;
+    if (sizes == null) {
+      return const SizedBox.shrink(); // Wait for sizes
+    }
+    final isWebOverride = debugForceIsWeb ?? sizes!['isWeb'] as bool;
     print(
       'screenWidth: ${MediaQuery.of(context).size.width}, debugForceIsWeb: $debugForceIsWeb, isWeb: $isWebOverride',
     );
@@ -93,27 +103,29 @@ class _HomeScreenState extends State<HomeScreen> {
             isWeb
                 ? WideScreen(
                   showBorders: debugShowBorders,
-                  onSubmit: submitWord, // Updated
+                  onSubmit: submitWord,
                   onClear: clearWords,
                   onInstructions: () => HowToPlayDialog.show(context),
                   onHighScores: () => HighScoresDialog.show(context),
                   onLegal: () => LegalDialog.show(context),
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,
-                  onMessage: _handleMessage, // Pass callback
-                  message: submitMessage, // Updated
+                  onMessage: _handleMessage,
+                  message: submitMessage,
+                  sizes: sizes!, // Pass sizes
                 )
                 : NarrowScreen(
                   showBorders: debugShowBorders,
-                  onSubmit: submitWord, // Updated
+                  onSubmit: submitWord,
                   onClear: clearWords,
                   onInstructions: () => HowToPlayDialog.show(context),
                   onHighScores: () => HighScoresDialog.show(context),
                   onLegal: () => LegalDialog.show(context),
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,
-                  onMessage: _handleMessage, // Pass callback
-                  message: submitMessage, // Updated
+                  onMessage: _handleMessage,
+                  message: submitMessage,
+                  sizes: sizes!, // Pass sizes
                 ),
       ),
     );

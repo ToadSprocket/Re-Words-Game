@@ -23,6 +23,7 @@ class WideScreen extends StatelessWidget {
   final GlobalKey<WildcardColumnComponentState>? wildcardKey; // Public state
   final ValueChanged<String>? onMessage; // Add callback
   final String message;
+  final Map<String, dynamic> sizes;
 
   const WideScreen({
     super.key,
@@ -36,18 +37,19 @@ class WideScreen extends StatelessWidget {
     this.wildcardKey,
     this.onMessage,
     required this.message,
+    required this.sizes,
   });
 
   @override
   Widget build(BuildContext context) {
-    final sizes = GameLayout.of(context).sizes;
-    final gridSize = sizes['gridSize']!;
-    final squareSize = sizes['squareSize']!;
-    final sideSpacing = sizes['sideSpacing']!;
-    final sideColumnWidth = sizes['sideColumnWidth']!;
-    final wordColumnWidth = sizes['wordColumnWidth']!;
-    final wordColumnHeight = sizes['wordColumnHeight']!;
-    final spelledWordsGridSpacing = sizes['spelledWordsGridSpacing']!;
+    final gridSize = sizes['gridSize'] as double; // Cast here
+    final squareSize = sizes['squareSize'] as double;
+    final sideSpacing = sizes['sideSpacing'] as double;
+    final sideColumnWidth = sizes['wordColumnWidth'] as double;
+    final wordColumnWidth = sizes['wordColumnWidth'] as double;
+    final wordColumnHeight = sizes['wordColumnHeight'] as double;
+    final spelledWordsGridSpacing = sizes['spelledWordsGridSpacing'] as double;
+    final gridSpacing = sizes['gridSpacing'] as double;
     const double topSectionHeight = 100.0;
 
     print("WideScreen");
@@ -77,6 +79,8 @@ class WideScreen extends StatelessWidget {
                   height: gridSize,
                   showBorders: showBorders,
                   isHorizontal: false,
+                  gridSpacing: gridSpacing,
+                  sizes: sizes, // Pass here
                 ),
               ],
             ),
@@ -88,7 +92,7 @@ class WideScreen extends StatelessWidget {
                 const SizedBox(height: 20.0),
                 GameScores(width: gridSize),
                 const SizedBox(height: 8.0),
-                GameGridComponent(key: gridKey, showBorders: showBorders, onMessage: onMessage),
+                GameGridComponent(key: gridKey, showBorders: showBorders, onMessage: onMessage, sizes: sizes),
                 const SizedBox(height: 5.0),
                 GameMessageComponent(message: message),
                 const SizedBox(height: 5.0),

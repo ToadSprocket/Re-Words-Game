@@ -73,6 +73,8 @@ class AppStyles {
   static const Color disabledValueTextColor = Color.fromARGB(150, 180, 71, 57);
   static const Color wildcardValueTextColor = Color.fromARGB(255, 233, 133, 3);
 
+  static const double wildcardDisabledOpacity = 0.8;
+
   // Spelled Words Styles
   static const double spelledWordsTitleFontSize = 15.0;
   static const Color spelledWordsTitleColor = Color(0xFFFFFFFF);

@@ -23,6 +23,7 @@ class NarrowScreen extends StatelessWidget {
   final GlobalKey<WildcardColumnComponentState>? wildcardKey; // Add key
   final ValueChanged<String>? onMessage; // Add callback
   final String message;
+  final Map<String, dynamic> sizes;
 
   const NarrowScreen({
     super.key,
@@ -36,14 +37,14 @@ class NarrowScreen extends StatelessWidget {
     this.wildcardKey,
     this.onMessage,
     required this.message,
+    required this.sizes,
   });
 
   @override
   Widget build(BuildContext context) {
-    final sizes = GameLayout.of(context).sizes;
-    final gridSize = sizes['gridSize']!;
-    final squareSize = sizes['squareSize']!;
-    final gridSpacing = sizes['gridSpacing']!;
+    final gridSize = sizes['gridSize'] as double; // Cast here
+    final squareSize = sizes['squareSize'] as double;
+    final gridSpacing = sizes['gridSpacing'] as double;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -65,15 +66,18 @@ class NarrowScreen extends StatelessWidget {
         GameGridComponent(
           key: gridKey, // Pass key
           showBorders: showBorders,
-          onMessage: onMessage, // Pass callback
+          onMessage: onMessage,
+          sizes: sizes, // Pass callback
         ),
         SizedBox(height: gridSpacing),
         WildcardColumnComponent(
-          key: wildcardKey, // Pass key
+          key: wildcardKey,
           width: gridSize,
           height: squareSize * 2,
           showBorders: showBorders,
           isHorizontal: true,
+          gridSpacing: gridSpacing,
+          sizes: sizes, // Pass here
         ),
         const SizedBox(height: 5.0),
         GameMessageComponent(message: message),

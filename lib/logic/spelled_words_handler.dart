@@ -56,6 +56,13 @@ class SpelledWordsLogic {
       int wordScore = Scoring.calculateScore(selectedTiles);
       spelledWords.add(casedWord);
       score += wordScore;
+
+      if (doesWordContainWildcard(selectedTiles)) {
+        double multiplier = getWildcardMutlipliersValue(selectedTiles);
+        score += (wordScore * multiplier).toInt();
+        return (true, "Word score multiplied by $multiplier!");
+      }
+
       return (true, "");
     } else {
       if (casedWord.length < 4) {
@@ -70,6 +77,21 @@ class SpelledWordsLogic {
       print("'$casedWord' rejected: ${casedWord.length > 12 ? 'too long' : 'not valid'}");
       return (false, reason);
     }
+  }
+
+  static bool doesWordContainWildcard(List selectedTiles) {
+    return selectedTiles.any((tile) => tile.isHybrid);
+  }
+
+  static double getWildcardMutlipliersValue(List selectedTiles) {
+    double multiplier = 0;
+    for (var tile in selectedTiles) {
+      if (tile.isHybrid) {
+        multiplier += tile.value;
+      }
+    }
+
+    return multiplier;
   }
 
   static bool isDuplicateWord(String word) {

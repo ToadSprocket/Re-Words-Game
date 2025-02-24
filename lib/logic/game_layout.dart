@@ -8,7 +8,12 @@ class GameLayout extends InheritedWidget {
   const GameLayout({super.key, required this.sizes, required super.child});
 
   static GameLayout of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<GameLayout>()!;
+    final gameLayout = context.dependOnInheritedWidgetOfExactType<GameLayout>();
+    print('GameLayout.of called - context: $context, result: $gameLayout');
+    if (gameLayout == null) {
+      print('GameLayout.of - WARNING: GameLayout is null!');
+    }
+    return gameLayout!;
   }
 
   @override
