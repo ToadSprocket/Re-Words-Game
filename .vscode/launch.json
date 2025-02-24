@@ -5,9 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "reword_game",
+            "name": "reword_game wide screen",
             "request": "launch",
-            "type": "dart"
+            "type": "dart",
+            "args": ["--dart-define=ENV_WIDTH=1024"]
+        },
+        {
+            "name": "reword_game narrow screen",
+            "request": "launch",
+            "type": "dart",
+            "args": ["--dart-define=ENV_WIDTH=780"]
         },
         {
             "name": "reword_game (profile mode)",
@@ -20,6 +27,24 @@
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"
-        }
+        },
+        {
+            "name": "reword_game (Chrome)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "chrome"
+        },
+        {
+            "name": "reword_game (Firefox)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "firefox"
+        },
+        {
+            "name": "reword_game (Edge)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "edge"
+        }        
     ]
 }

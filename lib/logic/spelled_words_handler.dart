@@ -1,6 +1,7 @@
 // logic/spelled_words_handler.dart
 import 'scoring.dart';
 import 'word_loader.dart';
+import '../models/tile.dart';
 
 class SpelledWordsLogic {
   static List<String> spelledWords = [];
@@ -42,17 +43,36 @@ class SpelledWordsLogic {
     }
   }
 
-  static void addWord(String word, {int multiplier = 1}) {
+  static (bool, String) addWord(List<Tile> selectedTiles) {
+    String word = selectedTiles.map((tile) => tile.letter).join();
     String casedWord = word.isEmpty ? '' : word.substring(0, 1).toUpperCase() + word.substring(1).toLowerCase();
+    String reason = "";
 
-    // Check length and validity
-    if (casedWord.length <= 12 && WordLoader.words.contains(casedWord.toLowerCase())) {
-      int wordScore = Scoring.calculateWordScore(casedWord, multiplier);
+    if (casedWord.length == 0) {
+      return (false, "");
+    } else if (casedWord.length >= 4 &&
+        casedWord.length <= 12 &&
+        Scoring.isValidWord(casedWord, WordLoader.words) & !isDuplicateWord(casedWord)) {
+      int wordScore = Scoring.calculateScore(selectedTiles);
       spelledWords.add(casedWord);
       score += wordScore;
-      print("Added '$casedWord', Score: $score, Words: ${spelledWords.length}");
+      return (true, "");
     } else {
+      if (casedWord.length < 4) {
+        reason = "'$casedWord' too short";
+      } else if (casedWord.length > 12) {
+        reason = "Word too long";
+      } else if (isDuplicateWord(casedWord)) {
+        reason = "'$casedWord' already used";
+      } else {
+        reason = "'$casedWord' Invalid";
+      }
       print("'$casedWord' rejected: ${casedWord.length > 12 ? 'too long' : 'not valid'}");
+      return (false, reason);
     }
+  }
+
+  static bool isDuplicateWord(String word) {
+    return spelledWords.contains(word);
   }
 }

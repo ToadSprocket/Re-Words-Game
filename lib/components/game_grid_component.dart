@@ -2,14 +2,17 @@
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../logic/grid_loader.dart';
+import '../logic/scoring.dart';
+import '../logic/spelled_words_handler.dart';
 import '../models/tile.dart';
 import '../logic/game_layout.dart';
 import 'letter_square_component.dart';
 
 class GameGridComponent extends StatefulWidget {
   final bool showBorders;
+  final ValueChanged<String>? onMessage; // Add callback
 
-  const GameGridComponent({super.key, this.showBorders = false});
+  const GameGridComponent({super.key, this.showBorders = false, this.onMessage});
 
   @override
   GameGridComponentState createState() => GameGridComponentState();
@@ -17,7 +20,7 @@ class GameGridComponent extends StatefulWidget {
 
 class GameGridComponentState extends State<GameGridComponent> {
   late Future<List<Tile>> _tilesFuture;
-  List<Tile> tiles = []; // Define as state variable
+  List<Tile> tiles = [];
   final List<int> selectedIndices = [];
 
   @override
@@ -34,20 +37,34 @@ class GameGridComponentState extends State<GameGridComponent> {
         }).toList();
     print('Loaded tiles: ${loadedTiles.length}');
     setState(() {
-      tiles = loadedTiles; // Initialize state
+      tiles = loadedTiles;
     });
     return loadedTiles;
   }
 
+  bool _isAdjacent(int newIndex, int lastIndex) {
+    if (lastIndex == -1) return true;
+    final newRow = newIndex ~/ AppStyles.gridCols;
+    final newCol = newIndex % AppStyles.gridCols;
+    final lastRow = lastIndex ~/ AppStyles.gridCols;
+    final lastCol = lastIndex % AppStyles.gridCols;
+    final rowDiff = (newRow - lastRow).abs();
+    final colDiff = (newCol - lastCol).abs();
+    return (rowDiff <= 1 && colDiff <= 1) && !(rowDiff == 0 && colDiff == 0);
+  }
+
   void _onTileTapped(int index) {
-    // Simplify—no need for tiles param
     setState(() {
-      if (tiles[index].state == 'unused') {
+      final lastIndex = selectedIndices.isEmpty ? -1 : selectedIndices.last;
+      if (tiles[index].state == 'selected' && index == selectedIndices.last) {
+        tiles[index].select();
+        selectedIndices.removeLast();
+      } else if ((tiles[index].state == 'unused' || tiles[index].state == 'used') &&
+          selectedIndices.length < 12 &&
+          !selectedIndices.contains(index) &&
+          _isAdjacent(index, lastIndex)) {
         tiles[index].select();
         selectedIndices.add(index);
-      } else if (tiles[index].state == 'selected') {
-        tiles[index].select();
-        selectedIndices.remove(index);
       }
       print('Tile $index state: ${tiles[index].state}, Selected: $selectedIndices');
     });
@@ -60,6 +77,27 @@ class GameGridComponentState extends State<GameGridComponent> {
       }
       selectedIndices.clear();
       print('Cleared selected tiles');
+    });
+  }
+
+  void submitWord() {
+    setState(() {
+      final selectedTiles = selectedIndices.map((i) => tiles[i]).toList();
+      final (success, message) = SpelledWordsLogic.addWord(selectedTiles); // Unpack record
+      if (success) {
+        for (var index in selectedIndices) {
+          tiles[index].markUsed();
+        }
+        selectedIndices.clear();
+        print('Valid word submitted');
+      } else {
+        for (var index in selectedIndices) {
+          tiles[index].revert();
+        }
+        selectedIndices.clear();
+        print('Invalid word submitted');
+      }
+      widget.onMessage?.call(message);
     });
   }
 
@@ -88,7 +126,6 @@ class GameGridComponentState extends State<GameGridComponent> {
             return const Center(child: Text('No grid data'));
           }
 
-          // tiles is already updated in _loadTiles, but we could sync here if needed
           return GridView.count(
             crossAxisCount: AppStyles.gridCols,
             shrinkWrap: true,

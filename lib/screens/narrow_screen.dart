@@ -10,6 +10,7 @@ import '../components/game_buttons_component.dart';
 import '../components/spelled_words_ticker_component.dart';
 import '../logic/spelled_words_handler.dart';
 import '../logic/game_layout.dart';
+import '../components/game_message_component.dart';
 
 class NarrowScreen extends StatelessWidget {
   final bool showBorders;
@@ -20,6 +21,8 @@ class NarrowScreen extends StatelessWidget {
   final VoidCallback onLegal;
   final GlobalKey<GameGridComponentState>? gridKey; // Add key
   final GlobalKey<WildcardColumnComponentState>? wildcardKey; // Add key
+  final ValueChanged<String>? onMessage; // Add callback
+  final String message;
 
   const NarrowScreen({
     super.key,
@@ -31,6 +34,8 @@ class NarrowScreen extends StatelessWidget {
     required this.onLegal,
     this.gridKey,
     this.wildcardKey,
+    this.onMessage,
+    required this.message,
   });
 
   @override
@@ -60,6 +65,7 @@ class NarrowScreen extends StatelessWidget {
         GameGridComponent(
           key: gridKey, // Pass key
           showBorders: showBorders,
+          onMessage: onMessage, // Pass callback
         ),
         SizedBox(height: gridSpacing),
         WildcardColumnComponent(
@@ -69,7 +75,9 @@ class NarrowScreen extends StatelessWidget {
           showBorders: showBorders,
           isHorizontal: true,
         ),
-        const SizedBox(height: 20.0),
+        const SizedBox(height: 5.0),
+        GameMessageComponent(message: message),
+        const SizedBox(height: 5.0),
         GameButtonsComponent(onSubmit: onSubmit, onClear: onClear),
       ],
     );

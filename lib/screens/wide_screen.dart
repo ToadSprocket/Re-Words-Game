@@ -10,6 +10,7 @@ import '../components/game_buttons_component.dart';
 import '../components/spelled_words_column_component.dart';
 import '../logic/spelled_words_handler.dart';
 import '../logic/game_layout.dart';
+import '../components/game_message_component.dart';
 
 class WideScreen extends StatelessWidget {
   final bool showBorders;
@@ -20,6 +21,8 @@ class WideScreen extends StatelessWidget {
   final VoidCallback onLegal;
   final GlobalKey<GameGridComponentState>? gridKey; // Public state
   final GlobalKey<WildcardColumnComponentState>? wildcardKey; // Public state
+  final ValueChanged<String>? onMessage; // Add callback
+  final String message;
 
   const WideScreen({
     super.key,
@@ -31,6 +34,8 @@ class WideScreen extends StatelessWidget {
     required this.onLegal,
     this.gridKey,
     this.wildcardKey,
+    this.onMessage,
+    required this.message,
   });
 
   @override
@@ -83,8 +88,10 @@ class WideScreen extends StatelessWidget {
                 const SizedBox(height: 20.0),
                 GameScores(width: gridSize),
                 const SizedBox(height: 8.0),
-                GameGridComponent(key: gridKey, showBorders: showBorders),
-                const SizedBox(height: 20.0),
+                GameGridComponent(key: gridKey, showBorders: showBorders, onMessage: onMessage),
+                const SizedBox(height: 5.0),
+                GameMessageComponent(message: message),
+                const SizedBox(height: 5.0),
                 GameButtonsComponent(onSubmit: onSubmit, onClear: onClear),
               ],
             ),

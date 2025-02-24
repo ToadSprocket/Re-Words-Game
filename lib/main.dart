@@ -11,8 +11,8 @@ import 'logic/spelled_words_handler.dart';
 import 'dialogs/how_to_play_dialog.dart';
 import 'dialogs/high_scores_dialog.dart';
 import 'dialogs/legal_dialog.dart';
-import 'components/game_grid_component.dart'; // Add this
-import 'components/wildcard_column_component.dart'; // Add this
+import 'components/game_grid_component.dart';
+import 'components/wildcard_column_component.dart';
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
@@ -44,6 +44,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _gridKey = GlobalKey<GameGridComponentState>();
   final _wildcardKey = GlobalKey<WildcardColumnComponentState>();
+  String submitMessage = '';
 
   @override
   void initState() {
@@ -53,23 +54,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadData() async {
     await WordLoader.loadWords();
+    await GridLoader.loadGrid(); // Ensure grid loads here too
     setState(() {});
   }
 
-  void addWord() {
-    if (WordLoader.words.isNotEmpty) {
-      String randomWord = WordLoader.words[Random().nextInt(WordLoader.words.length)];
-      SpelledWordsLogic.addWord(randomWord);
-      setState(() {});
-    }
+  void submitWord() {
+    setState(() {
+      _gridKey.currentState?.submitWord(); // Triggers validation and scoring
+    });
   }
 
   void clearWords() {
     setState(() {
       _gridKey.currentState?.clearSelectedTiles();
       _wildcardKey.currentState?.clearSelectedTiles();
-      SpelledWordsLogic.spelledWords.clear();
-      SpelledWordsLogic.score = 0;
+      submitMessage = '';
+    });
+  }
+
+  void _handleMessage(String message) {
+    setState(() {
+      submitMessage = message;
     });
   }
 
@@ -88,23 +93,27 @@ class _HomeScreenState extends State<HomeScreen> {
             isWeb
                 ? WideScreen(
                   showBorders: debugShowBorders,
-                  onSubmit: addWord,
+                  onSubmit: submitWord, // Updated
                   onClear: clearWords,
                   onInstructions: () => HowToPlayDialog.show(context),
                   onHighScores: () => HighScoresDialog.show(context),
                   onLegal: () => LegalDialog.show(context),
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,
+                  onMessage: _handleMessage, // Pass callback
+                  message: submitMessage, // Updated
                 )
                 : NarrowScreen(
                   showBorders: debugShowBorders,
-                  onSubmit: addWord,
+                  onSubmit: submitWord, // Updated
                   onClear: clearWords,
                   onInstructions: () => HowToPlayDialog.show(context),
                   onHighScores: () => HighScoresDialog.show(context),
                   onLegal: () => LegalDialog.show(context),
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,
+                  onMessage: _handleMessage, // Pass callback
+                  message: submitMessage, // Updated
                 ),
       ),
     );

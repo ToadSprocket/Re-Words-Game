@@ -1,4 +1,4 @@
-// components/letter_square.dart
+// components/letter_square_component.dart
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../models/tile.dart';
@@ -25,47 +25,35 @@ class LetterSquareComponent extends StatelessWidget {
         bgColor = squareTheme.normalBackground;
         borderColor = squareTheme.normalBorder;
         letterColor = squareTheme.normalLetter;
-        valueColor = squareTheme.normalValue;
+        valueColor = tile.isExtra ? AppStyles.wildcardValueTextColor : squareTheme.normalValue;
         break;
       case 'selected':
         bgColor = squareTheme.selectedBackground;
         borderColor = squareTheme.selectedBorder;
         letterColor = squareTheme.selectedLetter;
-        valueColor = squareTheme.selectedValue;
+        valueColor = tile.isExtra ? AppStyles.wildcardValueTextColor : squareTheme.selectedValue;
         break;
       case 'used':
-        bgColor = tile.useCount > 1 ? squareTheme.usedBackground : squareTheme.usedBackground;
+        bgColor = squareTheme.usedBackground;
         borderColor = squareTheme.usedBorder;
         letterColor = squareTheme.usedLetter;
-        valueColor = squareTheme.usedValue;
-        break;
-      case 'stacked':
-        bgColor = squareTheme.stackedBackground;
-        borderColor = squareTheme.stackedBorder;
-        letterColor = squareTheme.stackedLetter;
-        valueColor = squareTheme.stackedValue;
-        break;
-      case 'special':
-        bgColor = squareTheme.specialBackground;
-        borderColor = squareTheme.specialBorder;
-        letterColor = squareTheme.specialLetter;
-        valueColor = squareTheme.specialValue;
-        break;
-      case 'disabled':
-        bgColor = squareTheme.disabledBackground;
-        borderColor = squareTheme.disabledBorder;
-        letterColor = squareTheme.disabledLetter;
-        valueColor = squareTheme.disabledValue;
+        valueColor = tile.isExtra ? AppStyles.wildcardValueTextColor : squareTheme.usedValue;
         break;
       default:
         bgColor = squareTheme.normalBackground;
         borderColor = squareTheme.normalBorder;
         letterColor = squareTheme.normalLetter;
-        valueColor = squareTheme.normalValue;
+        valueColor = tile.isExtra ? AppStyles.wildcardValueTextColor : squareTheme.normalValue;
     }
 
-    int displayValue = tile.isExtra ? tile.value * 2 : tile.value;
-    String valueText = tile.isExtra ? '${displayValue}x' : '$displayValue';
+    String valueText =
+        tile.isExtra
+            ? '${tile.value * tile.multiplier.round()}x'
+            : tile.useCount > 0 &&
+                tile.value >
+                    1 // Show "x" only if doubled
+            ? '${tile.value}'
+            : '${tile.value}';
 
     return Container(
       width: sizes['squareSize'],

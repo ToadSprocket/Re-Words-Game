@@ -40,12 +40,12 @@ class AppStyles {
 
   // Title Styles
   static const double headerFontSize = 36.0;
-  static const Color headerTextColor = Color.fromARGB(255, 3, 240, 23);
+  static const Color headerTextColor = Color.fromARGB(255, 79, 185, 69);
 
   // Square Styles
   static const Color normalSquareColor = Color(0xFF1F1F21);
-  static const Color selectedSquareColor = Color(0xFF538D4E);
-  static const Color usedSquareColor = Color(0xFF818384);
+  static const Color selectedSquareColor = Color.fromARGB(209, 44, 110, 38);
+  static const Color usedSquareColor = Color.fromARGB(120, 44, 110, 38);
   static const Color usedMultipleColor = Color(0xFF818384);
   static const Color stackedSquareColor = Color(0xFF3A3A3C);
   static const Color specialSquareColor = Color(0xFF6A1B9A);
@@ -67,10 +67,11 @@ class AppStyles {
 
   static const Color normalValueTextColor = Color.fromARGB(230, 4, 190, 29);
   static const Color selectedValueTextColor = Color.fromARGB(230, 4, 190, 29);
-  static const Color usedValueTextColor = Color.fromARGB(255, 180, 71, 57);
+  static const Color usedValueTextColor = Color.fromARGB(255, 243, 198, 50);
   static const Color stackedValueTextColor = Color.fromARGB(230, 4, 190, 29);
   static const Color specialValueTextColor = Color.fromARGB(255, 255, 255, 255);
   static const Color disabledValueTextColor = Color.fromARGB(150, 180, 71, 57);
+  static const Color wildcardValueTextColor = Color.fromARGB(255, 233, 133, 3);
 
   // Spelled Words Styles
   static const double spelledWordsTitleFontSize = 15.0;

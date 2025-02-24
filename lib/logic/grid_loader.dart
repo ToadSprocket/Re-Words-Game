@@ -1,52 +1,72 @@
-// Loads the daily grid data
+// logic/grid_loader.dart
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
-import 'scoring.dart'; // Import scoring for letter values
+import '../models/tile.dart'; // For Tile type
 
 class GridLoader {
-  // Store the grid as a list of letter-value pairs
-  static List<Map<String, dynamic>> _gridTiles = [];
-  // Store wildcards as a list of letter-value pairs
-  static List<Map<String, dynamic>> _wildcardTiles = [];
-  // Other grid metadata
+  static List<Map<String, dynamic>> gridTiles = [];
+  static List<Map<String, dynamic>> wildcardTiles = [];
   static Map<String, dynamic> _gridData = {};
 
-  // Load the grid from a local file (for testing)
+  // Scrabble letter values (moved from scoring.dart)
+  static const Map<String, int> _letterValues = {
+    'a': 1,
+    'e': 1,
+    'i': 1,
+    'o': 1,
+    'u': 1,
+    'l': 1,
+    'n': 1,
+    's': 1,
+    't': 1,
+    'r': 1,
+    'd': 2,
+    'g': 2,
+    'b': 3,
+    'c': 3,
+    'm': 3,
+    'p': 3,
+    'f': 4,
+    'h': 4,
+    'v': 4,
+    'w': 4,
+    'y': 4,
+    'k': 5,
+    'j': 8,
+    'x': 8,
+    'q': 10,
+    'z': 10,
+  };
+
   static Future<void> loadGrid() async {
-    // Read the JSON file as a string
     String jsonString = await rootBundle.loadString('lib/data/daily_grid.json');
     _gridData = jsonDecode(jsonString);
 
-    // Process the grid (49 characters) into tiles
     String gridString = _gridData['grid'] ?? '';
-    _gridTiles =
+    gridTiles =
         gridString.split('').map((letter) {
-          return {'letter': letter, 'value': Scoring.getLetterValue(letter)};
-        }).toList();
-
-    // Process the wildcards (5 characters) into tiles
-    String wildcardString = _gridData['wildcards'] ?? '';
-    _wildcardTiles =
-        wildcardString.split('').map((letter) {
           return {
             'letter': letter,
-            'value': Scoring.getLetterValue(
-              letter,
-            ), // 0 for non-Scrabble letters
+            'value': _letterValues[letter.toLowerCase()] ?? 0, // 0 for unknown
           };
         }).toList();
 
-    // Debug output to verify
-    print('Grid tiles: ${_gridTiles.length} (should be 49)');
-    print('First 5 grid tiles: ${_gridTiles.take(5)}');
-    print('Wildcard tiles: ${_wildcardTiles.length} (should be 5)');
-    print('Wildcards: $_wildcardTiles');
+    String wildcardString = _gridData['wildcards'] ?? '';
+    wildcardTiles =
+        wildcardString.split('').map((letter) {
+          return {
+            'letter': letter,
+            'value': _letterValues[letter.toLowerCase()] ?? 0, // 0 for non-Scrabble
+          };
+        }).toList();
+
+    print('Grid tiles: ${gridTiles.length} (should be 49)');
+    print('First 5 grid tiles: ${gridTiles.take(5).toList()}');
+    print('Wildcard tiles: ${wildcardTiles.length} (should be 5)');
+    print('Wildcards: $wildcardTiles');
     print('Word count: ${_gridData["wordCount"]}');
   }
 
-  // Getters for the data
-  static List<Map<String, dynamic>> get gridTiles => _gridTiles;
-  static List<Map<String, dynamic>> get wildcardTiles => _wildcardTiles;
   static int get wordCount => _gridData['wordCount'] ?? 0;
   static String get date => _gridData['date'] ?? '';
 }
