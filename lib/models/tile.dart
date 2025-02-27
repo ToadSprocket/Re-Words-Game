@@ -44,12 +44,15 @@ class Tile {
     if (state == 'selected') {
       state = 'used';
       useCount++;
-      if (value == 1 && useCount == 1) {
-        value = 2; // Double on first use for value 1
-        multiplier = 2.0; // Set for next doubling
-      } else {
-        value = (value * multiplier).round(); // Apply multiplier for others
-        multiplier = useCount > 0 ? 2.0 : 1.0; // Reset for next use
+      // Do not double if hybrid
+      if (!this.isHybrid) {
+        if (value == 1 && useCount == 1) {
+          value = 2; // Double on first use for value 1
+          multiplier = 2.0; // Set for next doubling
+        } else {
+          value = (value * multiplier).round(); // Apply multiplier for others
+          multiplier = useCount > 0 ? 2.0 : 1.0; // Reset for next use
+        }
       }
       previousState = null;
     }

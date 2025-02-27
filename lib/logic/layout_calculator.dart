@@ -1,10 +1,8 @@
-// logic/layout_calculator.dart
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 
 class LayoutCalculator {
   static Map<String, dynamic> calculateSizes(BuildContext context) {
-    // Changed to dynamic for bool
     double screenWidth = MediaQuery.of(context).size.width;
     bool isWeb = screenWidth > 800;
 
@@ -28,8 +26,10 @@ class LayoutCalculator {
       squareSize = screenWidth / 30;
       squareSize = squareSize.clamp(40.0, 100.0);
       gridSpacing = 4.0;
-      sideSpacing = 30.0;
-      sideColumnWidth = 350.0;
+      sideSpacing = screenWidth * 0.015; // 1.5% of screen width, e.g., 29px at 1931px
+      sideSpacing = sideSpacing.clamp(20.0, 50.0); // Min 20, max 50
+      sideColumnWidth = screenWidth * 0.35; // 12% of screen width, e.g., 231px at 1931px
+      sideColumnWidth = sideColumnWidth.clamp(400.0, 800.0); // Min 200, max 400
     } else {
       squareSize = screenWidth / 8;
       squareSize = squareSize.clamp(40.0, 80.0);
@@ -67,7 +67,7 @@ class LayoutCalculator {
       'buttonHorizontalPadding': buttonHorizontalPadding,
       'buttonBorderRadius': buttonBorderRadius,
       'buttonBorderThickness': buttonBorderThickness,
-      'isWeb': isWeb, // Added
+      'isWeb': isWeb,
     };
   }
 }

@@ -46,7 +46,6 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
         GridLoader.wildcardTiles.map((tileData) {
           return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: true);
         }).toList();
-    print('Wildcard tiles initialized: ${loadedTiles.length}');
     setState(() {
       tiles = loadedTiles;
     });
@@ -55,9 +54,7 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
 
   void _onWildcardTapped(int index) {
     setState(() {
-      print('WildcardColumn - Tapping $index, state before: ${tiles[index].state}');
       tiles[index].select();
-      print('WildcardColumn - Tapped $index, state after: ${tiles[index].state}');
     });
   }
 
@@ -66,14 +63,12 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
       for (var tile in tiles.where((t) => t.state == 'selected')) {
         tile.state = 'unused';
       }
-      print('Cleared selected wildcards');
     });
   }
 
   void removeWildcard(int index) {
     setState(() {
       tiles.removeAt(index);
-      print('Wildcard removed, remaining: ${tiles.length}');
       widget.onWildcardUsed?.call();
     });
   }
@@ -91,10 +86,8 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            print('Error loading wildcards: ${snapshot.error}');
             return const Center(child: Text('Error loading wildcards'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            print('No wildcard tiles loaded');
             return const Center(child: Text('No wildcards'));
           }
 

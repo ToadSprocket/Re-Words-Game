@@ -13,8 +13,10 @@ import 'dialogs/high_scores_dialog.dart';
 import 'dialogs/legal_dialog.dart';
 import 'components/game_grid_component.dart';
 import 'components/wildcard_column_component.dart';
+import 'logic/security.dart';
+import 'logic/user_storage.dart';
 
-const bool debugShowBorders = false;
+const bool debugShowBorders = true;
 const bool? debugForceIsWeb = null;
 
 void main() {
@@ -50,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _testUserId();
     _loadData();
   }
 
@@ -58,6 +61,15 @@ class _HomeScreenState extends State<HomeScreen> {
     super.didChangeDependencies();
     sizes = GameLayout.of(context).sizes; // Move here
     print('HomeScreen didChangeDependencies - sizes set');
+  }
+
+  Future<void> _testUserId() async {
+    final userId = await UserIdStorage.getUserId();
+    print('Current userId: $userId');
+    if (userId == null) {
+      await UserIdStorage.setUserId('test-12345');
+      print('Set test userId: test-12345');
+    }
   }
 
   Future<void> _loadData() async {

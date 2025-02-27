@@ -1,14 +1,16 @@
-// logic/grid_loader.dart
 import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle;
-import '../models/tile.dart'; // For Tile type
+import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' show kIsWeb; // Add this
+import '../models/tile.dart';
+import 'security.dart';
+import 'user_storage.dart';
+import '../config/config.dart';
 
 class GridLoader {
   static List<Map<String, dynamic>> gridTiles = [];
   static List<Map<String, dynamic>> wildcardTiles = [];
   static Map<String, dynamic> _gridData = {};
 
-  // Scrabble letter values (moved from scoring.dart)
   static const Map<String, int> _letterValues = {
     'a': 1,
     'e': 1,
@@ -39,34 +41,58 @@ class GridLoader {
   };
 
   static Future<void> loadGrid() async {
-    String jsonString = await rootBundle.loadString('lib/data/daily_grid.json');
-    _gridData = jsonDecode(jsonString);
+    final userId = await UserIdStorage.getUserId();
+    final uri = Uri.parse(Config.apiUrl);
+    final headers = {
+      'accept': 'application/json',
+      'x-api-key': Security.generateApiKeyHash(),
+      'Content-Type': 'application/json',
+    };
+    final body = jsonEncode({
+      'userId': userId ?? '',
+      'platform': kIsWeb ? 'Web' : 'Windows',
+      'sessionStart': DateTime.now().toUtc().toIso8601String(),
+      'sessionEnd': DateTime.now().toUtc().toIso8601String(),
+    });
 
-    String gridString = _gridData['grid'] ?? '';
-    gridTiles =
-        gridString.split('').map((letter) {
-          return {
-            'letter': letter,
-            'value': _letterValues[letter.toLowerCase()] ?? 0, // 0 for unknown
-          };
-        }).toList();
+    print('Sending API request: $uri');
+    print('Headers: $headers');
+    print('Body: $body');
 
-    String wildcardString = _gridData['wildcards'] ?? '';
-    wildcardTiles =
-        wildcardString.split('').map((letter) {
-          return {
-            'letter': letter,
-            'value': _letterValues[letter.toLowerCase()] ?? 0, // 0 for non-Scrabble
-          };
-        }).toList();
+    final response = await http.post(uri, headers: headers, body: body);
 
-    print('Grid tiles: ${gridTiles.length} (should be 49)');
-    print('First 5 grid tiles: ${gridTiles.take(5).toList()}');
-    print('Wildcard tiles: ${wildcardTiles.length} (should be 5)');
-    print('Wildcards: $wildcardTiles');
-    print('Word count: ${_gridData["wordCount"]}');
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      _gridData = jsonDecode(response.body);
+      final newUserId = _gridData['userId'];
+      if (newUserId != null && newUserId != userId) {
+        await UserIdStorage.setUserId(newUserId);
+        print('Updated userId: $newUserId');
+      }
+      String gridString = _gridData['grid'] ?? '';
+      gridTiles =
+          gridString.split('').map((letter) {
+            return {'letter': letter, 'value': _letterValues[letter.toLowerCase()] ?? 0};
+          }).toList();
+
+      String wildcardString = _gridData['wildcards'] ?? '';
+      wildcardTiles =
+          wildcardString.split('').map((letter) {
+            final baseValue = _letterValues[letter.toLowerCase()] ?? 0;
+            final value = baseValue == 1 ? 2 : baseValue; // If 1, make it 2
+            return {'letter': letter, 'value': value};
+          }).toList();
+
+      print('Loaded grid: ${_gridData['dateStart']}');
+    } else {
+      throw Exception('Failed to fetch game board');
+    }
   }
 
   static int get wordCount => _gridData['wordCount'] ?? 0;
-  static String get date => _gridData['date'] ?? '';
+  static String get date => _gridData['dateStart'] ?? '';
+  static String get dateExpire => _gridData['dateExpire'] ?? '';
+  static int get estimatedHighScore => _gridData['estimatedHighScore'] ?? 0;
 }

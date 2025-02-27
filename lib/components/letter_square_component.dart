@@ -45,6 +45,10 @@ class LetterSquareComponent extends StatelessWidget {
         valueColor = tile.isExtra || tile.isHybrid ? AppStyles.wildcardValueTextColor : squareTheme.normalValue;
     }
 
+    if (!tile.isHybrid && tile.useCount > 1) {
+      valueColor = AppStyles.usedValueTextColor;
+    }
+
     String valueText =
         tile.isExtra || tile.isHybrid
             ? '${tile.value}x' // Add "x" for wildcards/hybrids

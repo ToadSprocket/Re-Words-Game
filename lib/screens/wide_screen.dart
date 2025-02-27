@@ -19,9 +19,9 @@ class WideScreen extends StatelessWidget {
   final VoidCallback onInstructions;
   final VoidCallback onHighScores;
   final VoidCallback onLegal;
-  final GlobalKey<GameGridComponentState>? gridKey; // Public state
-  final GlobalKey<WildcardColumnComponentState>? wildcardKey; // Public state
-  final ValueChanged<String>? onMessage; // Add callback
+  final GlobalKey<GameGridComponentState>? gridKey;
+  final GlobalKey<WildcardColumnComponentState>? wildcardKey;
+  final ValueChanged<String>? onMessage;
   final String message;
   final Map<String, dynamic> sizes;
 
@@ -42,10 +42,10 @@ class WideScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gridSize = sizes['gridSize'] as double; // Cast here
+    final gridSize = sizes['gridSize'] as double;
     final squareSize = sizes['squareSize'] as double;
     final sideSpacing = sizes['sideSpacing'] as double;
-    final sideColumnWidth = sizes['wordColumnWidth'] as double;
+    final sideColumnWidth = sizes['sideColumnWidth'] as double;
     final wordColumnWidth = sizes['wordColumnWidth'] as double;
     final wordColumnHeight = sizes['wordColumnHeight'] as double;
     final spelledWordsGridSpacing = sizes['spelledWordsGridSpacing'] as double;
@@ -53,6 +53,7 @@ class WideScreen extends StatelessWidget {
     const double topSectionHeight = 100.0;
 
     print("WideScreen");
+    print('Side column width: $sideColumnWidth, Side spacing: $sideSpacing');
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -69,51 +70,63 @@ class WideScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: topSectionHeight),
-                WildcardColumnComponent(
-                  key: wildcardKey,
-                  width: sideColumnWidth,
-                  height: gridSize,
-                  showBorders: showBorders,
-                  isHorizontal: false,
-                  gridSpacing: gridSpacing,
-                  sizes: sizes, // Pass here
-                ),
-              ],
+            // Left Column (Wildcard)
+            Container(
+              decoration: showBorders ? BoxDecoration(border: Border.all(color: Colors.blue, width: 2)) : null,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: topSectionHeight),
+                  WildcardColumnComponent(
+                    key: wildcardKey,
+                    width: sideColumnWidth,
+                    height: gridSize,
+                    showBorders: showBorders,
+                    isHorizontal: false,
+                    gridSpacing: gridSpacing,
+                    sizes: sizes,
+                  ),
+                ],
+              ),
             ),
             SizedBox(width: sideSpacing),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GameTitleComponent(width: gridSize, showBorders: showBorders),
-                const SizedBox(height: 20.0),
-                GameScores(width: gridSize),
-                const SizedBox(height: 8.0),
-                GameGridComponent(key: gridKey, showBorders: showBorders, onMessage: onMessage, sizes: sizes),
-                const SizedBox(height: 5.0),
-                GameMessageComponent(message: message),
-                const SizedBox(height: 5.0),
-                GameButtonsComponent(onSubmit: onSubmit, onClear: onClear),
-              ],
+            // Center Column (Grid and Controls)
+            Container(
+              decoration: showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 2)) : null,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GameTitleComponent(width: gridSize, showBorders: showBorders),
+                  const SizedBox(height: 20.0),
+                  GameScores(width: gridSize),
+                  const SizedBox(height: 8.0),
+                  GameGridComponent(key: gridKey, showBorders: showBorders, onMessage: onMessage, sizes: sizes),
+                  const SizedBox(height: 5.0),
+                  GameMessageComponent(message: message),
+                  const SizedBox(height: 5.0),
+                  GameButtonsComponent(onSubmit: onSubmit, onClear: onClear),
+                ],
+              ),
             ),
             SizedBox(width: sideSpacing),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: topSectionHeight),
-                SpelledWordsColumnComponent(
-                  words: SpelledWordsLogic.spelledWords,
-                  columnWidth: sideColumnWidth,
-                  columnHeight: gridSize,
-                  gridSpacing: spelledWordsGridSpacing,
-                  showBorders: showBorders,
-                  wordColumnWidth: wordColumnWidth,
-                  wordColumnHeight: wordColumnHeight,
-                ),
-              ],
+            // Right Column (Spelled Words)
+            Container(
+              decoration: showBorders ? BoxDecoration(border: Border.all(color: Colors.green, width: 2)) : null,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: topSectionHeight),
+                  SpelledWordsColumnComponent(
+                    words: SpelledWordsLogic.spelledWords,
+                    columnWidth: sideColumnWidth,
+                    columnHeight: gridSize,
+                    gridSpacing: spelledWordsGridSpacing,
+                    showBorders: showBorders,
+                    wordColumnWidth: wordColumnWidth,
+                    wordColumnHeight: wordColumnHeight,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

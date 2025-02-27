@@ -137,20 +137,17 @@ class GameGridComponentState extends State<GameGridComponent> {
             mainAxisSpacing: gridSpacing,
             crossAxisSpacing: gridSpacing,
             children: List.generate(tiles.length, (index) {
-              print('Rendering tile $index: ${tiles[index].letter}');
               return DragTarget<Tile>(
                 onWillAccept: (data) => tiles[index].state == 'unused' && !selectedIndices.contains(index),
                 onAcceptWithDetails: (details) {
                   setState(() {
                     tiles[index].applyWildcard(details.data.letter, details.data.value);
-                    print('Dropped wildcard on tile $index: ${tiles[index].letter}');
                   });
                   widget.onMessage?.call('Wildcard "${details.data.letter}" placed!');
                 },
                 onLeave: (data) {
                   if (tiles[index].state != 'unused' || selectedIndices.contains(index)) {
                     widget.onMessage?.call('Can only drop on unused tiles!');
-                    print('Drop rejected on tile $index: ${tiles[index].state}');
                   }
                 },
                 builder: (context, candidateData, rejectedData) {

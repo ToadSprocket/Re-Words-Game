@@ -11,7 +11,6 @@ class SpelledWordsLogic {
     const lineHeightFactor = 1.4;
     final totalItemHeight = (fontSize * lineHeightFactor) + spacing;
     final maxWords = (columnHeight / totalItemHeight).floor();
-    print("Column height: $columnHeight, Item height: $totalItemHeight, Max words: $maxWords");
     return maxWords;
   }
 
@@ -74,7 +73,6 @@ class SpelledWordsLogic {
       } else {
         reason = "'$casedWord' Invalid";
       }
-      print("'$casedWord' rejected: ${casedWord.length > 12 ? 'too long' : 'not valid'}");
       return (false, reason);
     }
   }
