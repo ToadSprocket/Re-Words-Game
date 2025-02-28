@@ -13,6 +13,7 @@ import 'screens/narrow_screen.dart';
 import 'logic/spelled_words_handler.dart';
 import 'dialogs/how_to_play_dialog.dart';
 import 'dialogs/high_scores_dialog.dart';
+import 'dialogs/board_expired_dialog.dart';
 import 'dialogs/legal_dialog.dart';
 import 'components/game_grid_component.dart';
 import 'components/wildcard_column_component.dart';
@@ -21,6 +22,7 @@ import 'models/tile.dart';
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
+const bool debugForceExpired = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -104,8 +106,46 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   Future<void> _loadData() async {
     await WordLoader.loadWords();
     await GridLoader.loadGrid(); // Ensure grid loads here too
-    await _restoreState();
+    await _checkBoardState();
     setState(() {});
+  }
+
+  Future<void> _checkBoardState() async {
+    final expireDate = DateTime.tryParse(GridLoader.dateExpire);
+    final isExpired = debugForceExpired || (expireDate != null && DateTime.now().toUtc().isAfter(expireDate));
+    if (isExpired) {
+      final loadNew = await BoardExpiredDialog.show(
+        context,
+        onNewBoard: () async {
+          await _resetState(); // Reset before loading new board
+          await GridLoader.loadGrid(forceRefresh: true);
+          setState(() {});
+        },
+      );
+      if (loadNew == true) {
+        print('User chose to load new board');
+      } else {
+        print('User chose to keep playing');
+        await _restoreState();
+      }
+    } else {
+      _restoreState();
+    }
+  }
+
+  Future<void> _resetState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('spelledWords');
+    await prefs.remove('score');
+    await prefs.remove('gridTiles');
+    await prefs.remove('selectedIndices');
+    await prefs.remove('wildcardTiles');
+    SpelledWordsLogic.spelledWords = [];
+    SpelledWordsLogic.score = 0;
+    if (_gridKey.currentState != null) {
+      _gridKey.currentState!.selectedIndices.clear();
+    }
+    print('Reset game state');
   }
 
   void submitWord() {
