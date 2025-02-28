@@ -4,7 +4,8 @@ import '../styles/app_styles.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class BoardExpiredDialog {
-  static Future<bool?> show(BuildContext context, {required VoidCallback onNewBoard}) {
+  static Future<bool?> show(BuildContext context) {
+    bool? result;
     return showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -33,7 +34,10 @@ class BoardExpiredDialog {
                     Positioned(
                       right: 0,
                       child: GestureDetector(
-                        onTap: () => Navigator.of(context).pop(false),
+                        onTap: () {
+                          result = false; // Close means "Keep Playing"
+                          Navigator.of(context).pop();
+                        },
                         child: const FaIcon(FontAwesomeIcons.circleXmark, size: 20.0, color: AppStyles.textColor),
                       ),
                     ),
@@ -50,13 +54,16 @@ class BoardExpiredDialog {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(false), // Keep Playing
+                      onPressed: () {
+                        result = false; // Keep Playing
+                        Navigator.of(context).pop();
+                      }, // Keep Playing
                       style: AppStyles.buttonStyle(context),
                       child: const Text('Keep Playing'),
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        onNewBoard();
+                        result = true; // Load New Board
                         Navigator.of(context).pop(true); // Load New Board
                       },
                       style: AppStyles.buttonStyle(context),
@@ -71,5 +78,6 @@ class BoardExpiredDialog {
         );
       },
     );
+    return Future.value(result);
   }
 }

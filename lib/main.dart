@@ -1,8 +1,7 @@
 // main.dart
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:window_manager/window_manager.dart';
 import 'styles/app_styles.dart';
 import 'logic/word_loader.dart';
@@ -13,17 +12,17 @@ import 'screens/narrow_screen.dart';
 import 'logic/spelled_words_handler.dart';
 import 'dialogs/how_to_play_dialog.dart';
 import 'dialogs/high_scores_dialog.dart';
+import 'dialogs/legal_dialog.dart';
 import 'dialogs/board_expired_dialog.dart';
 import 'dialogs/failure_dialog.dart';
-import 'dialogs/legal_dialog.dart';
 import 'components/game_grid_component.dart';
 import 'components/wildcard_column_component.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'models/tile.dart';
+import 'managers/state_manager.dart';
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
-const bool debugForceExpired = true;
+const bool debugForceExpiredBoard = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -68,7 +67,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   final _gridKey = GlobalKey<GameGridComponentState>();
   final _wildcardKey = GlobalKey<WildcardColumnComponentState>();
   String submitMessage = '';
-  Map<String, dynamic>? sizes; // Store sizes
+  Map<String, dynamic>? sizes;
+  DateTime? _sessionStart;
 
   @override
   void initState() {
@@ -77,87 +77,57 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
       windowManager.addListener(this);
     }
+    _sessionStart = DateTime.now();
     _loadData();
   }
 
   @override
   void dispose() {
+    StateManager.updatePlayTime(_sessionStart);
     WidgetsBinding.instance.removeObserver(this);
     if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
       windowManager.removeListener(this);
     }
-    _saveState();
+    StateManager.saveState(_gridKey, _wildcardKey);
     super.dispose();
   }
 
   @override
-  void onWindowClose() async {
-    await _saveState(); // Save before window closes
-    super.onWindowClose();
-    await windowManager.destroy(); // Allow close
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      StateManager.updatePlayTime(_sessionStart);
+      StateManager.saveState(_gridKey, _wildcardKey);
+    }
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    sizes = GameLayout.of(context).sizes; // Move here
-    print('HomeScreen didChangeDependencies - sizes set');
+  void onWindowClose() async {
+    StateManager.updatePlayTime(_sessionStart);
+    await StateManager.saveState(_gridKey, _wildcardKey);
+    super.onWindowClose();
+    await windowManager.destroy();
   }
 
   Future<void> _loadData() async {
     await WordLoader.loadWords();
     final gridLoaded = await GridLoader.loadGrid();
     if (!gridLoaded) {
-      await FailureDialog.show(context); // Dialog exits app—no further code runs
+      await FailureDialog.show(context);
     }
-    await _checkBoardState();
+    await _checkBoardExpiration();
     setState(() {});
   }
 
-  Future<void> _checkBoardState() async {
-    final expireDate = DateTime.tryParse(GridLoader.dateExpire);
-    final isExpired = debugForceExpired || (expireDate != null && DateTime.now().toUtc().isAfter(expireDate));
-    if (isExpired) {
-      final loadNew = await BoardExpiredDialog.show(
-        context,
-        onNewBoard: () async {
-          await _resetState(); // Reset before loading new board
-          final gridLoaded = await GridLoader.loadGrid(forceRefresh: true);
-          if (!gridLoaded) {
-            await FailureDialog.show(context); // Dialog exits app—no further code runs
-          }
-          setState(() {});
-        },
-      );
-      if (loadNew == true) {
-        print('User chose to load new board');
-      } else {
-        print('User chose to keep playing');
-        await _restoreState();
-      }
-    } else {
-      _restoreState();
-    }
-  }
-
-  Future<void> _resetState() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('spelledWords');
-    await prefs.remove('score');
-    await prefs.remove('gridTiles');
-    await prefs.remove('selectedIndices');
-    await prefs.remove('wildcardTiles');
-    SpelledWordsLogic.spelledWords = [];
-    SpelledWordsLogic.score = 0;
-    if (_gridKey.currentState != null) {
-      _gridKey.currentState!.selectedIndices.clear();
-    }
-    print('Reset game state');
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    sizes = GameLayout.of(context).sizes;
+    print('HomeScreen didChangeDependencies - sizes set');
   }
 
   void submitWord() {
     setState(() {
-      _gridKey.currentState?.submitWord(); // Triggers validation and scoring
+      _gridKey.currentState?.submitWord();
     });
   }
 
@@ -175,61 +145,53 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     });
   }
 
-  Future<void> _saveState() async {
+  Future<void> _checkBoardExpiration() async {
+    print('Checking board expiration');
+    bool loadNewBoard = false;
+    bool userBoardLoad = false;
+    await StateManager.restoreState(_gridKey, _wildcardKey);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('spelledWords', SpelledWordsLogic.spelledWords);
-    await prefs.setInt('score', SpelledWordsLogic.score);
-    if (_gridKey.currentState != null) {
-      final gridState = _gridKey.currentState!;
-      await prefs.setString('gridTiles', jsonEncode(gridState.tiles.map((t) => t.toJson()).toList()));
-      await prefs.setString('selectedIndices', jsonEncode(gridState.selectedIndices));
+    final boardLoadedDate = prefs.getString('boardLoadedDate');
+    final timePlayedSeconds = prefs.getInt('timePlayedSeconds') ?? 0;
+    final expireDate = DateTime.tryParse(GridLoader.dateExpire);
+    final isExpired = debugForceExpiredBoard || (expireDate != null && DateTime.now().toUtc().isAfter(expireDate));
+    final minsFromBoardLoad =
+        boardLoadedDate != null ? DateTime.now().difference(DateTime.parse(boardLoadedDate)).inMinutes : null;
+
+    print('isExpired: $isExpired, timePlayedSeconds: $timePlayedSeconds, minsFromBoardLoad: $minsFromBoardLoad');
+
+    if (isExpired) {
+      if (minutesFromMidnight() > 120 && timePlayedSeconds < 900) {
+        loadNewBoard = true;
+      } else if (minsFromBoardLoad != null && minsFromBoardLoad > 120) {
+        loadNewBoard = true;
+      } else {
+        userBoardLoad = await BoardExpiredDialog.show(context) ?? false;
+      }
     }
-    if (_wildcardKey.currentState != null) {
-      final wildcardState = _wildcardKey.currentState!;
-      await prefs.setString('wildcardTiles', jsonEncode(wildcardState.tiles.map((t) => t.toJson()).toList()));
+
+    // Load a nmew board and reset game state
+    if (loadNewBoard || userBoardLoad) {
+      StateManager.updatePlayTime(_sessionStart);
+      await GridLoader.loadGrid(forceRefresh: true);
+      _gridKey.currentState?.reloadTiles(); // Reload grid
+      _wildcardKey.currentState?.reloadWildcardTiles();
+      print('New board loaded');
+      setState(() {});
     }
-    print('Saved game state');
   }
 
-  Future<void> _restoreState() async {
-    print('Restoring game state');
-    final prefs = await SharedPreferences.getInstance();
-    final savedWords = prefs.getStringList('spelledWords');
-    if (savedWords != null) {
-      SpelledWordsLogic.spelledWords = savedWords;
-      SpelledWordsLogic.score = prefs.getInt('score') ?? 0;
-      print('Restored spelled words: $savedWords, score: ${SpelledWordsLogic.score}');
-    }
-    if (_gridKey.currentState != null) {
-      final gridState = _gridKey.currentState!;
-      final savedTiles = prefs.getString('gridTiles');
-      final savedIndices = prefs.getString('selectedIndices');
-      if (savedTiles != null) {
-        gridState.tiles =
-            (jsonDecode(savedTiles) as List).map((item) => Tile.fromJson(item as Map<String, dynamic>)).toList();
-        print('Restored grid tiles');
-      }
-      if (savedIndices != null) {
-        gridState.selectedIndices = (jsonDecode(savedIndices) as List).map((i) => i as int).toList();
-        print('Restored selected indices');
-      }
-    }
-    if (_wildcardKey.currentState != null) {
-      final savedWildcardTiles = prefs.getString('wildcardTiles');
-      if (savedWildcardTiles != null) {
-        _wildcardKey.currentState!.tiles =
-            (jsonDecode(savedWildcardTiles) as List)
-                .map((item) => Tile.fromJson(item as Map<String, dynamic>))
-                .toList();
-        print('Restored wildcard tiles');
-      }
-    }
+  int minutesFromMidnight() {
+    final now = DateTime.now(); // Current local time
+    final midnight = DateTime(now.year, now.month, now.day); // Midnight today
+    final difference = now.difference(midnight); // Duration since midnight
+    return difference.inMinutes; // Integer minutes
   }
 
   @override
   Widget build(BuildContext context) {
     if (sizes == null) {
-      return const SizedBox.shrink(); // Wait for sizes
+      return const SizedBox.shrink();
     }
     final isWebOverride = debugForceIsWeb ?? sizes!['isWeb'] as bool;
     print(
@@ -252,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   wildcardKey: _wildcardKey,
                   onMessage: _handleMessage,
                   message: submitMessage,
-                  sizes: sizes!, // Pass sizes
+                  sizes: sizes!,
                 )
                 : NarrowScreen(
                   showBorders: debugShowBorders,
@@ -265,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   wildcardKey: _wildcardKey,
                   onMessage: _handleMessage,
                   message: submitMessage,
-                  sizes: sizes!, // Pass sizes
+                  sizes: sizes!,
                 ),
       ),
     );

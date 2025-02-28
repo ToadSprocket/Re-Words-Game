@@ -47,6 +47,15 @@ class GameGridComponentState extends State<GameGridComponent> {
     return loadedTiles;
   }
 
+  void reloadTiles() {
+    // Add this
+    setState(() {
+      _loadTiles();
+      selectedIndices.clear(); // Reset selections
+      print('Reloaded grid tiles');
+    });
+  }
+
   bool _isAdjacent(int newIndex, int lastIndex) {
     if (lastIndex == -1) return true;
     final newRow = newIndex ~/ AppStyles.gridCols;

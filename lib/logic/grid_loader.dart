@@ -7,8 +7,8 @@ import 'dart:io' show Platform;
 import '../models/tile.dart';
 import 'security.dart';
 import 'user_storage.dart';
-import 'spelled_words_handler.dart';
 import '../config/config.dart';
+import 'spelled_words_handler.dart'; // Add for SpelledWordsLogic
 
 class GridLoader {
   static List<Map<String, dynamic>> gridTiles = [];
@@ -44,7 +44,7 @@ class GridLoader {
     'z': 10,
   };
 
-  static Future<bool> loadGrid({bool forceRefresh = false}) async {
+  static Future<bool> loadGrid({bool forceRefresh = false, Map<String, dynamic>? previousStats}) async {
     final prefs = await SharedPreferences.getInstance();
     final cachedData = prefs.getString('cachedGrid');
     final cachedExpire = prefs.getString('cachedExpireDate');
@@ -67,7 +67,7 @@ class GridLoader {
     }
 
     const maxRetries = 3;
-    const retryDelay = Duration(seconds: 2);
+    const retryDelay = Duration(seconds: 3);
 
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -79,26 +79,28 @@ class GridLoader {
           'Content-Type': 'application/json',
         };
 
-        final wordCount = SpelledWordsLogic.spelledWords.length;
-        final timePlayedSeconds = prefs.getInt('timePlayedSeconds') ?? 0;
-        final wildcardUses = prefs.getInt('wildcardUses') ?? 0;
-        final score = SpelledWordsLogic.score;
-        final completionRate = (wordCount / (_gridData['wordCount'] ?? 85)) * 100;
-        final longestWordLength =
-            SpelledWordsLogic.spelledWords.isEmpty
-                ? 0
-                : SpelledWordsLogic.spelledWords.map((w) => w.length).reduce((a, b) => a > b ? a : b);
+        final stats = {
+          'wordCount': SpelledWordsLogic.spelledWords.length,
+          'timePlayedSeconds': prefs.getInt('timePlayedSeconds') ?? 0,
+          'wildcardUses': prefs.getInt('wildcardUses') ?? 0,
+          'score': SpelledWordsLogic.score,
+          'completionRate': (SpelledWordsLogic.spelledWords.length / (_gridData['wordCount'] ?? 85)) * 100,
+          'longestWordLength':
+              SpelledWordsLogic.spelledWords.isEmpty
+                  ? 0
+                  : SpelledWordsLogic.spelledWords.map((w) => w.length).reduce((a, b) => a > b ? a : b),
+        };
 
         final body = jsonEncode({
           'userId': userId ?? '',
           'platform': kIsWeb ? 'Web' : 'Windows',
           'locale': Platform.localeName,
-          'timePlayedSeconds': timePlayedSeconds,
-          'wordCount': wordCount,
-          'wildcardUses': wildcardUses,
-          'score': score,
-          'completionRate': completionRate,
-          'longestWordLength': longestWordLength,
+          'timePlayedSeconds': stats['timePlayedSeconds'],
+          'wordCount': stats['wordCount'],
+          'wildcardUses': stats['wildcardUses'],
+          'score': stats['score'],
+          'completionRate': stats['completionRate'],
+          'longestWordLength': stats['longestWordLength'],
         });
 
         print('Sending API request (attempt $attempt/$maxRetries): $uri');
@@ -135,22 +137,35 @@ class GridLoader {
           await prefs.setString('cachedGridTiles', jsonEncode(gridTiles));
           await prefs.setString('cachedWildcardTiles', jsonEncode(wildcardTiles));
           await prefs.setString('cachedExpireDate', _gridData['dateExpire'] ?? '');
+
+          // Reset stats if forceRefresh (new board)
+          if (forceRefresh) {
+            await prefs.remove('spelledWords');
+            await prefs.remove('score');
+            await prefs.remove('timePlayedSeconds');
+            await prefs.remove('wildcardUses');
+            SpelledWordsLogic.spelledWords = [];
+            SpelledWordsLogic.score = 0;
+            await prefs.setString('boardLoadedDate', DateTime.now().toUtc().toIso8601String());
+            print('Reset stats for new board');
+          }
+
           print('Loaded and cached grid: ${_gridData['dateStart']}');
-          return true; // Success
+          return true;
         } else {
           print('API failed with status: ${response.statusCode}');
-          if (attempt == maxRetries) return false; // Fail after last try
+          if (attempt == maxRetries) return false;
         }
       } catch (e) {
         print('Grid load error (attempt $attempt/$maxRetries): $e');
-        if (attempt == maxRetries) return false; // Fail after last try
+        if (attempt == maxRetries) return false;
       }
       if (attempt < maxRetries) {
         print('Retrying in ${retryDelay.inSeconds} seconds...');
         await Future.delayed(retryDelay);
       }
     }
-    return false; // Shouldn’t reach here—covered by retries
+    return false;
   }
 
   static int get wordCount => _gridData['wordCount'] ?? 0;

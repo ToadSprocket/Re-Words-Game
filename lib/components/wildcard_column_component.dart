@@ -73,6 +73,14 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
     });
   }
 
+  void reloadWildcardTiles() {
+    // Add this
+    setState(() {
+      _loadWildcardTiles();
+      print('Reloaded wildcard tiles');
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     print('WildcardColumn build - Starting');
