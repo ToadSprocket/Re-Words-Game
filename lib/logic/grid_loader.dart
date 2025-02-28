@@ -1,10 +1,13 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart' show kIsWeb; // Add this
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io' show Platform;
 import '../models/tile.dart';
 import 'security.dart';
 import 'user_storage.dart';
 import '../config/config.dart';
+import 'spelled_words_handler.dart';
 
 class GridLoader {
   static List<Map<String, dynamic>> gridTiles = [];
@@ -40,7 +43,28 @@ class GridLoader {
     'z': 10,
   };
 
-  static Future<void> loadGrid() async {
+  static Future<void> loadGrid({bool forceRefresh = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final cachedData = prefs.getString('cachedGrid');
+    final cachedExpire = prefs.getString('cachedExpireDate');
+
+    if (!forceRefresh && cachedData != null && cachedExpire != null) {
+      final expireDate = DateTime.parse(cachedExpire);
+      if (DateTime.now().toUtc().isBefore(expireDate)) {
+        _gridData = jsonDecode(cachedData);
+        gridTiles =
+            (jsonDecode(prefs.getString('cachedGridTiles') ?? '[]') as List)
+                .map((item) => item as Map<String, dynamic>)
+                .toList();
+        wildcardTiles =
+            (jsonDecode(prefs.getString('cachedWildcardTiles') ?? '[]') as List)
+                .map((item) => item as Map<String, dynamic>)
+                .toList();
+        print('Loaded cached grid: ${_gridData['dateStart']}');
+        return;
+      }
+    }
+
     final userId = await UserIdStorage.getUserId();
     final uri = Uri.parse(Config.apiUrl);
     final headers = {
@@ -48,11 +72,28 @@ class GridLoader {
       'x-api-key': Security.generateApiKeyHash(),
       'Content-Type': 'application/json',
     };
+
+    // Calculate stats
+    final wordCount = SpelledWordsLogic.spelledWords.length;
+    final timePlayedSeconds = prefs.getInt('timePlayedSeconds') ?? 0;
+    final wildcardUses = prefs.getInt('wildcardUses') ?? 0; // Update later with Tile tracking
+    final score = SpelledWordsLogic.score;
+    final completionRate = (wordCount / (_gridData['wordCount'] ?? 85)) * 100;
+    final longestWordLength =
+        SpelledWordsLogic.spelledWords.isEmpty
+            ? 0
+            : SpelledWordsLogic.spelledWords.map((w) => w.length).reduce((a, b) => a > b ? a : b);
+
     final body = jsonEncode({
       'userId': userId ?? '',
-      'platform': kIsWeb ? 'Web' : 'Windows',
-      'sessionStart': DateTime.now().toUtc().toIso8601String(),
-      'sessionEnd': DateTime.now().toUtc().toIso8601String(),
+      'platform': kIsWeb ? 'Web' : 'Windows', // Add Android/iOS later
+      'locale': Platform.localeName,
+      'timePlayedSeconds': timePlayedSeconds,
+      'wordCount': wordCount,
+      'wildcardUses': wildcardUses,
+      'score': score,
+      'completionRate': completionRate,
+      'longestWordLength': longestWordLength,
     });
 
     print('Sending API request: $uri');
@@ -81,11 +122,15 @@ class GridLoader {
       wildcardTiles =
           wildcardString.split('').map((letter) {
             final baseValue = _letterValues[letter.toLowerCase()] ?? 0;
-            final value = baseValue == 1 ? 2 : baseValue; // If 1, make it 2
+            final value = baseValue == 1 ? 2 : baseValue;
             return {'letter': letter, 'value': value};
           }).toList();
 
-      print('Loaded grid: ${_gridData['dateStart']}');
+      await prefs.setString('cachedGrid', jsonEncode(_gridData));
+      await prefs.setString('cachedGridTiles', jsonEncode(gridTiles));
+      await prefs.setString('cachedWildcardTiles', jsonEncode(wildcardTiles));
+      await prefs.setString('cachedExpireDate', _gridData['dateExpire'] ?? '');
+      print('Loaded and cached grid: ${_gridData['dateStart']}');
     } else {
       throw Exception('Failed to fetch game board');
     }

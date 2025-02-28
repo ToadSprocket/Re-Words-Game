@@ -16,7 +16,7 @@ import 'components/wildcard_column_component.dart';
 import 'logic/security.dart';
 import 'logic/user_storage.dart';
 
-const bool debugShowBorders = true;
+const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
 
 void main() {

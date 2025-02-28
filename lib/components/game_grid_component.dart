@@ -106,6 +106,17 @@ class GameGridComponentState extends State<GameGridComponent> {
     });
   }
 
+  void _onDrop(int index, Tile tile) {
+    setState(() {
+      if (tiles[index].state == 'unused') {
+        tiles[index].applyWildcard(tile.letter, tile.value);
+        widget.onMessage?.call('Wildcard applied to ${tiles[index].letter}');
+      } else {
+        widget.onMessage?.call('Can only drop on unused tiles');
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final gridSize = widget.sizes['gridSize'] as double;
@@ -138,17 +149,12 @@ class GameGridComponentState extends State<GameGridComponent> {
             crossAxisSpacing: gridSpacing,
             children: List.generate(tiles.length, (index) {
               return DragTarget<Tile>(
-                onWillAccept: (data) => tiles[index].state == 'unused' && !selectedIndices.contains(index),
-                onAcceptWithDetails: (details) {
-                  setState(() {
-                    tiles[index].applyWildcard(details.data.letter, details.data.value);
-                  });
-                  widget.onMessage?.call('Wildcard "${details.data.letter}" placed!');
+                onWillAccept: (Tile? tile) {
+                  // Check silently—no message yet
+                  return tile != null;
                 },
-                onLeave: (data) {
-                  if (tiles[index].state != 'unused' || selectedIndices.contains(index)) {
-                    widget.onMessage?.call('Can only drop on unused tiles!');
-                  }
+                onAccept: (Tile tile) {
+                  _onDrop(index, tile); // Message only on drop
                 },
                 builder: (context, candidateData, rejectedData) {
                   return GestureDetector(
