@@ -15,6 +15,7 @@ class StateManager {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('spelledWords', SpelledWordsLogic.spelledWords);
     await prefs.setInt('score', SpelledWordsLogic.score);
+    await prefs.setInt('wildcardUses', prefs.getInt('wildcardUses') ?? 0);
     if (gridKey.currentState != null) {
       final gridState = gridKey.currentState!;
       await prefs.setString('gridTiles', jsonEncode(gridState.tiles.map((t) => t.toJson()).toList()));

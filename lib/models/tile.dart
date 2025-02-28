@@ -60,10 +60,7 @@ class Tile {
 
   void revert() {
     if (state == 'selected') {
-      state = previousState ?? 'unused';
-      if (previousState == 'used') {
-        multiplier /= 2; // Undo doubling
-      }
+      state = (useCount > 0) ? 'used' : 'unused'; // Fix: respect useCount
       previousState = null;
     }
   }

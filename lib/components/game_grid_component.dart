@@ -1,6 +1,7 @@
 // components/game_grid_component.dart
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../logic/grid_loader.dart';
 import '../logic/scoring.dart';
 import '../logic/spelled_words_handler.dart';
@@ -86,11 +87,10 @@ class GameGridComponentState extends State<GameGridComponent> {
 
   void clearSelectedTiles() {
     setState(() {
-      for (var tile in tiles.where((t) => t.state == 'selected')) {
-        tile.state = 'unused';
+      for (var index in selectedIndices) {
+        tiles[index].revert();
       }
       selectedIndices.clear();
-      print('Cleared selected tiles');
     });
   }
 
@@ -120,10 +120,19 @@ class GameGridComponentState extends State<GameGridComponent> {
       if (tiles[index].state == 'unused') {
         tiles[index].applyWildcard(tile.letter, tile.value);
         widget.onMessage?.call('Wildcard applied to ${tiles[index].letter}');
+        _incrementWildcardUse();
       } else {
         widget.onMessage?.call('Can only drop on unused tiles');
       }
     });
+  }
+
+  void _incrementWildcardUse() async {
+    // Add this
+    final prefs = await SharedPreferences.getInstance();
+    final currentUses = prefs.getInt('wildcardUses') ?? 0;
+    await prefs.setInt('wildcardUses', currentUses + 1);
+    print('Wildcard uses incremented: ${currentUses + 1}');
   }
 
   @override

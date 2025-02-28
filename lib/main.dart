@@ -9,7 +9,6 @@ import 'logic/grid_loader.dart';
 import 'logic/game_layout.dart';
 import 'screens/wide_screen.dart';
 import 'screens/narrow_screen.dart';
-import 'logic/spelled_words_handler.dart';
 import 'dialogs/how_to_play_dialog.dart';
 import 'dialogs/high_scores_dialog.dart';
 import 'dialogs/legal_dialog.dart';
