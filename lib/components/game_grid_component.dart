@@ -26,7 +26,7 @@ class GameGridComponent extends StatefulWidget {
 class GameGridComponentState extends State<GameGridComponent> {
   late Future<List<Tile>> _tilesFuture;
   List<Tile> tiles = [];
-  final List<int> selectedIndices = [];
+  List<int> selectedIndices = [];
 
   @override
   void initState() {

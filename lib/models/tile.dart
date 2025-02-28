@@ -78,4 +78,30 @@ class Tile {
       state = 'unused'; // Keep selectable
     }
   }
+
+  Map<String, dynamic> toJson() => {
+    'letter': letter,
+    'value': value,
+    'isExtra': isExtra,
+    'isHybrid': isHybrid,
+    'originalLetter': originalLetter,
+    'originalValue': originalValue,
+    'state': state,
+    'previousState': previousState,
+    'useCount': useCount,
+    'multiplier': multiplier,
+  };
+
+  factory Tile.fromJson(Map<String, dynamic> json) => Tile(
+    letter: json['letter'] as String,
+    value: json['value'] as int,
+    isExtra: json['isExtra'] as bool,
+    isHybrid: json['isHybrid'] as bool? ?? false,
+    originalLetter: json['originalLetter'] as String?,
+    originalValue: json['originalValue'] as int?,
+    state: json['state'] as String? ?? 'unused',
+    previousState: json['previousState'] as String?,
+    useCount: json['useCount'] as int? ?? 0,
+    multiplier: (json['multiplier'] as num?)?.toDouble() ?? 1.0,
+  );
 }
