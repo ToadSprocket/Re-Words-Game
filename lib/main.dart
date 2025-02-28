@@ -14,6 +14,7 @@ import 'logic/spelled_words_handler.dart';
 import 'dialogs/how_to_play_dialog.dart';
 import 'dialogs/high_scores_dialog.dart';
 import 'dialogs/board_expired_dialog.dart';
+import 'dialogs/failure_dialog.dart';
 import 'dialogs/legal_dialog.dart';
 import 'components/game_grid_component.dart';
 import 'components/wildcard_column_component.dart';
@@ -22,7 +23,7 @@ import 'models/tile.dart';
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
-const bool debugForceExpired = false;
+const bool debugForceExpired = true;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -105,7 +106,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
   Future<void> _loadData() async {
     await WordLoader.loadWords();
-    await GridLoader.loadGrid(); // Ensure grid loads here too
+    final gridLoaded = await GridLoader.loadGrid();
+    if (!gridLoaded) {
+      await FailureDialog.show(context); // Dialog exits app—no further code runs
+    }
     await _checkBoardState();
     setState(() {});
   }
@@ -118,7 +122,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         context,
         onNewBoard: () async {
           await _resetState(); // Reset before loading new board
-          await GridLoader.loadGrid(forceRefresh: true);
+          final gridLoaded = await GridLoader.loadGrid(forceRefresh: true);
+          if (!gridLoaded) {
+            await FailureDialog.show(context); // Dialog exits app—no further code runs
+          }
           setState(() {});
         },
       );

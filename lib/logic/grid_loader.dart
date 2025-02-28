@@ -1,3 +1,4 @@
+// lib/logic/grid_loader.dart
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
@@ -6,8 +7,8 @@ import 'dart:io' show Platform;
 import '../models/tile.dart';
 import 'security.dart';
 import 'user_storage.dart';
-import '../config/config.dart';
 import 'spelled_words_handler.dart';
+import '../config/config.dart';
 
 class GridLoader {
   static List<Map<String, dynamic>> gridTiles = [];
@@ -43,7 +44,7 @@ class GridLoader {
     'z': 10,
   };
 
-  static Future<void> loadGrid({bool forceRefresh = false}) async {
+  static Future<bool> loadGrid({bool forceRefresh = false}) async {
     final prefs = await SharedPreferences.getInstance();
     final cachedData = prefs.getString('cachedGrid');
     final cachedExpire = prefs.getString('cachedExpireDate');
@@ -61,79 +62,95 @@ class GridLoader {
                 .map((item) => item as Map<String, dynamic>)
                 .toList();
         print('Loaded cached grid: ${_gridData['dateStart']}');
-        return;
+        return true;
       }
     }
 
-    final userId = await UserIdStorage.getUserId();
-    final uri = Uri.parse(Config.apiUrl);
-    final headers = {
-      'accept': 'application/json',
-      'x-api-key': Security.generateApiKeyHash(),
-      'Content-Type': 'application/json',
-    };
+    const maxRetries = 3;
+    const retryDelay = Duration(seconds: 2);
 
-    // Calculate stats
-    final wordCount = SpelledWordsLogic.spelledWords.length;
-    final timePlayedSeconds = prefs.getInt('timePlayedSeconds') ?? 0;
-    final wildcardUses = prefs.getInt('wildcardUses') ?? 0; // Update later with Tile tracking
-    final score = SpelledWordsLogic.score;
-    final completionRate = (wordCount / (_gridData['wordCount'] ?? 85)) * 100;
-    final longestWordLength =
-        SpelledWordsLogic.spelledWords.isEmpty
-            ? 0
-            : SpelledWordsLogic.spelledWords.map((w) => w.length).reduce((a, b) => a > b ? a : b);
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        final userId = await UserIdStorage.getUserId();
+        final uri = Uri.parse(Config.apiUrl);
+        final headers = {
+          'accept': 'application/json',
+          'x-api-key': Security.generateApiKeyHash(),
+          'Content-Type': 'application/json',
+        };
 
-    final body = jsonEncode({
-      'userId': userId ?? '',
-      'platform': kIsWeb ? 'Web' : 'Windows', // Add Android/iOS later
-      'locale': Platform.localeName,
-      'timePlayedSeconds': timePlayedSeconds,
-      'wordCount': wordCount,
-      'wildcardUses': wildcardUses,
-      'score': score,
-      'completionRate': completionRate,
-      'longestWordLength': longestWordLength,
-    });
+        final wordCount = SpelledWordsLogic.spelledWords.length;
+        final timePlayedSeconds = prefs.getInt('timePlayedSeconds') ?? 0;
+        final wildcardUses = prefs.getInt('wildcardUses') ?? 0;
+        final score = SpelledWordsLogic.score;
+        final completionRate = (wordCount / (_gridData['wordCount'] ?? 85)) * 100;
+        final longestWordLength =
+            SpelledWordsLogic.spelledWords.isEmpty
+                ? 0
+                : SpelledWordsLogic.spelledWords.map((w) => w.length).reduce((a, b) => a > b ? a : b);
 
-    print('Sending API request: $uri');
-    print('Headers: $headers');
-    print('Body: $body');
+        final body = jsonEncode({
+          'userId': userId ?? '',
+          'platform': kIsWeb ? 'Web' : 'Windows',
+          'locale': Platform.localeName,
+          'timePlayedSeconds': timePlayedSeconds,
+          'wordCount': wordCount,
+          'wildcardUses': wildcardUses,
+          'score': score,
+          'completionRate': completionRate,
+          'longestWordLength': longestWordLength,
+        });
 
-    final response = await http.post(uri, headers: headers, body: body);
+        print('Sending API request (attempt $attempt/$maxRetries): $uri');
+        print('Headers: $headers');
+        print('Body: $body');
 
-    print('Response status: ${response.statusCode}');
-    print('Response body: ${response.body}');
+        final response = await http.post(uri, headers: headers, body: body);
 
-    if (response.statusCode == 200) {
-      _gridData = jsonDecode(response.body);
-      final newUserId = _gridData['userId'];
-      if (newUserId != null && newUserId != userId) {
-        await UserIdStorage.setUserId(newUserId);
-        print('Updated userId: $newUserId');
+        print('Response status: ${response.statusCode}');
+        print('Response body: ${response.body}');
+
+        if (response.statusCode == 200) {
+          _gridData = jsonDecode(response.body);
+          final newUserId = _gridData['userId'];
+          if (newUserId != null && newUserId != userId) {
+            await UserIdStorage.setUserId(newUserId);
+            print('Updated userId: $newUserId');
+          }
+          String gridString = _gridData['grid'] ?? '';
+          gridTiles =
+              gridString.split('').map((letter) {
+                return {'letter': letter, 'value': _letterValues[letter.toLowerCase()] ?? 0};
+              }).toList();
+
+          String wildcardString = _gridData['wildcards'] ?? '';
+          wildcardTiles =
+              wildcardString.split('').map((letter) {
+                final baseValue = _letterValues[letter.toLowerCase()] ?? 0;
+                final value = baseValue == 1 ? 2 : baseValue;
+                return {'letter': letter, 'value': value};
+              }).toList();
+
+          await prefs.setString('cachedGrid', jsonEncode(_gridData));
+          await prefs.setString('cachedGridTiles', jsonEncode(gridTiles));
+          await prefs.setString('cachedWildcardTiles', jsonEncode(wildcardTiles));
+          await prefs.setString('cachedExpireDate', _gridData['dateExpire'] ?? '');
+          print('Loaded and cached grid: ${_gridData['dateStart']}');
+          return true; // Success
+        } else {
+          print('API failed with status: ${response.statusCode}');
+          if (attempt == maxRetries) return false; // Fail after last try
+        }
+      } catch (e) {
+        print('Grid load error (attempt $attempt/$maxRetries): $e');
+        if (attempt == maxRetries) return false; // Fail after last try
       }
-      String gridString = _gridData['grid'] ?? '';
-      gridTiles =
-          gridString.split('').map((letter) {
-            return {'letter': letter, 'value': _letterValues[letter.toLowerCase()] ?? 0};
-          }).toList();
-
-      String wildcardString = _gridData['wildcards'] ?? '';
-      wildcardTiles =
-          wildcardString.split('').map((letter) {
-            final baseValue = _letterValues[letter.toLowerCase()] ?? 0;
-            final value = baseValue == 1 ? 2 : baseValue;
-            return {'letter': letter, 'value': value};
-          }).toList();
-
-      await prefs.setString('cachedGrid', jsonEncode(_gridData));
-      await prefs.setString('cachedGridTiles', jsonEncode(gridTiles));
-      await prefs.setString('cachedWildcardTiles', jsonEncode(wildcardTiles));
-      await prefs.setString('cachedExpireDate', _gridData['dateExpire'] ?? '');
-      print('Loaded and cached grid: ${_gridData['dateStart']}');
-    } else {
-      throw Exception('Failed to fetch game board');
+      if (attempt < maxRetries) {
+        print('Retrying in ${retryDelay.inSeconds} seconds...');
+        await Future.delayed(retryDelay);
+      }
     }
+    return false; // Shouldn’t reach here—covered by retries
   }
 
   static int get wordCount => _gridData['wordCount'] ?? 0;
