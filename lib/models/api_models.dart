@@ -1,3 +1,4 @@
+// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 class ApiResponse {
   final SecurityData? security;
   final GameData? gameData;

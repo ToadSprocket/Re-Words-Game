@@ -1,4 +1,5 @@
 // screens/wide_screen.dart
+// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../components/wildcard_column_component.dart';

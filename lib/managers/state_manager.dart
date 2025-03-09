@@ -1,3 +1,4 @@
+// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';

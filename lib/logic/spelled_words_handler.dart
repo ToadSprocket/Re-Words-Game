@@ -1,4 +1,5 @@
 // logic/spelled_words_handler.dart
+// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 import 'scoring.dart';
 import 'word_loader.dart';
 import '../models/tile.dart';

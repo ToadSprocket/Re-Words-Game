@@ -1,4 +1,5 @@
 // lib/dialogs/board_expired_dialog.dart
+// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';

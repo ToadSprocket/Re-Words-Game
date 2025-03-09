@@ -1,4 +1,5 @@
 // layouts/game_buttons.dart
+// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 

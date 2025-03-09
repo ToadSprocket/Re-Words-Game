@@ -1,4 +1,5 @@
 // styles/app_styles.dart
+// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 import 'package:flutter/material.dart';
 
 class AppStyles {

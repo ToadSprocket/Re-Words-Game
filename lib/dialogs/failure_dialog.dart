@@ -1,4 +1,5 @@
 // lib/dialogs/failure_dialog.dart
+// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // For SystemNavigator.pop
 import '../styles/app_styles.dart';

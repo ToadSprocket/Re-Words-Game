@@ -1,4 +1,5 @@
 // lib/logic/game_layout.dart
+// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'layout_calculator.dart';
 

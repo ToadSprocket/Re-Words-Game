@@ -1,4 +1,5 @@
 // logic/word_loader.dart
+// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 import 'package:flutter/services.dart' show rootBundle;
 
 class WordLoader {

@@ -1,4 +1,5 @@
 // models/tile.dart
+// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 class Tile {
   String letter;
   int value;

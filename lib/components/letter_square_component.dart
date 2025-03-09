@@ -1,4 +1,5 @@
 // components/letter_square_component.dart
+// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../models/tile.dart';

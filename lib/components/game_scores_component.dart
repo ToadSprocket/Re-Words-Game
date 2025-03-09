@@ -1,4 +1,5 @@
 // game_scores_component.dart
+// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../logic/spelled_words_handler.dart';
