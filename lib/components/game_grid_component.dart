@@ -1,9 +1,7 @@
-// components/game_grid_component.dart
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../logic/grid_loader.dart';
-import '../logic/scoring.dart';
 import '../logic/spelled_words_handler.dart';
 import '../models/tile.dart';
 import 'letter_square_component.dart';
@@ -11,13 +9,15 @@ import 'letter_square_component.dart';
 class GameGridComponent extends StatefulWidget {
   final bool showBorders;
   final ValueChanged<String>? onMessage;
-  final Map<String, dynamic> sizes; // Add sizes
+  final VoidCallback updateScoresRefresh; // Add this
+  final Map<String, dynamic> sizes;
 
   const GameGridComponent({
     super.key,
     this.showBorders = false,
     this.onMessage,
-    required this.sizes, // Required
+    required this.updateScoresRefresh, // Required to match WideScreen
+    required this.sizes,
   });
 
   @override
@@ -25,34 +25,33 @@ class GameGridComponent extends StatefulWidget {
 }
 
 class GameGridComponentState extends State<GameGridComponent> {
-  late Future<List<Tile>> _tilesFuture;
   List<Tile> tiles = [];
   List<int> selectedIndices = [];
 
   @override
   void initState() {
     super.initState();
-    _tilesFuture = _loadTiles();
   }
 
-  Future<List<Tile>> _loadTiles() async {
-    await GridLoader.loadGrid();
-    final loadedTiles =
-        GridLoader.gridTiles.map((tileData) {
-          return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: false);
-        }).toList();
-    print('Loaded tiles: ${loadedTiles.length}');
+  Future<void> _loadTiles() async {
+    // Use GridLoader's already-loaded data
+    if (GridLoader.gridTiles.isEmpty) {
+      print('No tiles available in GridLoader');
+      return;
+    }
     setState(() {
-      tiles = loadedTiles;
+      tiles =
+          GridLoader.gridTiles.map((tileData) {
+            return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: false);
+          }).toList();
+      print('Loaded tiles: ${tiles.length}');
     });
-    return loadedTiles;
   }
 
-  void reloadTiles() {
-    // Add this
+  Future<void> reloadTiles() async {
     setState(() {
       _loadTiles();
-      selectedIndices.clear(); // Reset selections
+      selectedIndices.clear();
       print('Reloaded grid tiles');
     });
   }
@@ -72,13 +71,13 @@ class GameGridComponentState extends State<GameGridComponent> {
     setState(() {
       final lastIndex = selectedIndices.isEmpty ? -1 : selectedIndices.last;
       if (tiles[index].state == 'selected' && index == selectedIndices.last) {
-        tiles[index].select();
+        tiles[index].select(); // Toggles to unselected
         selectedIndices.removeLast();
       } else if ((tiles[index].state == 'unused' || tiles[index].state == 'used') &&
           selectedIndices.length < 12 &&
           !selectedIndices.contains(index) &&
           _isAdjacent(index, lastIndex)) {
-        tiles[index].select();
+        tiles[index].select(); // Toggles to selected
         selectedIndices.add(index);
       }
       print('Tile $index state: ${tiles[index].state}, Selected: $selectedIndices');
@@ -112,6 +111,7 @@ class GameGridComponentState extends State<GameGridComponent> {
         print('Invalid word submitted');
       }
       widget.onMessage?.call(message);
+      widget.updateScoresRefresh();
     });
   }
 
@@ -128,7 +128,6 @@ class GameGridComponentState extends State<GameGridComponent> {
   }
 
   void _incrementWildcardUse() async {
-    // Add this
     final prefs = await SharedPreferences.getInstance();
     final currentUses = prefs.getInt('wildcardUses') ?? 0;
     await prefs.setInt('wildcardUses', currentUses + 1);
@@ -146,45 +145,28 @@ class GameGridComponentState extends State<GameGridComponent> {
       width: gridSize,
       height: gridSize,
       decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 2)) : null,
-      child: FutureBuilder<List<Tile>>(
-        future: _tilesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            print('Error loading tiles: ${snapshot.error}');
-            return const Center(child: Text('Error loading grid'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            print('No tiles loaded');
-            return const Center(child: Text('No grid data'));
-          }
-
-          return GridView.count(
-            crossAxisCount: AppStyles.gridCols,
-            shrinkWrap: true,
-            padding: EdgeInsets.zero,
-            mainAxisSpacing: gridSpacing,
-            crossAxisSpacing: gridSpacing,
-            children: List.generate(tiles.length, (index) {
-              return DragTarget<Tile>(
-                onWillAccept: (Tile? tile) {
-                  // Check silently—no message yet
-                  return tile != null;
-                },
-                onAccept: (Tile tile) {
-                  _onDrop(index, tile); // Message only on drop
-                },
-                builder: (context, candidateData, rejectedData) {
-                  return GestureDetector(
-                    onTap: () => _onTileTapped(index),
-                    child: LetterSquareComponent(tile: tiles[index], sizes: widget.sizes),
+      child:
+          tiles.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : GridView.count(
+                crossAxisCount: AppStyles.gridCols,
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                mainAxisSpacing: gridSpacing,
+                crossAxisSpacing: gridSpacing,
+                children: List.generate(tiles.length, (index) {
+                  return DragTarget<Tile>(
+                    onWillAccept: (Tile? tile) => tile != null,
+                    onAccept: (Tile tile) => _onDrop(index, tile),
+                    builder: (context, candidateData, rejectedData) {
+                      return GestureDetector(
+                        onTap: () => _onTileTapped(index),
+                        child: LetterSquareComponent(tile: tiles[index], sizes: widget.sizes),
+                      );
+                    },
                   );
-                },
-              );
-            }),
-          );
-        },
-      ),
+                }),
+              ),
     );
   }
 }

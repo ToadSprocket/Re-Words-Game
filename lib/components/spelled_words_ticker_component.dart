@@ -1,15 +1,20 @@
-// layouts/spelled_words_ticker.dart
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
-import '../logic/spelled_words_handler.dart';
 import '../dialogs/spelled_words_popup.dart';
 
 class SpelledWordsTickerComponent extends StatelessWidget {
   final double gridSize;
   final double squareSize;
+  final List<String> words; // Add this
   final VoidCallback? onTap;
 
-  const SpelledWordsTickerComponent({super.key, required this.gridSize, required this.squareSize, this.onTap});
+  const SpelledWordsTickerComponent({
+    super.key,
+    required this.gridSize,
+    required this.squareSize,
+    required this.words, // Required prop
+    this.onTap,
+  });
 
   List<String> _getFittingWords(BuildContext context, double maxWidth) {
     final textStyle = TextStyle(fontSize: AppStyles.tickerFontSize, color: AppStyles.spelledWordsTextColor);
@@ -17,7 +22,8 @@ class SpelledWordsTickerComponent extends StatelessWidget {
     double currentWidth = 0.0;
     const double widthOffset = 6.0; // Small offset per word
 
-    for (String word in SpelledWordsLogic.spelledWords.reversed) {
+    for (String word in words.reversed) {
+      // Use passed words
       final textPainter = TextPainter(
         text: TextSpan(text: '$word ', style: textStyle), // Single space
         textDirection: TextDirection.ltr,
@@ -37,7 +43,7 @@ class SpelledWordsTickerComponent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double tickerWidth = (gridSize + squareSize) * AppStyles.tickerWidthFactor; // Adjustable factor
+    final double tickerWidth = (gridSize + squareSize) * AppStyles.tickerWidthFactor;
 
     final List<String> visibleWords = _getFittingWords(context, tickerWidth - 16.0); // Padding inset
 
@@ -52,12 +58,12 @@ class SpelledWordsTickerComponent extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 4.0), // Space between title and ticker
+        const SizedBox(height: 4.0),
         GestureDetector(
           onTap: onTap ?? () => SpelledWordsPopup.show(context),
           child: Container(
             width: tickerWidth,
-            height: AppStyles.tickerHeight - AppStyles.tickerTitleFontSize, // Adjust for title
+            height: AppStyles.tickerHeight - AppStyles.tickerTitleFontSize,
             decoration: BoxDecoration(
               border: Border.all(
                 color: AppStyles.tickerBorderColor.withOpacity(0.5),

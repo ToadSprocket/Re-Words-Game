@@ -43,15 +43,18 @@ class Tile {
   void markUsed() {
     if (state == 'selected') {
       state = 'used';
-      useCount++;
-      // Do not double if hybrid
-      if (!this.isHybrid) {
-        if (value == 1 && useCount == 1) {
-          value = 2; // Double on first use for value 1
-          multiplier = 2.0; // Set for next doubling
-        } else {
-          value = (value * multiplier).round(); // Apply multiplier for others
-          multiplier = useCount > 0 ? 2.0 : 1.0; // Reset for next use
+      if (useCount <= 8) {
+        // Cap at 3 uses
+        useCount++;
+        if (!this.isHybrid) {
+          if (value == 1 && useCount == 1) {
+            value = 2; // First use: 1 → 2
+            multiplier = 2.0;
+          } else if (useCount <= 8) {
+            // Apply multiplier up to cap
+            value = (value * multiplier).round();
+            multiplier = 2.0; // Reset for next use
+          }
         }
       }
       previousState = null;

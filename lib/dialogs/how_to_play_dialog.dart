@@ -61,6 +61,7 @@ class HowToPlayDialog {
                         Text(
                           'Form words using adjacent letters in any direction (horizontal, vertical, diagonal).\n'
                           'A letter used more than once in different words doubles in value every time it’s reused.\n'
+                          'You can use a letter up to 8 times, after that it’s value is capped.\n'
                           'You cannot use the same word twice.\n'
                           'Five Wildcards can be placed on unused tiles to multiply the total word score.',
                           style: AppStyles.dialogContentStyle,

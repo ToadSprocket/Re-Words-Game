@@ -1,9 +1,7 @@
-// components/wildcard_column_component.dart
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../logic/grid_loader.dart';
 import '../models/tile.dart';
-import '../logic/game_layout.dart';
 import 'letter_square_component.dart';
 
 class WildcardColumnComponent extends StatefulWidget {
@@ -31,25 +29,26 @@ class WildcardColumnComponent extends StatefulWidget {
 }
 
 class WildcardColumnComponentState extends State<WildcardColumnComponent> {
-  late Future<List<Tile>> _wildcardTilesFuture;
   List<Tile> tiles = [];
 
   @override
   void initState() {
     super.initState();
-    _wildcardTilesFuture = _loadWildcardTiles();
   }
 
-  Future<List<Tile>> _loadWildcardTiles() async {
-    await GridLoader.loadGrid();
-    final loadedTiles =
-        GridLoader.wildcardTiles.map((tileData) {
-          return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: true);
-        }).toList();
+  Future<void> _loadWildcardTiles() async {
+    // Use GridLoader's already-loaded data
+    if (GridLoader.wildcardTiles.isEmpty) {
+      print('No wildcard tiles available in GridLoader');
+      return;
+    }
     setState(() {
-      tiles = loadedTiles;
+      tiles =
+          GridLoader.wildcardTiles.map((tileData) {
+            return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: true);
+          }).toList();
+      print('Loaded wildcard tiles: ${tiles.length}');
     });
-    return loadedTiles;
   }
 
   void _onWildcardTapped(int index) {
@@ -73,8 +72,7 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
     });
   }
 
-  void reloadWildcardTiles() {
-    // Add this
+  Future<void> reloadWildcardTiles() async {
     setState(() {
       _loadWildcardTiles();
       print('Reloaded wildcard tiles');
@@ -88,18 +86,10 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
       width: widget.width,
       height: widget.height,
       decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.blue, width: 2)) : null,
-      child: FutureBuilder<List<Tile>>(
-        future: _wildcardTilesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return const Center(child: Text('Error loading wildcards'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No wildcards'));
-          }
-
-          return widget.isHorizontal
+      child:
+          tiles.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : widget.isHorizontal
               ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(tiles.length, (index) {
@@ -118,7 +108,7 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
                       ),
                       childWhenDragging: Container(),
                       onDragCompleted: () {
-                        removeWildcard(index); // Fixed syntax
+                        removeWildcard(index);
                       },
                     ),
                   );
@@ -143,14 +133,12 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
                       ),
                       childWhenDragging: Container(),
                       onDragCompleted: () {
-                        removeWildcard(index); // Fixed syntax
+                        removeWildcard(index);
                       },
                     ),
                   );
                 }),
-              );
-        },
-      ),
+              ),
     );
   }
 }

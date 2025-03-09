@@ -1,4 +1,4 @@
-// layouts/game_scores.dart
+// game_scores_component.dart
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../logic/spelled_words_handler.dart';
@@ -6,8 +6,9 @@ import '../logic/spelled_words_handler.dart';
 // Displays the score and word count above the grid
 class GameScores extends StatelessWidget {
   final double width;
+  final int score;
 
-  const GameScores({super.key, required this.width});
+  const GameScores({super.key, required this.width, required this.score});
 
   @override
   Widget build(BuildContext context) {

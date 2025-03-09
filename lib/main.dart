@@ -1,10 +1,9 @@
-// main.dart
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:window_manager/window_manager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'styles/app_styles.dart';
-import 'logic/word_loader.dart';
 import 'logic/grid_loader.dart';
 import 'logic/game_layout.dart';
 import 'screens/wide_screen.dart';
@@ -16,12 +15,17 @@ import 'dialogs/board_expired_dialog.dart';
 import 'dialogs/failure_dialog.dart';
 import 'components/game_grid_component.dart';
 import 'components/wildcard_column_component.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'managers/state_manager.dart';
+import 'logic/api_service.dart';
+import 'models/api_models.dart';
+import 'logic/word_loader.dart';
+import 'logic/spelled_words_handler.dart';
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
-const bool debugForceExpiredBoard = false;
+const bool debugForceExpiredBoard = false; // Force expired board
+const bool debugForceValidBoard = false; // Force valid board
+const bool debugClearPrefs = false; // Clear all prefs for new user
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,7 +69,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, WindowListener {
   final _gridKey = GlobalKey<GameGridComponentState>();
   final _wildcardKey = GlobalKey<WildcardColumnComponentState>();
-  String submitMessage = '';
+  final ValueNotifier<String> messageNotifier = ValueNotifier<String>(''); // Notifier for message
+  final ValueNotifier<int> scoreNotifier = ValueNotifier<int>(0);
+  final ValueNotifier<List<String>> spelledWordsNotifier = ValueNotifier<List<String>>([]); // Notifier for words
   Map<String, dynamic>? sizes;
   DateTime? _sessionStart;
 
@@ -108,13 +114,94 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   }
 
   Future<void> _loadData() async {
+    final api = ApiService();
     await WordLoader.loadWords();
-    final gridLoaded = await GridLoader.loadGrid();
-    if (!gridLoaded) {
-      await FailureDialog.show(context);
+    await _applyDebugControls();
+    final userData = await StateManager.getUserData();
+    bool isNewUser = await StateManager.isNewUser();
+    if (isNewUser) {
+      await _handleNewUser(api);
+    } else {
+      await _handleExistingUser(api, userData);
+      await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
     }
-    await _checkBoardExpiration();
-    setState(() {});
+    if (GridLoader.gridTiles.isEmpty) {
+      await FailureDialog.show(context);
+      print('Load failed: No tiles');
+    } else {
+      print('Load succeeded: ${GridLoader.gridTiles.length} tiles');
+      if (isNewUser) {
+        // Only reload for new users
+        _gridKey.currentState?.reloadTiles();
+        _wildcardKey.currentState?.reloadWildcardTiles();
+      }
+      // Sync notifiers (safe fallback)
+      scoreNotifier.value = SpelledWordsLogic.score;
+      spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
+    }
+  }
+
+  Future<void> _applyDebugControls() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (debugClearPrefs) {
+      await prefs.clear();
+      print('Debug: Cleared all preferences');
+    }
+    if (debugForceValidBoard) {
+      await prefs.setString('boardExpireDate', DateTime.now().toUtc().add(const Duration(hours: 24)).toIso8601String());
+      print('Debug: Forced valid board with future expiry');
+    }
+  }
+
+  Future<void> _handleNewUser(ApiService api) async {
+    try {
+      final response = await api.register(Platform.localeName, 'Windows');
+      if (response.security == null) {
+        print('Error: Registration failed - null security');
+        return;
+      }
+      if (response.security != null) {
+        await StateManager.saveUserData(response.security!);
+      } else {
+        print('Error: Registration failed - null security');
+      }
+      await GridLoader.loadNewBoard(api); // This fetches and saves gameData
+      print('New user loaded: ${GridLoader.gridTiles}');
+    } catch (e) {
+      print('Error registering new user: $e');
+    }
+  }
+
+  Future<void> _handleExistingUser(ApiService api, Map<String, String?> userData) async {
+    api.userId = userData['userId'];
+    api.accessToken = userData['accessToken'];
+    api.refreshToken = userData['refreshToken'];
+
+    final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
+    if (isExpired) {
+      final loadNewBoard = await _shouldLoadNewBoard();
+      if (loadNewBoard) {
+        await StateManager.updatePlayTime(_sessionStart);
+        await GridLoader.loadNewBoard(api);
+        await _gridKey.currentState?.reloadTiles();
+        await _wildcardKey.currentState?.reloadWildcardTiles();
+        print('New board loaded: ${GridLoader.gridTiles}');
+      } else {
+        await GridLoader.loadStoredBoard();
+        print('Stored board loaded: ${GridLoader.gridTiles}');
+      }
+    } else {
+      await GridLoader.loadStoredBoard();
+      print('Stored board loaded: ${GridLoader.gridTiles}');
+    }
+  }
+
+  Future<bool> _shouldLoadNewBoard() async {
+    final expiredTime = await StateManager.boardExpiredDuration();
+    if (expiredTime != null && expiredTime <= 120) {
+      return true; // Auto-refresh if expired <= 2 hours
+    }
+    return await BoardExpiredDialog.show(context) ?? false; // Ask user if > 2 hours
   }
 
   @override
@@ -125,70 +212,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   }
 
   void submitWord() {
-    setState(() {
-      _gridKey.currentState?.submitWord();
-    });
+    _gridKey.currentState?.submitWord();
   }
 
   void clearWords() {
-    setState(() {
-      _gridKey.currentState?.clearSelectedTiles();
-      _wildcardKey.currentState?.clearSelectedTiles();
-      submitMessage = '';
-    });
+    _gridKey.currentState?.clearSelectedTiles();
+    _wildcardKey.currentState?.clearSelectedTiles();
+    messageNotifier.value = '';
+    print('Clear clicked');
   }
 
   void _handleMessage(String message) {
-    setState(() {
-      submitMessage = message;
-    });
+    messageNotifier.value = message;
+    scoreNotifier.value = SpelledWordsLogic.score; // Sync on submit
+    spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
+    print('Updated: Message: $message, Score: ${scoreNotifier.value}, Words: ${spelledWordsNotifier.value}');
   }
 
-  Future<void> _checkBoardExpiration() async {
-    print('Checking board expiration');
-    bool loadNewBoard = false;
-    bool userBoardLoad = false;
-    await StateManager.restoreState(_gridKey, _wildcardKey);
-    final prefs = await SharedPreferences.getInstance();
-    final boardLoadedDate = prefs.getString('boardLoadedDate');
-    final timePlayedSeconds = prefs.getInt('timePlayedSeconds') ?? 0;
-    final expireDate = DateTime.tryParse(GridLoader.dateExpire);
-    final isExpired = debugForceExpiredBoard || (expireDate != null && DateTime.now().toUtc().isAfter(expireDate));
-    final minsFromBoardLoad =
-        boardLoadedDate != null ? DateTime.now().difference(DateTime.parse(boardLoadedDate)).inMinutes : null;
-
-    print('isExpired: $isExpired, timePlayedSeconds: $timePlayedSeconds, minsFromBoardLoad: $minsFromBoardLoad');
-
-    if (isExpired) {
-      if (minutesFromMidnight() > 120 && timePlayedSeconds < 900) {
-        loadNewBoard = true;
-      } else if (minsFromBoardLoad != null && minsFromBoardLoad > 120) {
-        loadNewBoard = true;
-      } else {
-        userBoardLoad = await BoardExpiredDialog.show(context) ?? false;
-      }
-    }
-
-    // Load a nmew board and reset game state
-    if (loadNewBoard || userBoardLoad) {
-      StateManager.updatePlayTime(_sessionStart);
-      await GridLoader.loadGrid(forceRefresh: true);
-      _gridKey.currentState?.reloadTiles(); // Reload grid
-      _wildcardKey.currentState?.reloadWildcardTiles();
-      print('New board loaded');
-      setState(() {});
-    }
-  }
-
-  int minutesFromMidnight() {
-    final now = DateTime.now(); // Current local time
-    final midnight = DateTime(now.year, now.month, now.day); // Midnight today
-    final difference = now.difference(midnight); // Duration since midnight
-    return difference.inMinutes; // Integer minutes
+  void updateScoresRefresh() {
+    scoreNotifier.value = SpelledWordsLogic.score;
+    spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
+    print('Scores refreshed: Score: ${scoreNotifier.value}, Words: ${spelledWordsNotifier.value}');
   }
 
   @override
   Widget build(BuildContext context) {
+    print('GameTitleComponent build');
     if (sizes == null) {
       return const SizedBox.shrink();
     }
@@ -212,7 +261,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,
                   onMessage: _handleMessage,
-                  message: submitMessage,
+                  messageNotifier: messageNotifier, // Pass notifier
+                  scoreNotifier: scoreNotifier, // Pass notifier
+                  spelledWordsNotifier: spelledWordsNotifier, // Pass notifier
+                  updateScoresRefresh: updateScoresRefresh,
                   sizes: sizes!,
                 )
                 : NarrowScreen(
@@ -225,7 +277,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,
                   onMessage: _handleMessage,
-                  message: submitMessage,
+                  messageNotifier: messageNotifier, // Pass notifier
+                  scoreNotifier: scoreNotifier, // Pass notifier
+                  spelledWordsNotifier: spelledWordsNotifier, // Pass notifier
+                  updateScoresRefresh: updateScoresRefresh,
                   sizes: sizes!,
                 ),
       ),

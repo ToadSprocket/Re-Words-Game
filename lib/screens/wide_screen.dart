@@ -4,7 +4,7 @@ import '../styles/app_styles.dart';
 import '../components/wildcard_column_component.dart';
 import '../components/game_top_bar_component.dart';
 import '../components/game_title_component.dart';
-import '../dialogs/game_scores_dialog.dart';
+import '../components/game_scores_component.dart';
 import '../components/game_grid_component.dart';
 import '../components/game_buttons_component.dart';
 import '../components/spelled_words_column_component.dart';
@@ -22,7 +22,10 @@ class WideScreen extends StatelessWidget {
   final GlobalKey<GameGridComponentState>? gridKey;
   final GlobalKey<WildcardColumnComponentState>? wildcardKey;
   final ValueChanged<String>? onMessage;
-  final String message;
+  final ValueNotifier<String> messageNotifier;
+  final ValueNotifier<int> scoreNotifier; // Notifier
+  final ValueNotifier<List<String>> spelledWordsNotifier; // Notifier
+  final VoidCallback updateScoresRefresh;
   final Map<String, dynamic> sizes;
 
   const WideScreen({
@@ -36,23 +39,25 @@ class WideScreen extends StatelessWidget {
     this.gridKey,
     this.wildcardKey,
     this.onMessage,
-    required this.message,
+    required this.messageNotifier,
+    required this.scoreNotifier,
+    required this.spelledWordsNotifier,
+    required this.updateScoresRefresh,
     required this.sizes,
   });
 
   @override
   Widget build(BuildContext context) {
     final gridSize = sizes['gridSize'] as double;
-    final squareSize = sizes['squareSize'] as double;
     final sideSpacing = sizes['sideSpacing'] as double;
     final sideColumnWidth = sizes['sideColumnWidth'] as double;
     final wordColumnWidth = sizes['wordColumnWidth'] as double;
     final wordColumnHeight = sizes['wordColumnHeight'] as double;
     final spelledWordsGridSpacing = sizes['spelledWordsGridSpacing'] as double;
     final gridSpacing = sizes['gridSpacing'] as double;
-    const double topSectionHeight = 100.0;
+    const double topSectionHeight = 80.0;
 
-    print("WideScreen");
+    print("WideScreen build");
     print('Side column width: $sideColumnWidth, Side spacing: $sideSpacing');
 
     return Column(
@@ -68,7 +73,7 @@ class WideScreen extends StatelessWidget {
         const SizedBox(height: 10.0),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Left Column (Wildcard)
             Container(
@@ -96,13 +101,31 @@ class WideScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  GameTitleComponent(width: gridSize, showBorders: showBorders),
+                  const GameTitleComponent(width: 300, showBorders: false), // Const to avoid rebuild
                   const SizedBox(height: 20.0),
-                  GameScores(width: gridSize),
+                  ValueListenableBuilder<int>(
+                    valueListenable: scoreNotifier,
+                    builder: (context, score, child) {
+                      print('GameScores build');
+                      return GameScores(width: gridSize, score: score);
+                    },
+                  ),
                   const SizedBox(height: 8.0),
-                  GameGridComponent(key: gridKey, showBorders: showBorders, onMessage: onMessage, sizes: sizes),
+                  GameGridComponent(
+                    key: gridKey,
+                    showBorders: showBorders,
+                    onMessage: onMessage,
+                    updateScoresRefresh: updateScoresRefresh, // Pass refresh
+                    sizes: sizes,
+                  ),
                   const SizedBox(height: 5.0),
-                  GameMessageComponent(message: message),
+                  ValueListenableBuilder<String>(
+                    valueListenable: messageNotifier,
+                    builder: (context, message, child) {
+                      print('GameMessageComponent build');
+                      return GameMessageComponent(message: message);
+                    },
+                  ),
                   const SizedBox(height: 5.0),
                   GameButtonsComponent(onSubmit: onSubmit, onClear: onClear),
                 ],
@@ -116,14 +139,20 @@ class WideScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(height: topSectionHeight),
-                  SpelledWordsColumnComponent(
-                    words: SpelledWordsLogic.spelledWords,
-                    columnWidth: sideColumnWidth,
-                    columnHeight: gridSize,
-                    gridSpacing: spelledWordsGridSpacing,
-                    showBorders: showBorders,
-                    wordColumnWidth: wordColumnWidth,
-                    wordColumnHeight: wordColumnHeight,
+                  ValueListenableBuilder<List<String>>(
+                    valueListenable: spelledWordsNotifier,
+                    builder: (context, words, child) {
+                      print('SpelledWordsColumnComponent build');
+                      return SpelledWordsColumnComponent(
+                        words: words, // Use notifier value
+                        columnWidth: sideColumnWidth,
+                        columnHeight: gridSize,
+                        gridSpacing: spelledWordsGridSpacing,
+                        showBorders: showBorders,
+                        wordColumnWidth: wordColumnWidth,
+                        wordColumnHeight: wordColumnHeight,
+                      );
+                    },
                   ),
                 ],
               ),

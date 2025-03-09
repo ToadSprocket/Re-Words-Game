@@ -1,4 +1,3 @@
-// lib/managers/state_manager.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,8 +5,10 @@ import '../logic/spelled_words_handler.dart';
 import '../components/game_grid_component.dart';
 import '../components/wildcard_column_component.dart';
 import '../models/tile.dart';
+import '../models/api_models.dart';
 
 class StateManager {
+  // Existing game state methods (unchanged)
   static Future<void> saveState(
     GlobalKey<GameGridComponentState> gridKey,
     GlobalKey<WildcardColumnComponentState> wildcardKey,
@@ -29,44 +30,46 @@ class StateManager {
   }
 
   static Future<void> restoreState(
-    GlobalKey<GameGridComponentState> gridKey,
-    GlobalKey<WildcardColumnComponentState> wildcardKey,
+    GlobalKey<GameGridComponentState>? gridKey,
+    GlobalKey<WildcardColumnComponentState>? wildcardKey,
+    ValueNotifier<int> scoreNotifier,
+    ValueNotifier<List<String>> spelledWordsNotifier,
   ) async {
     final prefs = await SharedPreferences.getInstance();
-    final savedWords = prefs.getStringList('spelledWords');
-    if (savedWords != null) {
-      SpelledWordsLogic.spelledWords = savedWords;
-      SpelledWordsLogic.score = prefs.getInt('score') ?? 0;
-      final timePlayedSeconds = prefs.getInt('timePlayedSeconds') ?? 0;
-      final boardLoadedDate = prefs.getString('boardLoadedDate');
+
+    // Restore SpelledWordsLogic
+    SpelledWordsLogic.score = prefs.getInt('score') ?? 0;
+    SpelledWordsLogic.spelledWords = prefs.getStringList('spelledWords') ?? [];
+    scoreNotifier.value = SpelledWordsLogic.score;
+    spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
+    print('Restored SpelledWordsLogic - Score: ${SpelledWordsLogic.score}, Words: ${SpelledWordsLogic.spelledWords}');
+
+    // Restore grid state
+    final gridTilesJson = prefs.getString('gridTiles');
+    final selectedIndicesJson = prefs.getString('selectedIndices');
+    if (gridTilesJson != null) {
+      final List<dynamic> tileData = jsonDecode(gridTilesJson);
+      gridKey?.currentState?.tiles = tileData.map((data) => Tile.fromJson(data)).toList();
     }
-    if (gridKey.currentState != null) {
-      final gridState = gridKey.currentState!;
-      final savedTiles = prefs.getString('gridTiles');
-      final savedIndices = prefs.getString('selectedIndices');
-      if (savedTiles != null) {
-        gridState.tiles =
-            (jsonDecode(savedTiles) as List).map((item) => Tile.fromJson(item as Map<String, dynamic>)).toList();
-        print('Restored grid tiles');
-      }
-      if (savedIndices != null) {
-        gridState.selectedIndices = (jsonDecode(savedIndices) as List).map((i) => i as int).toList();
-        print('Restored selected indices');
-      }
+    if (selectedIndicesJson != null) {
+      gridKey?.currentState?.selectedIndices = (jsonDecode(selectedIndicesJson) as List).cast<int>();
     }
-    if (wildcardKey.currentState != null) {
-      final savedWildcardTiles = prefs.getString('wildcardTiles');
-      if (savedWildcardTiles != null) {
-        wildcardKey.currentState!.tiles =
-            (jsonDecode(savedWildcardTiles) as List)
-                .map((item) => Tile.fromJson(item as Map<String, dynamic>))
-                .toList();
-        print('Restored wildcard tiles');
-      }
+    gridKey?.currentState?.setState(() {}); // Trigger UI update
+    print(
+      'Restored grid - Tiles: ${gridKey?.currentState?.tiles.length}, Selected: ${gridKey?.currentState?.selectedIndices}',
+    );
+
+    // Restore wildcard state
+    final wildcardTilesJson = prefs.getString('wildcardTiles');
+    if (wildcardTilesJson != null) {
+      final List<dynamic> tileData = jsonDecode(wildcardTilesJson);
+      wildcardKey?.currentState?.tiles = tileData.map((data) => Tile.fromJson(data)).toList();
+      wildcardKey?.currentState?.setState(() {}); // Trigger UI update
+      print('Restored wildcards - Tiles: ${wildcardKey?.currentState?.tiles.length}');
     }
   }
 
-  static Future<void> resetState(GlobalKey<GameGridComponentState> gridKey) async {
+  static Future<void> resetState(GlobalKey<GameGridComponentState>? gridKey) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('spelledWords');
     await prefs.remove('score');
@@ -76,8 +79,8 @@ class StateManager {
     await prefs.remove('timePlayedSeconds');
     SpelledWordsLogic.spelledWords = [];
     SpelledWordsLogic.score = 0;
-    if (gridKey.currentState != null) {
-      gridKey.currentState!.selectedIndices.clear();
+    if (gridKey?.currentState != null) {
+      gridKey!.currentState!.selectedIndices.clear();
     }
     print('Reset game state');
   }
@@ -91,4 +94,70 @@ class StateManager {
       print('Updated play time: $totalTime seconds');
     }
   }
+
+  // Storage-only methods
+  static Future<bool> isNewUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+    final refreshToken = prefs.getString('refreshToken');
+    final refreshTokenDate = prefs.getString('refreshTokenDate');
+    if (userId == null || refreshToken == null || refreshTokenDate == null) return true;
+    return DateTime.now().difference(DateTime.parse(refreshTokenDate)).inDays > 90; // 3-month expiry
+  }
+
+  static Future<bool> isBoardExpired() async {
+    final prefs = await SharedPreferences.getInstance();
+    final expireDate = prefs.getString('boardExpireDate');
+    if (expireDate == null) return true;
+    return DateTime.now().toUtc().isAfter(DateTime.parse(expireDate));
+  }
+
+  static Future<int?> boardExpiredDuration() async {
+    final prefs = await SharedPreferences.getInstance();
+    final expireDate = prefs.getString('boardExpireDate');
+    if (expireDate == null) return null; // No board yet
+    final expiry = DateTime.parse(expireDate);
+    if (DateTime.now().toUtc().isBefore(expiry)) return 0; // Not expired
+    return DateTime.now().toUtc().difference(expiry).inMinutes; // Minutes expired
+  }
+
+  static Future<Map<String, String?>> getUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    return {
+      'userId': prefs.getString('userId'),
+      'accessToken': prefs.getString('accessToken'),
+      'refreshToken': prefs.getString('refreshToken'),
+    };
+  }
+
+  static Future<void> saveUserData(SecurityData security) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('userId', security.userId);
+    await prefs.setString('accessToken', security.accessToken!);
+    await prefs.setString('refreshToken', security.refreshToken!);
+    await prefs.setString('refreshTokenDate', DateTime.now().toIso8601String());
+  }
+
+  static Future<Map<String, dynamic>> getBoardData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cachedGrid = prefs.getString('cachedGrid');
+    return cachedGrid != null ? jsonDecode(cachedGrid) : {};
+  }
+
+  static Future<void> saveBoardData(GameData gameData) async {
+    final prefs = await SharedPreferences.getInstance();
+    final boardData = {
+      'grid': gameData.grid,
+      'wildcards': gameData.wildcards,
+      'dateStart': gameData.dateStart,
+      'dateExpire': gameData.dateExpire,
+      'wordCount': gameData.wordCount,
+      'estimatedHighScore': gameData.estimatedHighScore,
+    };
+    await prefs.setString('cachedGrid', jsonEncode(boardData));
+    await prefs.setString('boardExpireDate', gameData.dateExpire);
+    await prefs.setString('boardLoadedDate', DateTime.now().toUtc().toIso8601String());
+  }
+
+  // Removed: registerUser, fetchNewBoard, _getStats, _minutesFromMidnight
 }
