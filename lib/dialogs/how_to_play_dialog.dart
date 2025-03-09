@@ -8,9 +8,9 @@ import '../models/tile.dart';
 class HowToPlayDialog {
   static void show(BuildContext context) {
     final sizes = {
-      'squareSize': 42.0, // Match GameGridComponent default
+      'squareSize': 49.0, // Match GameGridComponent default
       'squareLetterSize': 20.0, // Typical letter size
-      'squareValueSize': 12.0, // Smaller for value
+      'squareValueSize': 10.0, // Smaller for value
     };
 
     final standardTile = Tile(letter: 'A', value: 1, state: 'unused', isExtra: true);
@@ -28,7 +28,7 @@ class HowToPlayDialog {
           backgroundColor: AppStyles.dialogBackgroundColor,
           child: Container(
             width: AppStyles.dialogWidth,
-            height: AppStyles.dialogHeight * 1.2,
+            height: AppStyles.dialogHeight * 1.4,
             padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -57,17 +57,14 @@ class HowToPlayDialog {
                           style: AppStyles.dialogContentStyle,
                         ),
                         const SizedBox(height: 12.0),
-                        Text('Game Rules', style: AppStyles.dialogTitleStyle.copyWith(fontSize: 18.0)),
                         Text(
                           'Form words using adjacent letters in any direction (horizontal, vertical, diagonal).\n'
                           'A letter used more than once in different words doubles in value every time it’s reused.\n'
-                          'You can use a letter up to 8 times, after that it’s value is capped.\n'
-                          'You cannot use the same word twice.\n'
+                          'You can use a letter up to 8 times, after that it’s value is capped. You cannot use the same word twice.\n\n'
                           'Five Wildcards can be placed on unused tiles to multiply the total word score.',
                           style: AppStyles.dialogContentStyle,
                         ),
                         const SizedBox(height: 12.0),
-                        Text('Tile Types', style: AppStyles.dialogTitleStyle.copyWith(fontSize: 18.0)),
                         Row(
                           children: [
                             LetterSquareComponent(tile: standardTile, sizes: sizes),
@@ -92,7 +89,6 @@ class HowToPlayDialog {
                           ],
                         ),
                         const SizedBox(height: 12.0),
-                        Text('Scoring Strategy', style: AppStyles.dialogTitleStyle.copyWith(fontSize: 18.0)),
                         Text(
                           'Plan ahead! Reuse letters as much as possible to stack multipliers.\n'
                           'Wildcards can dramatically boost your score when used in high-value words.\n'
