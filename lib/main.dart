@@ -21,11 +21,12 @@ import 'logic/api_service.dart';
 import 'models/api_models.dart';
 import 'logic/word_loader.dart';
 import 'logic/spelled_words_handler.dart';
+import 'package:timezone/data/latest.dart' as tz;
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
 const bool debugForceExpiredBoard = false; // Force expired board
-const bool debugForceValidBoard = false; // Force valid board
+const bool debugForceValidBoard = true; // Force valid board
 const bool debugClearPrefs = false; // Clear all prefs for new user
 
 void main() async {
@@ -149,8 +150,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
       print('Debug: Cleared all preferences');
     }
     if (debugForceValidBoard) {
-      await prefs.setString('boardExpireDate', DateTime.now().toUtc().add(const Duration(hours: 24)).toIso8601String());
-      print('Debug: Forced valid board with future expiry');
+      final nowUtc = DateTime.now().toUtc();
+      final nextMidnightUtc = nowUtc
+          .add(const Duration(days: 1))
+          .toUtc()
+          .copyWith(
+            hour: 2,
+            minute: 5,
+            second: 0,
+            millisecond: 0,
+            microsecond: 0,
+          ); // Force expiration just after midnight UTC
+
+      await prefs.setString('boardExpireDate', nextMidnightUtc.toIso8601String());
+      print('🛠 Debug: Forced valid board with expiration at $nextMidnightUtc UTC');
     }
   }
 
@@ -161,11 +174,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         print('Error: Registration failed - null security');
         return;
       }
-      if (response.security != null) {
-        await StateManager.saveUserData(response.security!);
-      } else {
-        print('Error: Registration failed - null security');
-      }
       await GridLoader.loadNewBoard(api); // This fetches and saves gameData
       print('New user loaded: ${GridLoader.gridTiles}');
     } catch (e) {
@@ -174,10 +182,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   }
 
   Future<void> _handleExistingUser(ApiService api, Map<String, String?> userData) async {
-    api.userId = userData['userId'];
-    api.accessToken = userData['accessToken'];
-    api.refreshToken = userData['refreshToken'];
-
     final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
     if (isExpired) {
       final loadNewBoard = await _shouldLoadNewBoard();
@@ -257,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   onSubmit: submitWord,
                   onClear: clearWords,
                   onInstructions: () => HowToPlayDialog.show(context),
-                  onHighScores: () => HighScoresDialog.show(context),
+                  onHighScores: () => HighScoresDialog.show(context, ApiService()),
                   onLegal: () => LegalDialog.show(context),
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,
@@ -273,7 +277,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   onSubmit: submitWord,
                   onClear: clearWords,
                   onInstructions: () => HowToPlayDialog.show(context),
-                  onHighScores: () => HighScoresDialog.show(context),
+                  onHighScores: () => HighScoresDialog.show(context, ApiService()),
                   onLegal: () => LegalDialog.show(context),
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,

@@ -2,6 +2,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_timezone/flutter_timezone.dart';
 import '../logic/spelled_words_handler.dart';
 import '../components/game_grid_component.dart';
 import '../components/wildcard_column_component.dart';
@@ -108,9 +111,43 @@ class StateManager {
 
   static Future<bool> isBoardExpired() async {
     final prefs = await SharedPreferences.getInstance();
-    final expireDate = prefs.getString('boardExpireDate');
-    if (expireDate == null) return true;
-    return DateTime.now().toUtc().isAfter(DateTime.parse(expireDate));
+    final expireDateUtc = prefs.getString('boardExpireDate');
+
+    if (expireDateUtc == null) {
+      print("🚨 No expire date stored! Board is expired by default.");
+      return true;
+    }
+
+    // Parse stored UTC expiration time
+    final utcExpireTime = DateTime.parse(expireDateUtc).toUtc();
+
+    // Get system timezone dynamically, with error handling
+    tz.initializeTimeZones();
+    String localTimeZoneName;
+    try {
+      localTimeZoneName = await getCurrentTimezone();
+    } catch (e) {
+      print("🚨 Timezone detection failed: $e");
+      localTimeZoneName = "UTC"; // Default to UTC if detection fails
+    }
+
+    final localTimezone = tz.getLocation(localTimeZoneName);
+    final localNow = tz.TZDateTime.from(DateTime.now(), localTimezone);
+    final localMidnight = tz.TZDateTime(localTimezone, localNow.year, localNow.month, localNow.day, 0, 0, 0);
+    final localMidnightUtc = localMidnight.toUtc();
+
+    print("⏳ Current UTC Time: ${DateTime.now().toUtc()}");
+    print("🌍 Detected Timezone: $localTimeZoneName");
+    print("🌎 Local Time: $localNow");
+    print("🕛 Local Midnight (UTC): $localMidnightUtc");
+    print("📌 Board Expiration UTC: $utcExpireTime");
+
+    return DateTime.now().toUtc().isAfter(localMidnightUtc);
+  }
+
+  static Future<String> getCurrentTimezone() async {
+    final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
+    return currentTimeZone;
   }
 
   static Future<int?> boardExpiredDuration() async {
@@ -128,6 +165,7 @@ class StateManager {
       'userId': prefs.getString('userId'),
       'accessToken': prefs.getString('accessToken'),
       'refreshToken': prefs.getString('refreshToken'),
+      'refreshTokenDate': prefs.getString('refreshTokenDate'),
     };
   }
 
@@ -137,6 +175,15 @@ class StateManager {
     await prefs.setString('accessToken', security.accessToken!);
     await prefs.setString('refreshToken', security.refreshToken!);
     await prefs.setString('refreshTokenDate', DateTime.now().toIso8601String());
+
+    // Store token expiration
+    if (security.expirationSeconds != null) {
+      final expirationTimestamp =
+          DateTime.now().millisecondsSinceEpoch ~/ 1000 + int.parse(security.expirationSeconds!);
+      await prefs.setInt('accessTokenExpiration', expirationTimestamp);
+    }
+
+    print("✅ Saved user data - Expires in: ${security.expirationSeconds}");
   }
 
   static Future<Map<String, dynamic>> getBoardData() async {

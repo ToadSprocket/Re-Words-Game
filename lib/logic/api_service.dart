@@ -1,6 +1,6 @@
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../logic/security.dart';
 import '../config/config.dart';
 import '../models/api_models.dart';
@@ -9,96 +9,238 @@ class ApiService {
   String? userId;
   String? accessToken;
   String? refreshToken;
+  int? tokenExpiration;
 
   ApiService({this.userId, this.accessToken, this.refreshToken});
 
+  /// **Check if the token is expiring soon**
+  Future<bool> _isTokenExpiringSoon() async {
+    if (tokenExpiration == null) {
+      final prefs = await SharedPreferences.getInstance();
+      tokenExpiration = prefs.getInt('accessTokenExpiration'); // Load as int
+    }
+    if (tokenExpiration == null) return false; // No expiration set
+
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    print(
+      "⏳ Checking token expiration - Expiration: $tokenExpiration, Now: $now, Time Left: ${tokenExpiration! - now} sec",
+    );
+
+    return tokenExpiration! - now < 30; // Refresh if expiring within 30 seconds
+  }
+
+  /// **Update tokens in memory & storage**
   Future<void> _updateTokens(SecurityData security) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('userId', security.userId);
+    await prefs.setString('accessToken', security.accessToken ?? "");
+    await prefs.setString('refreshToken', security.refreshToken ?? "");
+
     userId = security.userId;
     accessToken = security.accessToken;
     refreshToken = security.refreshToken;
-    // TODO: Save to user_storage.dart later
+
+    if (security.expirationSeconds != null) {
+      final expirationInt = int.tryParse(security.expirationSeconds!) ?? 0;
+      final expirationTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000 + expirationInt;
+      await prefs.setInt('accessTokenExpiration', expirationTimestamp);
+
+      tokenExpiration = expirationTimestamp; // ✅ Now updates immediately
+      print('✅ Tokens Updated - Expires At: $expirationTimestamp');
+    }
   }
 
+  Future<void> _getTokens() async {
+    if (userId != null) return; // Already loaded
+    final prefs = await SharedPreferences.getInstance();
+    userId = prefs.getString('userId');
+    accessToken = prefs.getString('accessToken');
+    refreshToken = prefs.getString('refreshToken');
+    tokenExpiration = prefs.getInt('accessTokenExpiration');
+  }
+
+  /// **Refresh token if needed**
+  Future<bool> _refreshTokenIfNeeded() async {
+    if (userId == null || refreshToken == null) {
+      print("🚨 No refresh token available.");
+      return false;
+    }
+
+    try {
+      final headers = {
+        'X-API-Key': Security.generateApiKeyHash(),
+        'UserId': userId!,
+        'Refresh-Token': refreshToken!,
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      };
+
+      final response = await http.post(Uri.parse('${Config.apiUrl}/users/refresh'), headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        await _updateTokens(
+          SecurityData(
+            userId: data['userId'],
+            accessToken: data['access_token'],
+            refreshToken: data['refresh_token'],
+            expirationSeconds: data['expires_in'].toString(),
+          ),
+        );
+        return true;
+      }
+    } catch (e) {
+      print('🚨 Refresh failed: $e');
+    }
+
+    return false;
+  }
+
+  /// **Unified API Request Handler**
+  Future<http.Response> _makeApiRequest(bool isGet, String url, Map<String, String> headers, String? body) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (await _isTokenExpiringSoon()) {
+      print("🔄 Token is expiring soon, refreshing...");
+      await _refreshTokenIfNeeded();
+      headers['Authorization'] = 'Bearer ${prefs.getString('accessToken')}'; // Update token in headers
+    }
+
+    var response =
+        isGet
+            ? await http.get(Uri.parse(url), headers: headers)
+            : await http.post(Uri.parse(url), headers: headers, body: body);
+
+    if (response.statusCode == 401) {
+      print("🚨 Token expired. Refreshing...");
+      final refreshed = await _refreshTokenIfNeeded();
+
+      if (refreshed) {
+        print("✅ Token refreshed, retrying request...");
+        headers['Authorization'] = 'Bearer ${prefs.getString('accessToken')}'; // Update token again
+
+        return isGet
+            ? await http.get(Uri.parse(url), headers: headers)
+            : await http.post(Uri.parse(url), headers: headers, body: body);
+      } else {
+        throw ApiException(statusCode: 401, detail: 'Token refresh failed - Please log in again');
+      }
+    }
+
+    return response;
+  }
+
+  /// **Register a new user**
   Future<ApiResponse> register(String locale, String platform) async {
     final headers = {'X-API-Key': Security.generateApiKeyHash(), 'Content-Type': 'application/json'};
     final body = jsonEncode({'locale': locale, 'platform': platform});
-    final response = await http.post(Uri.parse('${Config.apiUrl}/users/register'), headers: headers, body: body);
-    final apiResponse = await _handleResponse(response, _RetryParams('register', headers, body));
+
+    final response = await _makeApiRequest(false, '${Config.apiUrl}/users/register', headers, body);
+
+    final apiResponse = _parseResponse(response);
     await _updateTokens(apiResponse.security!);
     return apiResponse;
   }
 
-  Future<ApiResponse> getGameToday(String userId, String accessToken, Map<String, dynamic> stats) async {
+  /// **Update User Profile**
+  Future<ApiResponse> updateUserProfile({
+    required String userId,
+    String? userName,
+    String? displayName,
+    String? password,
+  }) async {
+    await _getTokens(); // Ensure tokens are loaded
+
     final headers = {
       'X-API-Key': Security.generateApiKeyHash(),
       'Authorization': 'Bearer $accessToken',
       'Content-Type': 'application/json',
     };
-    final body = jsonEncode({'userId': userId, ...stats});
-    final response = await http.post(Uri.parse('${Config.apiUrl}/game/today'), headers: headers, body: body);
-    return await _handleResponse(response, _RetryParams('getGameToday', headers, body));
+
+    final body = jsonEncode({
+      "userId": userId,
+      if (userName != null && userName.isNotEmpty) "userName": userName,
+      if (displayName != null && displayName.isNotEmpty) "displayName": displayName,
+      if (password != null && password.isNotEmpty) "password": password,
+    });
+
+    final response = await _makeApiRequest(false, '${Config.apiUrl}/users/update-profile', headers, body);
+
+    return _parseResponse(response);
   }
 
-  Future<ApiResponse> _doRefreshToken(String userId, String refreshToken, Map<String, String> headers) async {
-    final response = await http.post(Uri.parse('${Config.apiUrl}/users/refresh'), headers: headers);
-    final apiResponse = await _handleResponse(response, _RetryParams('refreshToken', headers));
-    await _updateTokens(apiResponse.security!);
+  /// **Get Today's High Scores**
+  Future<ApiResponse> getTodayHighScores() async {
+    await _getTokens(); // Ensure tokens are loaded
+
+    final headers = {
+      'X-API-Key': Security.generateApiKeyHash(),
+      'Authorization': 'Bearer $accessToken',
+      'Content-Type': 'application/json',
+    };
+
+    final body = jsonEncode({"userId": userId}); // Send userId in body
+
+    final response = await _makeApiRequest(false, '${Config.apiUrl}/scores/today', headers, body);
+
+    return _parseResponse(response);
+  }
+
+  /// **Login User & Refresh Tokens**
+  Future<ApiResponse> login(String username, String password) async {
+    final headers = {'X-API-Key': Security.generateApiKeyHash(), 'Content-Type': 'application/json'};
+    final body = jsonEncode({'userName': username, 'password': password});
+
+    final response = await _makeApiRequest(false, '${Config.apiUrl}/users/login', headers, body);
+
+    final apiResponse = _parseResponse(response);
+
+    // 🔄 Store new tokens on successful login
+    if (apiResponse.security != null) {
+      await _updateTokens(apiResponse.security!);
+    }
+
     return apiResponse;
   }
 
-  Future<ApiResponse> _handleResponse(http.Response response, _RetryParams params, {int retryCount = 0}) async {
-    const maxRetries = 1;
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return ApiResponse(
-        security: SecurityData(
-          userId: data['userId'],
-          accessToken: data['access_token'],
-          refreshToken: data['refresh_token'],
-        ),
-        gameData: data.containsKey('grid') ? GameData.fromJson(data) : null,
-      );
-    } else if (response.statusCode == 401 && retryCount < maxRetries) {
-      final error = jsonDecode(response.body);
-      if (error['detail'] == 'Token expired' && userId != null && refreshToken != null) {
-        final headers = {
-          'X-API-Key': Security.generateApiKeyHash(),
-          'Refresh-Token': refreshToken!,
-          'UserId': userId!,
-          'Content-Type': 'application/json',
-        };
-        await _doRefreshToken(userId!, refreshToken!, headers);
+  /// **Fetch Today's Game**
+  Future<ApiResponse> getGameToday(Map<String, dynamic> stats) async {
+    await _getTokens(); // Ensure tokens are loaded
 
-        // Retry original request with new accessToken
-        if (params.method == 'getGameToday') {
-          final newHeaders = {...params.headers, 'Authorization': 'Bearer $accessToken'};
-          final retryResponse = await http.post(
-            Uri.parse('${Config.apiUrl}/game/today'),
-            headers: newHeaders,
-            body: params.body,
-          );
-          return _handleResponse(retryResponse, params, retryCount: retryCount + 1);
-        } else if (params.method == 'register') {
-          final retryResponse = await http.post(
-            Uri.parse('${Config.apiUrl}/users/register'),
-            headers: params.headers,
-            body: params.body,
-          );
-          return _handleResponse(retryResponse, params, retryCount: retryCount + 1);
-        }
-        throw ApiException(statusCode: 401, detail: 'Retry not implemented for ${params.method}');
-      }
-      throw ApiException(statusCode: 401, detail: error['detail'] ?? 'Authentication failed');
+    final headers = {
+      'X-API-Key': Security.generateApiKeyHash(),
+      'Authorization': 'Bearer $accessToken',
+      'Content-Type': 'application/json',
+    };
+
+    final body = jsonEncode({'userId': userId, ...stats});
+
+    final response = await _makeApiRequest(false, '${Config.apiUrl}/game/today', headers, body);
+
+    return _parseResponse(response);
+  }
+
+  /// **Parse API Response into `ApiResponse`**
+  ApiResponse _parseResponse(http.Response response) {
+    print('📡 API Response - Status: ${response.statusCode}, Body: ${response.body}');
+
+    final data = jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      return ApiResponse(
+        security:
+            data.containsKey('userId')
+                ? SecurityData(
+                  userId: data['userId'],
+                  accessToken: data['access_token'],
+                  refreshToken: data['refresh_token'],
+                  expirationSeconds: data['expires_in']?.toString(),
+                )
+                : null,
+        gameData: data.containsKey('grid') ? GameData.fromJson(data) : null,
+        highScoreData: data.containsKey('highScores') ? HighScoreData.fromJson(data) : null,
+      );
     } else {
-      throw ApiException(statusCode: response.statusCode, detail: 'Request failed');
+      throw ApiException(statusCode: response.statusCode, detail: 'Request failed: ${response.body}');
     }
   }
-}
-
-class _RetryParams {
-  final String method;
-  final Map<String, String> headers;
-  final String? body;
-
-  _RetryParams(this.method, this.headers, [this.body]);
 }

@@ -52,6 +52,8 @@ class GridLoader {
   }
 
   static Future<bool> loadNewBoard(ApiService apiService) async {
+    print("📢 loadNewBoard() called!");
+
     final prefs = await SharedPreferences.getInstance();
     final stats = {
       'wordCount': SpelledWordsLogic.spelledWords.length,
@@ -61,27 +63,38 @@ class GridLoader {
       'platform': kIsWeb ? 'Web' : 'Windows',
       'locale': Platform.localeName,
     };
+
+    print("🔍 Stats for request: $stats");
+
     try {
-      final response = await apiService.getGameToday(apiService.userId!, apiService.accessToken!, stats);
-      final gameData = response.gameData; // Local variable
+      print("📡 Calling getGameToday API...");
+      final response = await apiService.getGameToday(stats);
+      final gameData = response.gameData;
+
       if (gameData == null) {
-        print('Error: getGameToday returned null gameData');
+        print("🚨 Error: getGameToday returned null gameData");
         return false;
       }
-      await StateManager.saveBoardData(gameData); // Non-null GameData
+
+      print("✅ Successfully fetched new game: ${gameData.dateStart}");
+
+      await StateManager.saveBoardData(gameData);
+
       _gridData = {
         'grid': gameData.grid,
-        'wildcards': gameData.wildcards, // Safe now
+        'wildcards': gameData.wildcards,
         'dateStart': gameData.dateStart,
         'dateExpire': gameData.dateExpire,
         'wordCount': gameData.wordCount,
         'estimatedHighScore': gameData.estimatedHighScore,
       };
+
       _setBoardValues();
-      print('Loaded new board: ${_gridData['dateStart']}');
+      print("✅ Loaded new board: ${_gridData['dateStart']}");
       return true;
-    } catch (e) {
-      print('Failed to load new board: $e');
+    } catch (e, stacktrace) {
+      print("🚨 Failed to load new board: $e");
+      print(stacktrace);
       return false;
     }
   }

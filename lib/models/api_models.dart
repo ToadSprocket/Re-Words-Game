@@ -2,16 +2,19 @@
 class ApiResponse {
   final SecurityData? security;
   final GameData? gameData;
+  final HighScoreData? highScoreData;
+  final ApiException? error;
 
-  ApiResponse({this.security, this.gameData});
+  ApiResponse({this.security, this.gameData, this.highScoreData, this.error});
 }
 
 class SecurityData {
   final String userId;
   final String? accessToken;
   final String? refreshToken;
+  final String? expirationSeconds;
 
-  SecurityData({required this.userId, this.accessToken, this.refreshToken});
+  SecurityData({required this.userId, this.accessToken, this.refreshToken, this.expirationSeconds});
 }
 
 class GameData {
@@ -49,4 +52,46 @@ class ApiException implements Exception {
 
   @override
   String toString() => 'ApiException(statusCode: $statusCode, detail: $detail)';
+}
+
+class HighScoreData {
+  final String? gameId;
+  final String? date;
+  final List<HighScore> highScores;
+
+  HighScoreData({this.gameId, this.date, required this.highScores});
+
+  factory HighScoreData.fromJson(Map<String, dynamic> json) {
+    return HighScoreData(
+      gameId: json['gameId'] as String?,
+      date: json['date'] as String?,
+      highScores: (json['highScores'] as List?)?.map((score) => HighScore.fromJson(score)).toList() ?? [],
+    );
+  }
+}
+
+class HighScore {
+  final String userId;
+  final int wordCount;
+  final int timePlayedSeconds;
+  final int score;
+  final String displayName;
+
+  HighScore({
+    required this.userId,
+    required this.wordCount,
+    required this.timePlayedSeconds,
+    required this.score,
+    required this.displayName,
+  });
+
+  factory HighScore.fromJson(Map<String, dynamic> json) {
+    return HighScore(
+      userId: json['userId'] as String,
+      wordCount: json['wordCount'] as int,
+      timePlayedSeconds: json['timePlayedSeconds'] as int,
+      score: json['score'] as int,
+      displayName: json['displayName'] as String,
+    );
+  }
 }
