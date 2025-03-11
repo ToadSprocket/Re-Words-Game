@@ -20,6 +20,7 @@ class WideScreen extends StatelessWidget {
   final VoidCallback onInstructions;
   final VoidCallback onHighScores;
   final VoidCallback onLegal;
+  final VoidCallback onLogin;
   final GlobalKey<GameGridComponentState>? gridKey;
   final GlobalKey<WildcardColumnComponentState>? wildcardKey;
   final ValueChanged<String>? onMessage;
@@ -28,6 +29,7 @@ class WideScreen extends StatelessWidget {
   final ValueNotifier<List<String>> spelledWordsNotifier; // Notifier
   final VoidCallback updateScoresRefresh;
   final Map<String, dynamic> sizes;
+  final dynamic api;
 
   const WideScreen({
     super.key,
@@ -37,6 +39,8 @@ class WideScreen extends StatelessWidget {
     required this.onInstructions,
     required this.onHighScores,
     required this.onLegal,
+    required this.onLogin,
+    required this.api,
     this.gridKey,
     this.wildcardKey,
     this.onMessage,
@@ -69,6 +73,8 @@ class WideScreen extends StatelessWidget {
           onHighScores: onHighScores,
           onLegal: onLegal,
           showBorders: showBorders,
+          onLogin: onLogin,
+          api: api,
         ),
         const Divider(height: 1.0, thickness: 1.0, color: Color.fromARGB(73, 158, 158, 158)),
         const SizedBox(height: 10.0),

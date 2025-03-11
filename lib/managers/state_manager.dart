@@ -118,36 +118,13 @@ class StateManager {
       return true;
     }
 
-    // Parse stored UTC expiration time
     final utcExpireTime = DateTime.parse(expireDateUtc).toUtc();
+    final utcNow = DateTime.now().toUtc();
 
-    // Get system timezone dynamically, with error handling
-    tz.initializeTimeZones();
-    String localTimeZoneName;
-    try {
-      localTimeZoneName = await getCurrentTimezone();
-    } catch (e) {
-      print("🚨 Timezone detection failed: $e");
-      localTimeZoneName = "UTC"; // Default to UTC if detection fails
-    }
-
-    final localTimezone = tz.getLocation(localTimeZoneName);
-    final localNow = tz.TZDateTime.from(DateTime.now(), localTimezone);
-    final localMidnight = tz.TZDateTime(localTimezone, localNow.year, localNow.month, localNow.day, 0, 0, 0);
-    final localMidnightUtc = localMidnight.toUtc();
-
-    print("⏳ Current UTC Time: ${DateTime.now().toUtc()}");
-    print("🌍 Detected Timezone: $localTimeZoneName");
-    print("🌎 Local Time: $localNow");
-    print("🕛 Local Midnight (UTC): $localMidnightUtc");
+    print("⏳ Current UTC Time: $utcNow");
     print("📌 Board Expiration UTC: $utcExpireTime");
 
-    return DateTime.now().toUtc().isAfter(localMidnightUtc);
-  }
-
-  static Future<String> getCurrentTimezone() async {
-    final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
-    return currentTimeZone;
+    return utcNow.isAfter(utcExpireTime);
   }
 
   static Future<int?> boardExpiredDuration() async {

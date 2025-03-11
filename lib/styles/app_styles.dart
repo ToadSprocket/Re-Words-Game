@@ -109,13 +109,26 @@ class AppStyles {
   static const double dialogPadding = 16.0;
   static const double dialogButtonPadding = 8.0;
 
+  static const Color loginTextColor = Colors.blueAccent;
+
   static const TextStyle dialogTitleStyle = TextStyle(
     fontSize: 18.0,
     fontWeight: FontWeight.bold,
     color: Color.fromARGB(255, 255, 255, 255),
   );
-  static const TextStyle dialogContentStyle = TextStyle(fontSize: 14.0, color: Color.fromARGB(255, 240, 240, 240));
-
+  static const TextStyle dialogContentStyle = TextStyle(fontSize: 16.0, color: Color.fromARGB(255, 240, 240, 240));
+  static const TextStyle InputTitleStyle = TextStyle(
+    fontSize: 14.0,
+    color: Color.fromARGB(255, 240, 240, 240),
+    fontWeight: FontWeight.bold,
+  );
+  static const TextStyle inputContentStyle = TextStyle(fontSize: 18.0, color: Color.fromARGB(211, 240, 240, 240));
+  static const TextStyle dialogLinkStyle = TextStyle(
+    fontSize: 14.0,
+    color: Color.fromARGB(255, 93, 174, 240),
+    decoration: TextDecoration.underline,
+  );
+  static const TextStyle dialogErrorStyle = TextStyle(fontSize: 14.0, color: Colors.red, fontWeight: FontWeight.bold);
   // Button Styles
   static ButtonStyle buttonStyle(BuildContext context) {
     return ElevatedButton.styleFrom(

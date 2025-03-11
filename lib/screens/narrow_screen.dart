@@ -19,6 +19,7 @@ class NarrowScreen extends StatelessWidget {
   final VoidCallback onInstructions;
   final VoidCallback onHighScores;
   final VoidCallback onLegal;
+  final VoidCallback onLogin;
   final GlobalKey<GameGridComponentState>? gridKey;
   final GlobalKey<WildcardColumnComponentState>? wildcardKey;
   final ValueChanged<String>? onMessage;
@@ -27,6 +28,7 @@ class NarrowScreen extends StatelessWidget {
   final ValueNotifier<List<String>> spelledWordsNotifier; // Add this
   final VoidCallback updateScoresRefresh; // Add this
   final Map<String, dynamic> sizes;
+  final dynamic api; // Add this
 
   const NarrowScreen({
     super.key,
@@ -36,13 +38,15 @@ class NarrowScreen extends StatelessWidget {
     required this.onInstructions,
     required this.onHighScores,
     required this.onLegal,
+    required this.onLogin,
+    required this.api, // Add this
     this.gridKey,
     this.wildcardKey,
     this.onMessage,
     required this.messageNotifier,
-    required this.scoreNotifier, // Required
-    required this.spelledWordsNotifier, // Required
-    required this.updateScoresRefresh, // Required
+    required this.scoreNotifier,
+    required this.spelledWordsNotifier,
+    required this.updateScoresRefresh,
     required this.sizes,
   });
 
@@ -59,6 +63,9 @@ class NarrowScreen extends StatelessWidget {
           onInstructions: onInstructions,
           onHighScores: onHighScores,
           onLegal: onLegal,
+          onLogin: onLogin,
+          api: api, // Pass this
+
           showBorders: showBorders,
         ),
         const Divider(height: 1.0, thickness: 1.0, color: Colors.grey),

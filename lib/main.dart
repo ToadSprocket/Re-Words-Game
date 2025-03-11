@@ -14,23 +14,24 @@ import 'dialogs/high_scores_dialog.dart';
 import 'dialogs/legal_dialog.dart';
 import 'dialogs/board_expired_dialog.dart';
 import 'dialogs/failure_dialog.dart';
+import 'dialogs/login_dialog.dart';
 import 'components/game_grid_component.dart';
 import 'components/wildcard_column_component.dart';
 import 'managers/state_manager.dart';
 import 'logic/api_service.dart';
-import 'models/api_models.dart';
 import 'logic/word_loader.dart';
 import 'logic/spelled_words_handler.dart';
-import 'package:timezone/data/latest.dart' as tz;
+import 'package:provider/provider.dart';
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
 const bool debugForceExpiredBoard = false; // Force expired board
-const bool debugForceValidBoard = true; // Force valid board
+const bool debugForceValidBoard = false; // Force valid board
 const bool debugClearPrefs = false; // Clear all prefs for new user
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
     await windowManager.ensureInitialized();
     WindowOptions windowOptions = const WindowOptions(
@@ -45,7 +46,13 @@ void main() async {
       await windowManager.focus();
     });
   }
-  runApp(const ReWordApp());
+
+  runApp(
+    ChangeNotifierProvider<ApiService>(
+      create: (context) => ApiService(), // ✅ Provide a single instance
+      child: const ReWordApp(),
+    ),
+  );
 }
 
 class ReWordApp extends StatelessWidget {
@@ -76,6 +83,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   final ValueNotifier<List<String>> spelledWordsNotifier = ValueNotifier<List<String>>([]); // Notifier for words
   Map<String, dynamic>? sizes;
   DateTime? _sessionStart;
+  int loginAttempts = 0;
 
   @override
   void initState() {
@@ -116,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   }
 
   Future<void> _loadData() async {
-    final api = ApiService();
+    final api = Provider.of<ApiService>(context, listen: false);
     await WordLoader.loadWords();
     await _applyDebugControls();
     final userData = await StateManager.getUserData();
@@ -246,6 +254,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     if (sizes == null) {
       return const SizedBox.shrink();
     }
+    final api = ApiService();
     final isWebOverride = debugForceIsWeb ?? sizes!['isWeb'] as bool;
     print(
       'screenWidth: ${MediaQuery.of(context).size.width}, debugForceIsWeb: $debugForceIsWeb, isWeb: $isWebOverride',
@@ -263,6 +272,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   onInstructions: () => HowToPlayDialog.show(context),
                   onHighScores: () => HighScoresDialog.show(context, ApiService()),
                   onLegal: () => LegalDialog.show(context),
+                  onLogin: () => LoginDialog.show(context, api),
+                  api: api,
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,
                   onMessage: _handleMessage,
@@ -279,6 +290,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   onInstructions: () => HowToPlayDialog.show(context),
                   onHighScores: () => HighScoresDialog.show(context, ApiService()),
                   onLegal: () => LegalDialog.show(context),
+                  onLogin: () => LoginDialog.show(context, api),
+                  api: api, // Pass api
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,
                   onMessage: _handleMessage,

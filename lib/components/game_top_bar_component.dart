@@ -3,11 +3,15 @@
 import 'package:flutter/material.dart';
 import '/styles/app_styles.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../logic/api_service.dart';
+import '../dialogs/logout_dialog.dart';
 
-class GameTopBarComponent extends StatelessWidget {
+class GameTopBarComponent extends StatefulWidget {
   final VoidCallback onInstructions;
   final VoidCallback onHighScores;
   final VoidCallback onLegal;
+  final VoidCallback onLogin;
+  final ApiService api;
   final bool showBorders;
 
   const GameTopBarComponent({
@@ -16,12 +20,38 @@ class GameTopBarComponent extends StatelessWidget {
     required this.onHighScores,
     required this.onLegal,
     required this.showBorders,
+    required this.onLogin,
+    required this.api,
   });
 
   @override
+  _GameTopBarComponentState createState() => _GameTopBarComponentState();
+}
+
+class _GameTopBarComponentState extends State<GameTopBarComponent> {
+  @override
+  void initState() {
+    super.initState();
+    widget.api.addListener(_updateState); // 🔥 Listen for login state changes
+  }
+
+  @override
+  void dispose() {
+    widget.api.removeListener(_updateState); // Cleanup
+    super.dispose();
+  }
+
+  void _updateState() {
+    print('GameTopBarComponent: Login state changed');
+    setState(() {}); // 🔄 Rebuild when login state changes
+  }
+
+  @override
   Widget build(BuildContext context) {
+    bool isLoggedIn = widget.api.loggedIn ?? false;
+
     return Container(
-      decoration: showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 1.0)) : null,
+      decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 1.0)) : null,
       child: SizedBox(
         width: double.infinity,
         child: Row(
@@ -31,7 +61,7 @@ class GameTopBarComponent extends StatelessWidget {
               icon: const Icon(FontAwesomeIcons.circleQuestion, size: 20.0, color: AppStyles.helpIconColor),
               padding: const EdgeInsets.all(4.0),
               constraints: const BoxConstraints(),
-              onPressed: onInstructions,
+              onPressed: widget.onInstructions,
               tooltip: 'How to Play',
             ),
             const SizedBox(width: 6.0),
@@ -39,7 +69,7 @@ class GameTopBarComponent extends StatelessWidget {
               icon: const Icon(FontAwesomeIcons.chartSimple, size: 20.0, color: AppStyles.helpIconColor),
               padding: const EdgeInsets.all(4.0),
               constraints: const BoxConstraints(),
-              onPressed: onHighScores,
+              onPressed: widget.onHighScores,
               tooltip: 'High Scores',
             ),
             const SizedBox(width: 6.0),
@@ -47,9 +77,28 @@ class GameTopBarComponent extends StatelessWidget {
               icon: const Icon(FontAwesomeIcons.gavel, size: 20.0, color: AppStyles.helpIconColor),
               padding: const EdgeInsets.all(4.0),
               constraints: const BoxConstraints(),
-              onPressed: onLegal,
+              onPressed: widget.onLegal,
               tooltip: 'Legal',
             ),
+            const SizedBox(width: 6.0),
+            IconButton(
+              icon: Icon(
+                widget.api.loggedIn ? FontAwesomeIcons.circleUser : FontAwesomeIcons.arrowRightToBracket,
+                size: 20.0,
+                color: widget.api.loggedIn ? Colors.green : AppStyles.helpIconColor,
+              ),
+              padding: const EdgeInsets.all(4.0),
+              constraints: const BoxConstraints(),
+              onPressed: () {
+                if (widget.api.loggedIn) {
+                  LogoutDialog.show(context, widget.api); // 🔥 Show logout confirmation
+                } else {
+                  widget.onLogin(); // 🔥 Show login dialog
+                }
+              },
+              tooltip: widget.api.loggedIn ? 'Logged In' : 'Login',
+            ),
+            const SizedBox(width: 6.0),
           ],
         ),
       ),

@@ -1,11 +1,12 @@
 // Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 class ApiResponse {
+  final String? message;
   final SecurityData? security;
   final GameData? gameData;
   final HighScoreData? highScoreData;
   final ApiException? error;
 
-  ApiResponse({this.security, this.gameData, this.highScoreData, this.error});
+  ApiResponse({this.message, this.security, this.gameData, this.highScoreData, this.error});
 }
 
 class SecurityData {

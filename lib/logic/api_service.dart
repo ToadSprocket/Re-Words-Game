@@ -4,14 +4,35 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../logic/security.dart';
 import '../config/config.dart';
 import '../models/api_models.dart';
+import 'package:flutter/foundation.dart';
 
-class ApiService {
+class ApiService with ChangeNotifier {
+  static final ApiService _instance = ApiService._internal(); // ✅ Singleton instance
+
+  factory ApiService() => _instance; // ✅ Always return the same instance
+
+  ApiService._internal();
   String? userId;
   String? accessToken;
   String? refreshToken;
   int? tokenExpiration;
+  bool _loggedIn = false;
 
-  ApiService({this.userId, this.accessToken, this.refreshToken});
+  bool get loggedIn => _loggedIn; // Getter
+
+  set loggedIn(bool value) {
+    if (_loggedIn != value) {
+      _loggedIn = value;
+      print("🔥 DEBUG: Setting loggedIn = $value"); // ADD THIS
+      notifyListeners(); // 🔥 Notify UI when login state changes
+    }
+  }
+
+  /// **Log out user and clear tokens**
+  void logout() async {
+    loggedIn = false; // 🔥 Trigger UI update
+    print("🚪 User logged out successfully.");
+  }
 
   /// **Check if the token is expiring soon**
   Future<bool> _isTokenExpiringSoon() async {
@@ -143,11 +164,11 @@ class ApiService {
   }
 
   /// **Update User Profile**
-  Future<ApiResponse> updateUserProfile({
-    required String userId,
-    String? userName,
-    String? displayName,
-    String? password,
+  Future<ApiResponse> updateProfile({
+    required String userName,
+    required String displayName,
+    required String password,
+    String? email,
   }) async {
     await _getTokens(); // Ensure tokens are loaded
 
@@ -159,12 +180,102 @@ class ApiService {
 
     final body = jsonEncode({
       "userId": userId,
-      if (userName != null && userName.isNotEmpty) "userName": userName,
-      if (displayName != null && displayName.isNotEmpty) "displayName": displayName,
-      if (password != null && password.isNotEmpty) "password": password,
+      "userName": userName,
+      "displayName": displayName,
+      "password": password,
+      if (email != null && email.isNotEmpty) "email": email, // Optional email
     });
 
-    final response = await _makeApiRequest(false, '${Config.apiUrl}/users/update-profile', headers, body);
+    try {
+      final response = await _makeApiRequest(
+        false, // POST request
+        '${Config.apiUrl}/users/updateprofile',
+        headers,
+        body,
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        {
+          loggedIn = true;
+          print('✅ Profile successfully updated!');
+        }
+
+        // 🔹 Store new tokens
+        await _updateTokens(
+          SecurityData(
+            userId: data["userId"],
+            accessToken: data["access_token"],
+            refreshToken: data["refresh_token"],
+            expirationSeconds: data["expires_in"].toString(),
+          ),
+        );
+
+        return ApiResponse(message: data["message"]);
+      } else {
+        // Handle API errors and return structured messages
+        return ApiResponse(message: "An unknown error occurred");
+      }
+    } catch (e) {
+      print('🚨 Profile update failed: $e');
+      return ApiResponse(message: "Server error. Please try again later.");
+    }
+  }
+
+  /// **Login User & Refresh Tokens**
+  Future<ApiResponse?> login(String username, String password) async {
+    final headers = {'X-API-Key': Security.generateApiKeyHash(), 'Content-Type': 'application/json'};
+    final body = jsonEncode({'userName': username, 'password': password});
+
+    try {
+      final response = await _makeApiRequest(false, '${Config.apiUrl}/users/login', headers, body);
+
+      if (response.statusCode == 200) {
+        final apiResponse = _parseResponse(response);
+
+        // 🔄 Store new tokens on successful login
+        if (apiResponse.security != null) {
+          await _updateTokens(apiResponse.security!);
+          loggedIn = true; // 🔥 Set loggedIn = true on successful login
+          userId = apiResponse.security!.userId;
+          accessToken = apiResponse.security!.accessToken;
+          refreshToken = apiResponse.security!.refreshToken;
+
+          print("🔥 DEBUG: Login successful, setting loggedIn = true"); // ADD THIS
+
+          return apiResponse;
+        }
+      }
+
+      // Handle 401 (Unauthorized) - Login failed
+      if (response.statusCode == 401) {
+        print("🚨 Login failed: Invalid credentials");
+        return null; // Login failed, return null to UI
+      }
+
+      // Handle other errors (e.g., 500, 400)
+      print("⚠️ Unexpected login failure: ${response.body}");
+      return null;
+    } catch (e) {
+      print("❌ Login Exception: $e");
+      return null;
+    }
+  }
+
+  /// **Fetch Today's Game**
+  Future<ApiResponse> getGameToday(Map<String, dynamic> stats) async {
+    await _getTokens(); // Ensure tokens are loaded
+
+    final headers = {
+      'X-API-Key': Security.generateApiKeyHash(),
+      'Authorization': 'Bearer $accessToken',
+      'Content-Type': 'application/json',
+    };
+
+    final body = jsonEncode({'userId': userId, ...stats});
+
+    final response = await _makeApiRequest(false, '${Config.apiUrl}/game/today', headers, body);
 
     return _parseResponse(response);
   }
@@ -182,40 +293,6 @@ class ApiService {
     final body = jsonEncode({"userId": userId}); // Send userId in body
 
     final response = await _makeApiRequest(false, '${Config.apiUrl}/scores/today', headers, body);
-
-    return _parseResponse(response);
-  }
-
-  /// **Login User & Refresh Tokens**
-  Future<ApiResponse> login(String username, String password) async {
-    final headers = {'X-API-Key': Security.generateApiKeyHash(), 'Content-Type': 'application/json'};
-    final body = jsonEncode({'userName': username, 'password': password});
-
-    final response = await _makeApiRequest(false, '${Config.apiUrl}/users/login', headers, body);
-
-    final apiResponse = _parseResponse(response);
-
-    // 🔄 Store new tokens on successful login
-    if (apiResponse.security != null) {
-      await _updateTokens(apiResponse.security!);
-    }
-
-    return apiResponse;
-  }
-
-  /// **Fetch Today's Game**
-  Future<ApiResponse> getGameToday(Map<String, dynamic> stats) async {
-    await _getTokens(); // Ensure tokens are loaded
-
-    final headers = {
-      'X-API-Key': Security.generateApiKeyHash(),
-      'Authorization': 'Bearer $accessToken',
-      'Content-Type': 'application/json',
-    };
-
-    final body = jsonEncode({'userId': userId, ...stats});
-
-    final response = await _makeApiRequest(false, '${Config.apiUrl}/game/today', headers, body);
 
     return _parseResponse(response);
   }
