@@ -1,4 +1,5 @@
 // Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// file: lib/components/game_grid_component.dart
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -157,8 +158,24 @@ class GameGridComponentState extends State<GameGridComponent> {
                 crossAxisSpacing: gridSpacing,
                 children: List.generate(tiles.length, (index) {
                   return DragTarget<Tile>(
-                    onWillAccept: (Tile? tile) => tile != null,
-                    onAccept: (Tile tile) => _onDrop(index, tile),
+                    onWillAccept: (Tile? tile) {
+                      // ✅ Only allow drops on UNUSED tiles
+                      bool canAccept = tile != null && tiles[index].state == 'unused';
+                      if (!canAccept) {
+                        widget.onMessage?.call('Can only drop on unused tiles');
+                      }
+                      return canAccept;
+                    },
+                    onAccept: (Tile tile) {
+                      // ✅ Apply wildcard only to valid tiles
+                      tiles[index].applyWildcard(tile.letter, tile.value);
+                      widget.onMessage?.call('Wildcard applied to ${tiles[index].letter}');
+                      _incrementWildcardUse();
+                    },
+                    onLeave: (Tile? tile) {
+                      // ✅ Optional: Reset message if user drags away
+                      widget.onMessage?.call('');
+                    },
                     builder: (context, candidateData, rejectedData) {
                       return GestureDetector(
                         onTap: () => _onTileTapped(index),

@@ -83,13 +83,16 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
   @override
   Widget build(BuildContext context) {
     print('WildcardColumn build - Starting');
+
     return Container(
       width: widget.width,
       height: widget.height,
       decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.blue, width: 2)) : null,
       child:
           tiles.isEmpty
-              ? const Center(child: CircularProgressIndicator())
+              ? Center(
+                child: Text("", style: TextStyle(color: Colors.white70, fontSize: 16)),
+              ) // ❌ Remove Spinner - Show empty space instead
               : widget.isHorizontal
               ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -110,6 +113,11 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
                       childWhenDragging: Container(),
                       onDragCompleted: () {
                         removeWildcard(index);
+                      },
+                      onDraggableCanceled: (_, __) {
+                        // ✅ Wildcard will snap back if dropped outside valid areas
+                        print("🔄 Wildcard dropped in an invalid area. Returning to column.");
+                        setState(() {}); // Forces re-render so the wildcard stays
                       },
                     ),
                   );
@@ -135,6 +143,11 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
                       childWhenDragging: Container(),
                       onDragCompleted: () {
                         removeWildcard(index);
+                      },
+                      onDraggableCanceled: (_, __) {
+                        // ✅ Wildcard will snap back if dropped outside valid areas
+                        print("🔄 Wildcard dropped in an invalid area. Returning to column.");
+                        setState(() {}); // Forces re-render so the wildcard stays
                       },
                     ),
                   );

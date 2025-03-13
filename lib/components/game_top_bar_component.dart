@@ -5,6 +5,7 @@ import '/styles/app_styles.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../logic/api_service.dart';
 import '../dialogs/logout_dialog.dart';
+import '../logic/spelled_words_handler.dart';
 
 class GameTopBarComponent extends StatefulWidget {
   final VoidCallback onInstructions;
@@ -12,6 +13,7 @@ class GameTopBarComponent extends StatefulWidget {
   final VoidCallback onLegal;
   final VoidCallback onLogin;
   final ApiService api;
+  final SpelledWordsLogic spelledWordsLogic;
   final bool showBorders;
 
   const GameTopBarComponent({
@@ -22,6 +24,7 @@ class GameTopBarComponent extends StatefulWidget {
     required this.showBorders,
     required this.onLogin,
     required this.api,
+    required this.spelledWordsLogic,
   });
 
   @override

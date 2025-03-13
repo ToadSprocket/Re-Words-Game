@@ -129,6 +129,11 @@ class AppStyles {
     decoration: TextDecoration.underline,
   );
   static const TextStyle dialogErrorStyle = TextStyle(fontSize: 14.0, color: Colors.red, fontWeight: FontWeight.bold);
+  static const TextStyle dialogSuccessStyle = TextStyle(
+    fontSize: 14.0,
+    color: Color.fromARGB(255, 54, 244, 54),
+    fontWeight: FontWeight.bold,
+  );
   // Button Styles
   static ButtonStyle buttonStyle(BuildContext context) {
     return ElevatedButton.styleFrom(

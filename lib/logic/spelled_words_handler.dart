@@ -1,12 +1,18 @@
 // logic/spelled_words_handler.dart
 // Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+import 'package:flutter/widgets.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:io';
 import 'scoring.dart';
 import 'word_loader.dart';
 import '../models/tile.dart';
+import '../managers/state_manager.dart';
+import '../models/api_models.dart';
 
 class SpelledWordsLogic {
   static List<String> spelledWords = [];
   static int score = 0;
+  static int wildCardUses = 0;
 
   static int _wordsPerColumn(double columnHeight, double fontSize, double spacing) {
     const lineHeightFactor = 1.4;
@@ -60,6 +66,7 @@ class SpelledWordsLogic {
       if (doesWordContainWildcard(selectedTiles)) {
         double multiplier = getWildcardMutlipliersValue(selectedTiles);
         score += (wordScore * multiplier).toInt();
+        wildCardUses++;
         return (true, "Word score multiplied by $multiplier!");
       }
 
@@ -95,5 +102,32 @@ class SpelledWordsLogic {
 
   static bool isDuplicateWord(String word) {
     return spelledWords.contains(word);
+  }
+
+  static getLongestWord() {
+    return spelledWords.fold("", (longest, word) => word.length > longest.length ? word : longest);
+  }
+
+  static Future<SubmitScoreRequest> getCurrentScore() async {
+    final boardData = await StateManager.getBoardData();
+    int totalWordsInBoard = boardData['wordCount'] ?? 0;
+
+    int completionRate = totalWordsInBoard > 0 ? ((spelledWords.length / totalWordsInBoard) * 100).ceil() : 0;
+
+    int longestWordLength = getLongestWord().length;
+    int timePlayed = await StateManager.getTotalPlayTime();
+
+    // 🔥 Construct and return the SubmitScoreRequest object
+    return SubmitScoreRequest(
+      userId: "", // ✅ This will be filled in the API service
+      platform: kIsWeb ? "Web" : "Windows",
+      locale: Platform.localeName,
+      timePlayedSeconds: timePlayed,
+      wordCount: spelledWords.length,
+      wildcardUses: wildCardUses,
+      score: score,
+      completionRate: completionRate,
+      longestWordLength: longestWordLength,
+    );
   }
 }

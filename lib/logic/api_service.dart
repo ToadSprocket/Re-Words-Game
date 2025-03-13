@@ -117,40 +117,6 @@ class ApiService with ChangeNotifier {
     return false;
   }
 
-  /// **Unified API Request Handler**
-  Future<http.Response> _makeApiRequest(bool isGet, String url, Map<String, String> headers, String? body) async {
-    final prefs = await SharedPreferences.getInstance();
-
-    if (await _isTokenExpiringSoon()) {
-      print("🔄 Token is expiring soon, refreshing...");
-      await _refreshTokenIfNeeded();
-      headers['Authorization'] = 'Bearer ${prefs.getString('accessToken')}'; // Update token in headers
-    }
-
-    var response =
-        isGet
-            ? await http.get(Uri.parse(url), headers: headers)
-            : await http.post(Uri.parse(url), headers: headers, body: body);
-
-    if (response.statusCode == 401) {
-      print("🚨 Token expired. Refreshing...");
-      final refreshed = await _refreshTokenIfNeeded();
-
-      if (refreshed) {
-        print("✅ Token refreshed, retrying request...");
-        headers['Authorization'] = 'Bearer ${prefs.getString('accessToken')}'; // Update token again
-
-        return isGet
-            ? await http.get(Uri.parse(url), headers: headers)
-            : await http.post(Uri.parse(url), headers: headers, body: body);
-      } else {
-        throw ApiException(statusCode: 401, detail: 'Token refresh failed - Please log in again');
-      }
-    }
-
-    return response;
-  }
-
   /// **Register a new user**
   Future<ApiResponse> register(String locale, String platform) async {
     final headers = {'X-API-Key': Security.generateApiKeyHash(), 'Content-Type': 'application/json'};
@@ -264,7 +230,7 @@ class ApiService with ChangeNotifier {
   }
 
   /// **Fetch Today's Game**
-  Future<ApiResponse> getGameToday(Map<String, dynamic> stats) async {
+  Future<ApiResponse> getGameToday(SubmitScoreRequest scoreRequest) async {
     await _getTokens(); // Ensure tokens are loaded
 
     final headers = {
@@ -273,7 +239,9 @@ class ApiService with ChangeNotifier {
       'Content-Type': 'application/json',
     };
 
-    final body = jsonEncode({'userId': userId, ...stats});
+    scoreRequest.userId = userId!; // Set userId in request
+
+    final body = jsonEncode(scoreRequest.toJson());
 
     final response = await _makeApiRequest(false, '${Config.apiUrl}/game/today', headers, body);
 
@@ -295,6 +263,95 @@ class ApiService with ChangeNotifier {
     final response = await _makeApiRequest(false, '${Config.apiUrl}/scores/today', headers, body);
 
     return _parseResponse(response);
+  }
+
+  /// **Submit High Score**
+  Future<bool> requestPasswordReset(String email) async {
+    final headers = {'X-API-Key': Security.generateApiKeyHash()};
+    final url = Uri.parse('${Config.apiUrl}/recovery/auth/request-reset?email=$email');
+
+    try {
+      final response = await http.post(url, headers: headers);
+      if (response.statusCode == 204) {
+        print("📩 Password reset email sent to $email");
+        return true;
+      }
+    } catch (e) {
+      print("🚨 Failed to request password reset: $e");
+    }
+    return false;
+  }
+
+  /// **Verify Reset Code**
+  Future<bool> verifyResetCode(String email, String code) async {
+    final headers = {'X-API-Key': Security.generateApiKeyHash()};
+    final url = Uri.parse('${Config.apiUrl}/recovery/auth/verify-code?email=$email&code=$code');
+
+    try {
+      final response = await http.post(url, headers: headers);
+      if (response.statusCode == 200) {
+        print("✅ Reset code is valid for $email");
+        return true;
+      }
+    } catch (e) {
+      print("🚨 Failed to verify reset code: $e");
+    }
+    return false;
+  }
+
+  /// **Reset Password**
+  Future<bool> resetPassword(String email, String code, String newPassword) async {
+    final headers = {'X-API-Key': Security.generateApiKeyHash(), 'Content-Type': 'application/json'};
+
+    final url = Uri.parse(
+      '${Config.apiUrl}/recovery/auth/reset-password?email=$email&code=$code&new_password=$newPassword',
+    );
+
+    try {
+      final response = await http.post(url, headers: headers);
+      if (response.statusCode == 200) {
+        print("🔑 Password successfully reset for $email");
+        return true;
+      }
+    } catch (e) {
+      print("🚨 Failed to reset password: $e");
+    }
+    return false;
+  }
+
+  /// **Submit High Score**
+  Future<bool> submitHighScore(SubmitScoreRequest scoreRequest) async {
+    await _getTokens(); // Ensure tokens are loaded
+
+    if (userId == null || accessToken == null) {
+      print("🚨 Cannot submit score: User is not logged in.");
+      return false;
+    }
+
+    final headers = {
+      'X-API-Key': Security.generateApiKeyHash(),
+      'Authorization': 'Bearer $accessToken',
+      'Content-Type': 'application/json',
+    };
+
+    scoreRequest.userId = userId!; // Set userId in request
+
+    final body = jsonEncode(scoreRequest.toJson());
+
+    try {
+      final response = await http.post(Uri.parse('${Config.apiUrl}/submit'), headers: headers, body: body);
+
+      if (response.statusCode == 200) {
+        print("✅ High score submitted successfully!");
+        return true;
+      } else {
+        print("🚨 Failed to submit high score: ${response.body}");
+      }
+    } catch (e) {
+      print("❌ Error submitting high score: $e");
+    }
+
+    return false;
   }
 
   /// **Parse API Response into `ApiResponse`**
@@ -319,5 +376,39 @@ class ApiService with ChangeNotifier {
     } else {
       throw ApiException(statusCode: response.statusCode, detail: 'Request failed: ${response.body}');
     }
+  }
+
+  /// **Unified API Request Handler**
+  Future<http.Response> _makeApiRequest(bool isGet, String url, Map<String, String> headers, String? body) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (await _isTokenExpiringSoon()) {
+      print("🔄 Token is expiring soon, refreshing...");
+      await _refreshTokenIfNeeded();
+      headers['Authorization'] = 'Bearer ${prefs.getString('accessToken')}'; // Update token in headers
+    }
+
+    var response =
+        isGet
+            ? await http.get(Uri.parse(url), headers: headers)
+            : await http.post(Uri.parse(url), headers: headers, body: body);
+
+    if (response.statusCode == 401) {
+      print("🚨 Token expired. Refreshing...");
+      final refreshed = await _refreshTokenIfNeeded();
+
+      if (refreshed) {
+        print("✅ Token refreshed, retrying request...");
+        headers['Authorization'] = 'Bearer ${prefs.getString('accessToken')}'; // Update token again
+
+        return isGet
+            ? await http.get(Uri.parse(url), headers: headers)
+            : await http.post(Uri.parse(url), headers: headers, body: body);
+      } else {
+        throw ApiException(statusCode: 401, detail: 'Token refresh failed - Please log in again');
+      }
+    }
+
+    return response;
   }
 }

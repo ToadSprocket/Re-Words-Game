@@ -89,14 +89,42 @@ class StateManager {
     print('Reset game state');
   }
 
-  static Future<void> updatePlayTime(DateTime? sessionStart) async {
-    if (sessionStart != null) {
-      final prefs = await SharedPreferences.getInstance();
-      final elapsed = DateTime.now().difference(sessionStart).inSeconds;
-      final totalTime = (prefs.getInt('timePlayedSeconds') ?? 0) + elapsed;
-      await prefs.setInt('timePlayedSeconds', totalTime);
-      print('Updated play time: $totalTime seconds');
+  static Future<void> setStartTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final existingStart = prefs.getString('sessionStart');
+
+    if (existingStart == null) {
+      String now = DateTime.now().toIso8601String();
+      await prefs.setString('sessionStart', now);
+      print('🔹 Session Start Time Set: $now');
+    } else {
+      print('🔹 Session Start Time Already Exists: $existingStart');
     }
+  }
+
+  static Future<void> updatePlayTime() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    String? storedStart = prefs.getString('sessionStart');
+    if (storedStart != null) {
+      DateTime sessionStart = DateTime.parse(storedStart);
+      int elapsed = DateTime.now().difference(sessionStart).inSeconds;
+
+      int totalTime = (prefs.getInt('timePlayedSeconds') ?? 0) + elapsed;
+      await prefs.setInt('timePlayedSeconds', totalTime);
+
+      print('✅ Updated Play Time: $totalTime seconds');
+
+      // Clear session start so next session is tracked separately
+      await prefs.remove('sessionStart');
+    } else {
+      print("🚨 No session start found! Play time not updated.");
+    }
+  }
+
+  static Future<int> getTotalPlayTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('timePlayedSeconds') ?? 0;
   }
 
   // Storage-only methods
@@ -121,8 +149,10 @@ class StateManager {
     final utcExpireTime = DateTime.parse(expireDateUtc).toUtc();
     final utcNow = DateTime.now().toUtc();
 
+    print("🚨 Board Expired Time Raw: ${expireDateUtc}");
     print("⏳ Current UTC Time: $utcNow");
     print("📌 Board Expiration UTC: $utcExpireTime");
+    print("🚨 Board Expired: ${utcNow.isAfter(utcExpireTime)}");
 
     return utcNow.isAfter(utcExpireTime);
   }
@@ -171,18 +201,19 @@ class StateManager {
 
   static Future<void> saveBoardData(GameData gameData) async {
     final prefs = await SharedPreferences.getInstance();
+
+    DateTime expireDateUtc = DateTime.parse(gameData.dateExpire).toUtc();
+
     final boardData = {
       'grid': gameData.grid,
       'wildcards': gameData.wildcards,
       'dateStart': gameData.dateStart,
-      'dateExpire': gameData.dateExpire,
+      'dateExpire': expireDateUtc.toIso8601String(),
       'wordCount': gameData.wordCount,
       'estimatedHighScore': gameData.estimatedHighScore,
     };
     await prefs.setString('cachedGrid', jsonEncode(boardData));
-    await prefs.setString('boardExpireDate', gameData.dateExpire);
+    await prefs.setString('boardExpireDate', expireDateUtc.toIso8601String());
     await prefs.setString('boardLoadedDate', DateTime.now().toUtc().toIso8601String());
   }
-
-  // Removed: registerUser, fetchNewBoard, _getStats, _minutesFromMidnight
 }

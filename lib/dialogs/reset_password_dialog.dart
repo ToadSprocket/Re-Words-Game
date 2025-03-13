@@ -2,39 +2,53 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../styles/app_styles.dart';
 import '../logic/api_service.dart';
-import 'register_dialog.dart';
-import 'password_recovery_dialog.dart';
 
-class LoginDialog {
-  static Future<void> show(BuildContext context, ApiService api) async {
-    final userNameController = TextEditingController();
+class ResetPasswordDialog {
+  static Future<void> show(BuildContext context, ApiService api, String email) async {
+    final codeController = TextEditingController();
     final passwordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
     String? errorMessage;
+    String? successMessage;
 
-    void attemptLogin() async {
-      String username = userNameController.text.trim();
-      String password = passwordController.text.trim();
+    /// **Attempt password reset and return `true` if successful, otherwise `false`.**
+    Future<bool> attemptPasswordReset(void Function(VoidCallback) setState) async {
+      String code = codeController.text.trim();
+      String newPassword = passwordController.text.trim();
+      String confirmPassword = confirmPasswordController.text.trim();
 
-      if (username.isEmpty || password.isEmpty) {
-        errorMessage = "Please enter both username and password.";
-      } else {
-        final response = await api.login(username, password);
-        if (response == null) {
-          errorMessage = "Invalid username or password. Please try again.";
-        } else {
-          Navigator.pop(context); // ✅ Close dialog on successful login
-          return;
-        }
+      if (code.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+        setState(() {
+          errorMessage = "All fields are required.";
+        });
+        return false;
       }
-      // 🔥 Force UI to update with error message
-      (context as Element).markNeedsBuild();
+
+      if (newPassword != confirmPassword) {
+        setState(() {
+          errorMessage = "Passwords do not match.";
+        });
+        return false;
+      }
+
+      bool success = await api.resetPassword(email, code, newPassword);
+
+      setState(() {
+        if (success) {
+          successMessage = "✅ Password successfully reset!";
+          errorMessage = null;
+        } else {
+          errorMessage = "🚨 Reset failed. Please check your code and try again.";
+          successMessage = null;
+        }
+      });
+
+      return success;
     }
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        String? errorMessage; // 🚨 Error message state
-
         return StatefulBuilder(
           builder: (context, setState) {
             return Dialog(
@@ -53,7 +67,7 @@ class LoginDialog {
                     // 🔹 Title & Close Button
                     Stack(
                       children: [
-                        Center(child: Text('Reword Login', style: AppStyles.dialogTitleStyle)),
+                        Center(child: Text('Reset Password', style: AppStyles.dialogTitleStyle)),
                         Positioned(
                           right: 0,
                           child: GestureDetector(
@@ -65,16 +79,16 @@ class LoginDialog {
                     ),
                     const SizedBox(height: 16.0),
 
-                    // 🔹 Input Fields (Centered)
+                    // 🔹 Input Fields
                     SizedBox(
                       width: AppStyles.dialogWidth * 0.8,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Username or Email Address', style: AppStyles.InputTitleStyle),
+                          Text('Enter Reset Code', style: AppStyles.InputTitleStyle),
                           const SizedBox(height: 4.0),
                           TextFormField(
-                            controller: userNameController,
+                            controller: codeController,
                             style: AppStyles.inputContentStyle,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
@@ -83,43 +97,48 @@ class LoginDialog {
                           ),
                           const SizedBox(height: 12.0),
 
-                          Text('Password', style: AppStyles.InputTitleStyle),
+                          Text('New Password', style: AppStyles.InputTitleStyle),
                           const SizedBox(height: 4.0),
                           TextFormField(
                             controller: passwordController,
-                            style: AppStyles.inputContentStyle,
                             obscureText: true,
+                            style: AppStyles.inputContentStyle,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(vertical: 6.0, horizontal: 10.0),
                             ),
-                            textInputAction: TextInputAction.done, // ✅ Pressing "Enter" submits
-                            onFieldSubmitted: (_) => attemptLogin(), // ✅ Handle Enter key
                           ),
+                          const SizedBox(height: 12.0),
 
-                          // 🔹 Forgot Password Link
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextButton(
-                              onPressed: () {
-                                Navigator.pop(context); // Close login dialog first
-                                ForgotPasswordDialog.show(context, api); // Open forgot password dialog
-                              },
-                              style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft),
-                              child: Text('Forgot Password?', style: AppStyles.dialogLinkStyle),
+                          Text('Confirm Password', style: AppStyles.InputTitleStyle),
+                          const SizedBox(height: 4.0),
+                          TextFormField(
+                            controller: confirmPasswordController,
+                            obscureText: true,
+                            style: AppStyles.inputContentStyle,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(vertical: 6.0, horizontal: 10.0),
                             ),
                           ),
+
                           Container(
-                            height: 34.0, // 🔥 Locks the height to prevent jumping
-                            alignment: Alignment.center, // 🔥 Keeps text centered vertically
+                            height: 34.0,
+                            alignment: Alignment.center,
                             child:
-                                errorMessage != null && errorMessage!.isNotEmpty
+                                errorMessage != null
                                     ? Text(
                                       errorMessage!,
                                       style: AppStyles.dialogErrorStyle,
                                       textAlign: TextAlign.center,
                                     )
-                                    : const SizedBox.shrink(), // 🔥 Doesn't take up space when empty
+                                    : successMessage != null
+                                    ? Text(
+                                      successMessage!,
+                                      style: AppStyles.dialogSuccessStyle,
+                                      textAlign: TextAlign.center,
+                                    )
+                                    : const SizedBox.shrink(),
                           ),
                         ],
                       ),
@@ -127,7 +146,7 @@ class LoginDialog {
 
                     const SizedBox(height: 16.0),
 
-                    // 🔹 Login & Cancel Buttons
+                    // 🔹 Submit & Cancel Buttons
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -144,48 +163,26 @@ class LoginDialog {
                           width: AppStyles.dialogWidth * 0.3,
                           child: ElevatedButton(
                             onPressed: () async {
-                              setState(() => errorMessage = null); // Clear old errors
+                              setState(() {
+                                errorMessage = null;
+                                successMessage = null;
+                              });
 
-                              String username = userNameController.text.trim();
-                              String password = passwordController.text.trim();
+                              bool success = await attemptPasswordReset(setState);
 
-                              if (username.isEmpty || password.isEmpty) {
-                                setState(() => errorMessage = "Please enter both username and password.");
-                                return;
+                              if (success && context.mounted) {
+                                await Future.delayed(const Duration(milliseconds: 500)); // Short delay
+                                Navigator.pop(context); // ✅ Close only if reset succeeds
                               }
-
-                              final response = await api.login(username, password);
-
-                              if (response == null) {
-                                setState(() => errorMessage = "Invalid username or password. Please try again.");
-                                return;
-                              }
-
-                              Navigator.pop(context); // ✅ Close dialog on success
                             },
                             style: AppStyles.buttonStyle(context),
-                            child: const Text('Login'),
+                            child: const Text('Reset'),
                           ),
                         ),
                       ],
                     ),
 
                     const SizedBox(height: 16.0),
-
-                    // 🔹 "Don't have an account?" Text & Sign Up Button
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text("Don't have a login yet?", style: AppStyles.dialogContentStyle),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            RegisterDialog.show(context, api);
-                          },
-                          child: Text('Sign Up', style: AppStyles.dialogLinkStyle),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),

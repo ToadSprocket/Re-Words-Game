@@ -29,6 +29,7 @@ class NarrowScreen extends StatelessWidget {
   final VoidCallback updateScoresRefresh; // Add this
   final Map<String, dynamic> sizes;
   final dynamic api; // Add this
+  final SpelledWordsLogic spelledWordsLogic;
 
   const NarrowScreen({
     super.key,
@@ -40,6 +41,7 @@ class NarrowScreen extends StatelessWidget {
     required this.onLegal,
     required this.onLogin,
     required this.api, // Add this
+    required this.spelledWordsLogic,
     this.gridKey,
     this.wildcardKey,
     this.onMessage,
@@ -64,7 +66,8 @@ class NarrowScreen extends StatelessWidget {
           onHighScores: onHighScores,
           onLegal: onLegal,
           onLogin: onLogin,
-          api: api, // Pass this
+          api: api,
+          spelledWordsLogic: SpelledWordsLogic(), // Pass this
 
           showBorders: showBorders,
         ),

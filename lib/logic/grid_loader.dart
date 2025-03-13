@@ -1,5 +1,6 @@
 // Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:reword_game/models/api_models.dart';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../managers/state_manager.dart';
@@ -51,24 +52,20 @@ class GridLoader {
     return true;
   }
 
-  static Future<bool> loadNewBoard(ApiService apiService) async {
+  static Future<bool> loadNewBoard(ApiService apiService, SubmitScoreRequest scoreData) async {
     print("📢 loadNewBoard() called!");
 
     final prefs = await SharedPreferences.getInstance();
-    final stats = {
-      'wordCount': SpelledWordsLogic.spelledWords.length,
-      'timePlayedSeconds': prefs.getInt('timePlayedSeconds') ?? 0,
-      'wildcardUses': prefs.getInt('wildcardUses') ?? 0,
-      'score': SpelledWordsLogic.score,
-      'platform': kIsWeb ? 'Web' : 'Windows',
-      'locale': Platform.localeName,
-    };
-
-    print("🔍 Stats for request: $stats");
 
     try {
       print("📡 Calling getGameToday API...");
-      final response = await apiService.getGameToday(stats);
+
+      // 🚨 🔥 CLEAR OLD BOARD DATA FIRST
+      _gridData.clear();
+      gridTiles.clear();
+      wildcardTiles.clear();
+
+      final response = await apiService.getGameToday(scoreData);
       final gameData = response.gameData;
 
       if (gameData == null) {
@@ -78,8 +75,10 @@ class GridLoader {
 
       print("✅ Successfully fetched new game: ${gameData.dateStart}");
 
+      // ✅ Save board data to preferences
       await StateManager.saveBoardData(gameData);
 
+      // ✅ Assign new grid data
       _gridData = {
         'grid': gameData.grid,
         'wildcards': gameData.wildcards,
@@ -89,12 +88,12 @@ class GridLoader {
         'estimatedHighScore': gameData.estimatedHighScore,
       };
 
+      // ✅ Set board values (letters, wildcards)
       _setBoardValues();
-      print("✅ Loaded new board: ${_gridData['dateStart']}");
+
       return true;
-    } catch (e, stacktrace) {
-      print("🚨 Failed to load new board: $e");
-      print(stacktrace);
+    } catch (e) {
+      print("🚨 Error in loadNewBoard: $e");
       return false;
     }
   }

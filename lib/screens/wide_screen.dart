@@ -30,6 +30,7 @@ class WideScreen extends StatelessWidget {
   final VoidCallback updateScoresRefresh;
   final Map<String, dynamic> sizes;
   final dynamic api;
+  final SpelledWordsLogic spelledWordsLogic;
 
   const WideScreen({
     super.key,
@@ -41,6 +42,7 @@ class WideScreen extends StatelessWidget {
     required this.onLegal,
     required this.onLogin,
     required this.api,
+    required this.spelledWordsLogic,
     this.gridKey,
     this.wildcardKey,
     this.onMessage,
@@ -75,6 +77,7 @@ class WideScreen extends StatelessWidget {
           showBorders: showBorders,
           onLogin: onLogin,
           api: api,
+          spelledWordsLogic: spelledWordsLogic,
         ),
         const Divider(height: 1.0, thickness: 1.0, color: Color.fromARGB(73, 158, 158, 158)),
         const SizedBox(height: 10.0),

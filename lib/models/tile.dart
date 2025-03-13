@@ -48,10 +48,10 @@ class Tile {
         // Cap at 3 uses
         useCount++;
         if (!this.isHybrid) {
-          if (value == 1 && useCount == 1) {
+          if (value == 1 && useCount == 2) {
             value = 2; // First use: 1 → 2
             multiplier = 2.0;
-          } else if (useCount <= 8) {
+          } else if (useCount <= 9) {
             // Apply multiplier up to cap
             value = (value * multiplier).round();
             multiplier = 2.0; // Reset for next use

@@ -22,10 +22,11 @@ import 'logic/api_service.dart';
 import 'logic/word_loader.dart';
 import 'logic/spelled_words_handler.dart';
 import 'package:provider/provider.dart';
+import 'models/api_models.dart';
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
-const bool debugForceExpiredBoard = false; // Force expired board
+const bool debugForceExpiredBoard = true; // Force expired board
 const bool debugForceValidBoard = false; // Force valid board
 const bool debugClearPrefs = false; // Clear all prefs for new user
 
@@ -82,7 +83,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   final ValueNotifier<int> scoreNotifier = ValueNotifier<int>(0);
   final ValueNotifier<List<String>> spelledWordsNotifier = ValueNotifier<List<String>>([]); // Notifier for words
   Map<String, dynamic>? sizes;
-  DateTime? _sessionStart;
   int loginAttempts = 0;
 
   @override
@@ -92,62 +92,72 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
       windowManager.addListener(this);
     }
-    _sessionStart = DateTime.now();
     _loadData();
   }
 
   @override
   void dispose() {
-    StateManager.updatePlayTime(_sessionStart);
     WidgetsBinding.instance.removeObserver(this);
     if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
       windowManager.removeListener(this);
     }
     StateManager.saveState(_gridKey, _wildcardKey);
+    StateManager.updatePlayTime();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
-      StateManager.updatePlayTime(_sessionStart);
       StateManager.saveState(_gridKey, _wildcardKey);
     }
   }
 
   @override
   void onWindowClose() async {
-    StateManager.updatePlayTime(_sessionStart);
     await StateManager.saveState(_gridKey, _wildcardKey);
+    await StateManager.updatePlayTime();
     super.onWindowClose();
     await windowManager.destroy();
   }
 
   Future<void> _loadData() async {
     final api = Provider.of<ApiService>(context, listen: false);
+
+    print("📡 Loading game data...");
+
     await WordLoader.loadWords();
     await _applyDebugControls();
     final userData = await StateManager.getUserData();
     bool isNewUser = await StateManager.isNewUser();
+
+    // ✅ Restore previous game state BEFORE making any decisions
+    await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
+
     if (isNewUser) {
+      print("👤 New User Detected - Registering...");
       await _handleNewUser(api);
     } else {
+      print("🔄 Handling existing user...");
       await _handleExistingUser(api, userData);
-      await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
     }
+
+    // 🚨 **Ensure we have a valid board loaded before continuing**
     if (GridLoader.gridTiles.isEmpty) {
+      print("❌ No tiles loaded! Showing failure dialog...");
       await FailureDialog.show(context);
-      print('Load failed: No tiles');
     } else {
-      print('Load succeeded: ${GridLoader.gridTiles.length} tiles');
+      print("✅ Board successfully loaded! Syncing UI...");
+
+      // ✅ Ensure UI updates after loading board
+      scoreNotifier.value = SpelledWordsLogic.score;
+      spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
+
       if (isNewUser) {
-        // Only reload for new users
+        // Only reload tiles for new users
         _gridKey.currentState?.reloadTiles();
         _wildcardKey.currentState?.reloadWildcardTiles();
       }
-      // Sync notifiers (safe fallback)
-      scoreNotifier.value = SpelledWordsLogic.score;
-      spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
     }
   }
 
@@ -163,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
           .add(const Duration(days: 1))
           .toUtc()
           .copyWith(
-            hour: 2,
+            hour: 5,
             minute: 5,
             second: 0,
             millisecond: 0,
@@ -182,7 +192,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         print('Error: Registration failed - null security');
         return;
       }
-      await GridLoader.loadNewBoard(api); // This fetches and saves gameData
+      final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
+      await GridLoader.loadNewBoard(api, finalScore); // This fetches and saves gameData
       print('New user loaded: ${GridLoader.gridTiles}');
     } catch (e) {
       print('Error registering new user: $e');
@@ -191,30 +202,54 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
   Future<void> _handleExistingUser(ApiService api, Map<String, String?> userData) async {
     final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
+
+    // ✅ Restore previous game state BEFORE making a decision
+    //await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
+
     if (isExpired) {
+      print("⚠️ Board Expired - Checking if we should load a new one...");
+
+      // ✅ Ensure we calculate the score BEFORE switching boards
+      final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
+      print("📊 Final Score Before New Board: $finalScore");
+
       final loadNewBoard = await _shouldLoadNewBoard();
       if (loadNewBoard) {
-        await StateManager.updatePlayTime(_sessionStart);
-        await GridLoader.loadNewBoard(api);
-        await _gridKey.currentState?.reloadTiles();
-        await _wildcardKey.currentState?.reloadWildcardTiles();
-        print('New board loaded: ${GridLoader.gridTiles}');
+        print("🔄 Loading new board...");
+
+        // ✅ Reset game state before loading a new board
+        await StateManager.resetState(_gridKey);
+        await StateManager.setStartTime(); // Start new play session
+
+        bool success = await GridLoader.loadNewBoard(api, finalScore);
+        if (success) {
+          await _gridKey.currentState?.reloadTiles();
+          await _wildcardKey.currentState?.reloadWildcardTiles();
+          print('✅ New board loaded: ${GridLoader.gridTiles}');
+        } else {
+          print("🚨 Failed to load new board. Falling back to stored board.");
+          await GridLoader.loadStoredBoard();
+        }
       } else {
+        print("🔄 Keeping the current expired board.");
         await GridLoader.loadStoredBoard();
-        print('Stored board loaded: ${GridLoader.gridTiles}');
       }
     } else {
+      print("🔄 Board still valid. Loading stored board...");
       await GridLoader.loadStoredBoard();
-      print('Stored board loaded: ${GridLoader.gridTiles}');
     }
+
+    // ✅ Make sure UI is updated
+    scoreNotifier.value = SpelledWordsLogic.score;
+    spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
   }
 
   Future<bool> _shouldLoadNewBoard() async {
     final expiredTime = await StateManager.boardExpiredDuration();
-    if (expiredTime != null && expiredTime <= 120) {
-      return true; // Auto-refresh if expired <= 2 hours
+    if (expiredTime == null || expiredTime > 120) {
+      return true; // Auto-refresh if expired > 2 hours
     }
-    return await BoardExpiredDialog.show(context) ?? false; // Ask user if > 2 hours
+    return await BoardExpiredDialog.show(context) ?? false; // Ask user if < 2 hours
   }
 
   @override
@@ -270,10 +305,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   onSubmit: submitWord,
                   onClear: clearWords,
                   onInstructions: () => HowToPlayDialog.show(context),
-                  onHighScores: () => HighScoresDialog.show(context, ApiService()),
+                  onHighScores: () => HighScoresDialog.show(context, ApiService(), SpelledWordsLogic()),
                   onLegal: () => LegalDialog.show(context),
                   onLogin: () => LoginDialog.show(context, api),
                   api: api,
+                  spelledWordsLogic: SpelledWordsLogic(),
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,
                   onMessage: _handleMessage,
@@ -288,10 +324,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   onSubmit: submitWord,
                   onClear: clearWords,
                   onInstructions: () => HowToPlayDialog.show(context),
-                  onHighScores: () => HighScoresDialog.show(context, ApiService()),
+                  onHighScores: () => HighScoresDialog.show(context, ApiService(), SpelledWordsLogic()),
                   onLegal: () => LegalDialog.show(context),
                   onLogin: () => LoginDialog.show(context, api),
                   api: api, // Pass api
+                  spelledWordsLogic: SpelledWordsLogic(),
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,
                   onMessage: _handleMessage,

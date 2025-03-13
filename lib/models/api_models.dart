@@ -96,3 +96,41 @@ class HighScore {
     );
   }
 }
+
+class SubmitScoreRequest {
+  String userId;
+  String platform;
+  String locale;
+  int timePlayedSeconds;
+  int wordCount;
+  int wildcardUses;
+  int score;
+  int completionRate;
+  int longestWordLength;
+
+  SubmitScoreRequest({
+    required this.userId,
+    required this.platform,
+    required this.locale,
+    required this.timePlayedSeconds,
+    required this.wordCount,
+    required this.wildcardUses,
+    required this.score,
+    required this.completionRate,
+    required this.longestWordLength,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      "userId": userId,
+      "platform": platform,
+      "locale": locale,
+      "timePlayedSeconds": timePlayedSeconds,
+      "wordCount": wordCount,
+      "wildcardUses": wildcardUses,
+      "score": score,
+      "completionRate": completionRate,
+      "longestWordLength": longestWordLength,
+    };
+  }
+}
