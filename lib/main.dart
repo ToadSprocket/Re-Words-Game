@@ -26,7 +26,7 @@ import 'models/api_models.dart';
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
-const bool debugForceExpiredBoard = true; // Force expired board
+const bool debugForceExpiredBoard = false; // Force expired board
 const bool debugForceValidBoard = false; // Force valid board
 const bool debugClearPrefs = false; // Clear all prefs for new user
 
@@ -163,22 +163,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
   Future<void> _applyDebugControls() async {
     final prefs = await SharedPreferences.getInstance();
+
     if (debugClearPrefs) {
       await prefs.clear();
       print('Debug: Cleared all preferences');
     }
+
     if (debugForceValidBoard) {
       final nowUtc = DateTime.now().toUtc();
-      final nextMidnightUtc = nowUtc
-          .add(const Duration(days: 1))
-          .toUtc()
-          .copyWith(
-            hour: 5,
-            minute: 5,
-            second: 0,
-            millisecond: 0,
-            microsecond: 0,
-          ); // Force expiration just after midnight UTC
+
+      // Move to the next midnight UTC
+      final nextMidnightUtc = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day + 1, 5, 5, 0, 0, 0);
 
       await prefs.setString('boardExpireDate', nextMidnightUtc.toIso8601String());
       print('🛠 Debug: Forced valid board with expiration at $nextMidnightUtc UTC');

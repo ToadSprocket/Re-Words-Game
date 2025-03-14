@@ -56,6 +56,7 @@ class ApiService with ChangeNotifier {
     await prefs.setString('userId', security.userId);
     await prefs.setString('accessToken', security.accessToken ?? "");
     await prefs.setString('refreshToken', security.refreshToken ?? "");
+    await prefs.setString('refreshTokenDate', DateTime.now().toIso8601String());
 
     userId = security.userId;
     accessToken = security.accessToken;
@@ -109,6 +110,9 @@ class ApiService with ChangeNotifier {
           ),
         );
         return true;
+      } else if (response.statusCode == 401) {
+        print('🚨 Refresh token expired or invalid. Logging out user.');
+        logout(); // Clear tokens and redirect to login
       }
     } catch (e) {
       print('🚨 Refresh failed: $e');
@@ -278,23 +282,6 @@ class ApiService with ChangeNotifier {
       }
     } catch (e) {
       print("🚨 Failed to request password reset: $e");
-    }
-    return false;
-  }
-
-  /// **Verify Reset Code**
-  Future<bool> verifyResetCode(String email, String code) async {
-    final headers = {'X-API-Key': Security.generateApiKeyHash()};
-    final url = Uri.parse('${Config.apiUrl}/recovery/auth/verify-code?email=$email&code=$code');
-
-    try {
-      final response = await http.post(url, headers: headers);
-      if (response.statusCode == 200) {
-        print("✅ Reset code is valid for $email");
-        return true;
-      }
-    } catch (e) {
-      print("🚨 Failed to verify reset code: $e");
     }
     return false;
   }

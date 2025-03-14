@@ -146,10 +146,11 @@ class StateManager {
       return true;
     }
 
-    final utcExpireTime = DateTime.parse(expireDateUtc).toUtc();
-    final utcNow = DateTime.now().toUtc();
+    // ✅ Parse and normalize expiration time
+    final utcExpireTime = DateTime.parse(expireDateUtc).toUtc().copyWith(microsecond: 0);
+    final utcNow = DateTime.now().toUtc().copyWith(microsecond: 0);
 
-    print("🚨 Board Expired Time Raw: ${expireDateUtc}");
+    print("🚨 Board Expired Time Raw (Stored): $expireDateUtc");
     print("⏳ Current UTC Time: $utcNow");
     print("📌 Board Expiration UTC: $utcExpireTime");
     print("🚨 Board Expired: ${utcNow.isAfter(utcExpireTime)}");
@@ -160,10 +161,31 @@ class StateManager {
   static Future<int?> boardExpiredDuration() async {
     final prefs = await SharedPreferences.getInstance();
     final expireDate = prefs.getString('boardExpireDate');
-    if (expireDate == null) return null; // No board yet
-    final expiry = DateTime.parse(expireDate);
-    if (DateTime.now().toUtc().isBefore(expiry)) return 0; // Not expired
-    return DateTime.now().toUtc().difference(expiry).inMinutes; // Minutes expired
+
+    if (expireDate == null) {
+      print("🚨 No board expiration date found. Returning null.");
+      return null; // No board data yet
+    }
+
+    // ✅ Convert expiration time and now to UTC with microseconds removed for consistency
+    final expiry = DateTime.parse(expireDate).toUtc().copyWith(microsecond: 0);
+    final utcNow = DateTime.now().toUtc().copyWith(microsecond: 0);
+
+    // ✅ Log timestamps for debugging
+    print("📌 Board Expiration UTC: $expiry");
+    print("⏳ Current UTC Time: $utcNow");
+    print("🕰️ Time Since Expiration: ${utcNow.difference(expiry).inMinutes} minutes");
+
+    // ✅ If board is still valid, return 0
+    if (utcNow.isBefore(expiry)) {
+      print("✅ Board is still active. Returning 0.");
+      return 0;
+    }
+
+    // ✅ Return minutes since expiration
+    final minutesExpired = utcNow.difference(expiry).inMinutes;
+    print("🚨 Board expired $minutesExpired minutes ago.");
+    return minutesExpired;
   }
 
   static Future<Map<String, String?>> getUserData() async {
@@ -181,7 +203,6 @@ class StateManager {
     await prefs.setString('userId', security.userId);
     await prefs.setString('accessToken', security.accessToken!);
     await prefs.setString('refreshToken', security.refreshToken!);
-    await prefs.setString('refreshTokenDate', DateTime.now().toIso8601String());
 
     // Store token expiration
     if (security.expirationSeconds != null) {
@@ -196,24 +217,57 @@ class StateManager {
   static Future<Map<String, dynamic>> getBoardData() async {
     final prefs = await SharedPreferences.getInstance();
     final cachedGrid = prefs.getString('cachedGrid');
-    return cachedGrid != null ? jsonDecode(cachedGrid) : {};
+    if (cachedGrid == null) return {};
+
+    final Map<String, dynamic> gridData = jsonDecode(cachedGrid);
+
+    // ✅ Ensure dateExpire is treated as UTC DateTime
+    if (gridData.containsKey('dateExpire')) {
+      gridData['dateExpire'] = DateTime.parse(gridData['dateExpire']).toUtc();
+    }
+
+    return gridData;
   }
 
   static Future<void> saveBoardData(GameData gameData) async {
     final prefs = await SharedPreferences.getInstance();
 
-    DateTime expireDateUtc = DateTime.parse(gameData.dateExpire).toUtc();
+    // ✅ Get user's local timezone
+    String localTimeZone = await FlutterTimezone.getLocalTimezone();
+    tz.initializeTimeZones();
+    final location = tz.getLocation(localTimeZone);
+
+    // ✅ Convert expiration time to local midnight
+    DateTime nowLocal = tz.TZDateTime.now(location);
+    DateTime nextMidnightLocal = tz.TZDateTime(
+      location,
+      nowLocal.year,
+      nowLocal.month,
+      nowLocal.day,
+    ).add(const Duration(days: 1));
+
+    // ✅ Convert local midnight to UTC before saving
+    DateTime nextMidnightUtc = DateTime.now()
+        .toUtc()
+        .add(const Duration(days: 1))
+        .copyWith(hour: 0, minute: 0, second: 0, millisecond: 0, microsecond: 0);
+
+    print("🌍 Local Midnight Expiration: $nextMidnightLocal");
+    print("🌍 UTC Expiration Time Stored: $nextMidnightUtc");
 
     final boardData = {
       'grid': gameData.grid,
       'wildcards': gameData.wildcards,
       'dateStart': gameData.dateStart,
-      'dateExpire': expireDateUtc.toIso8601String(),
+      'dateExpire': nextMidnightUtc.toIso8601String(), // ✅ Store as UTC
       'wordCount': gameData.wordCount,
       'estimatedHighScore': gameData.estimatedHighScore,
     };
+
     await prefs.setString('cachedGrid', jsonEncode(boardData));
-    await prefs.setString('boardExpireDate', expireDateUtc.toIso8601String());
+    await prefs.setString('boardExpireDate', nextMidnightUtc.toIso8601String());
     await prefs.setString('boardLoadedDate', DateTime.now().toUtc().toIso8601String());
+
+    print("✅ Board Expiration Set to: $nextMidnightUtc UTC");
   }
 }

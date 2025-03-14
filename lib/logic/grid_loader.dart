@@ -1,11 +1,8 @@
 // Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:reword_game/models/api_models.dart';
-import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../managers/state_manager.dart';
 import '../logic/api_service.dart';
-import 'spelled_words_handler.dart';
 
 class GridLoader {
   static List<Map<String, dynamic>> gridTiles = [];
@@ -82,8 +79,8 @@ class GridLoader {
       _gridData = {
         'grid': gameData.grid,
         'wildcards': gameData.wildcards,
-        'dateStart': gameData.dateStart,
-        'dateExpire': gameData.dateExpire,
+        'dateStart': DateTime.parse(gameData.dateStart).toUtc(), // ✅ Convert to DateTime
+        'dateExpire': DateTime.parse(gameData.dateExpire).toUtc(), // ✅ Convert to DateTime
         'wordCount': gameData.wordCount,
         'estimatedHighScore': gameData.estimatedHighScore,
       };

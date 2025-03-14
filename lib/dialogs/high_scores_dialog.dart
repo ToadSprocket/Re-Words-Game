@@ -34,10 +34,7 @@ class HighScoresDialog {
       final response = await api.getTodayHighScores();
       highScores = response.highScoreData?.highScores ?? [];
       final rawDate = response.highScoreData?.date ?? 'Today';
-      date =
-          rawDate == 'Today'
-              ? 'Today'
-              : DateFormat('MMMM d, yyyy').format(DateTime.parse(rawDate)); // e.g., "March 9, 2025"
+      date = rawDate == 'Today' ? 'Today' : DateFormat('MMMM d, yyyy').format(DateTime.parse(rawDate).toUtc());
 
       // ✅ Determine if the player qualifies to submit a high score
       if (highScores.isEmpty || finalScore.score > highScores.last.score) {
