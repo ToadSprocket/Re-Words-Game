@@ -87,7 +87,7 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
     return Container(
       width: widget.width,
       height: widget.height,
-      decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.blue, width: 2)) : null,
+      decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.blue, width: 1)) : null,
       child:
           tiles.isEmpty
               ? Center(

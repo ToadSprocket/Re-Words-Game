@@ -22,18 +22,7 @@ class LegalDialog {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Stack(
-                  children: [
-                    Center(child: Text('Legal', style: AppStyles.dialogTitleStyle)),
-                    Positioned(
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
-                        child: const FaIcon(FontAwesomeIcons.circleXmark, size: 20.0, color: AppStyles.textColor),
-                      ),
-                    ),
-                  ],
-                ),
+                Stack(children: [Center(child: Text('Legal', style: AppStyles.dialogTitleStyle))]),
                 const SizedBox(height: 16.0),
                 Expanded(
                   child: SingleChildScrollView(

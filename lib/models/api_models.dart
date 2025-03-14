@@ -58,28 +58,41 @@ class ApiException implements Exception {
 class HighScoreData {
   final String? gameId;
   final String? date;
+  final int? totalScoresToday;
+  final bool? userHasSubmitted;
+  final int? userRank;
   final List<HighScore> highScores;
 
-  HighScoreData({this.gameId, this.date, required this.highScores});
+  HighScoreData({
+    this.gameId,
+    this.date,
+    required this.highScores,
+    this.totalScoresToday,
+    this.userHasSubmitted,
+    this.userRank,
+  });
 
   factory HighScoreData.fromJson(Map<String, dynamic> json) {
     return HighScoreData(
       gameId: json['gameId'] as String?,
       date: json['date'] as String?,
       highScores: (json['highScores'] as List?)?.map((score) => HighScore.fromJson(score)).toList() ?? [],
+      totalScoresToday: json['totalScoresToday'] as int?,
+      userHasSubmitted: json['userHasSubmitted'] as bool?,
+      userRank: json['userRank'] as int?,
     );
   }
 }
 
 class HighScore {
-  final String userId;
+  final int ranking;
   final int wordCount;
   final int timePlayedSeconds;
   final int score;
   final String displayName;
 
   HighScore({
-    required this.userId,
+    required this.ranking,
     required this.wordCount,
     required this.timePlayedSeconds,
     required this.score,
@@ -88,7 +101,7 @@ class HighScore {
 
   factory HighScore.fromJson(Map<String, dynamic> json) {
     return HighScore(
-      userId: json['userId'] as String,
+      ranking: json['ranking'] as int,
       wordCount: json['wordCount'] as int,
       timePlayedSeconds: json['timePlayedSeconds'] as int,
       score: json['score'] as int,

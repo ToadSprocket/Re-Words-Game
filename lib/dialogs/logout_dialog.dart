@@ -34,13 +34,6 @@ class LogoutDialog {
                           textAlign: TextAlign.center,
                         ),
                       ),
-                      Positioned(
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: () => Navigator.of(context).pop(),
-                          child: const FaIcon(FontAwesomeIcons.circleXmark, size: 20.0, color: AppStyles.textColor),
-                        ),
-                      ),
                     ],
                   ),
 

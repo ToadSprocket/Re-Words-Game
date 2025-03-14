@@ -5,6 +5,9 @@ import '../logic/security.dart';
 import '../config/config.dart';
 import '../models/api_models.dart';
 import 'package:flutter/foundation.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_timezone/flutter_timezone.dart';
 
 class ApiService with ChangeNotifier {
   static final ApiService _instance = ApiService._internal(); // ✅ Singleton instance
@@ -237,10 +240,16 @@ class ApiService with ChangeNotifier {
   Future<ApiResponse> getGameToday(SubmitScoreRequest scoreRequest) async {
     await _getTokens(); // Ensure tokens are loaded
 
+    // ✅ Get the player's timezone
+    String localTimeZone = await FlutterTimezone.getLocalTimezone();
+    tz.initializeTimeZones();
+    final location = tz.getLocation(localTimeZone); // e.g., "America/Los_Angeles"
+
     final headers = {
       'X-API-Key': Security.generateApiKeyHash(),
       'Authorization': 'Bearer $accessToken',
       'Content-Type': 'application/json',
+      'Time-Zone': location.toString(), // ✅ Send player's timezone to API
     };
 
     scoreRequest.userId = userId!; // Set userId in request
@@ -253,7 +262,7 @@ class ApiService with ChangeNotifier {
   }
 
   /// **Get Today's High Scores**
-  Future<ApiResponse> getTodayHighScores() async {
+  Future<ApiResponse> getTodayHighScores({int limit = 10}) async {
     await _getTokens(); // Ensure tokens are loaded
 
     final headers = {
@@ -264,7 +273,8 @@ class ApiService with ChangeNotifier {
 
     final body = jsonEncode({"userId": userId}); // Send userId in body
 
-    final response = await _makeApiRequest(false, '${Config.apiUrl}/scores/today', headers, body);
+    // ✅ Add `limit` as a query parameter
+    final response = await _makeApiRequest(false, '${Config.apiUrl}/scores/today?limit=$limit', headers, body);
 
     return _parseResponse(response);
   }
@@ -326,7 +336,7 @@ class ApiService with ChangeNotifier {
     final body = jsonEncode(scoreRequest.toJson());
 
     try {
-      final response = await http.post(Uri.parse('${Config.apiUrl}/submit'), headers: headers, body: body);
+      final response = await http.post(Uri.parse('${Config.apiUrl}/scores/submit'), headers: headers, body: body);
 
       if (response.statusCode == 200) {
         print("✅ High score submitted successfully!");

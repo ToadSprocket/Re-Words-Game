@@ -1,5 +1,6 @@
 // Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -115,14 +116,16 @@ class StateManager {
 
       print('✅ Updated Play Time: $totalTime seconds');
 
-      // Clear session start so next session is tracked separately
-      await prefs.remove('sessionStart');
+      // Move the clock forward so we can keep updating the time as the game progresses.
+      // This because the user can go into the stats window multiple times and we don't want to keep adding time.
+      await setStartTime();
     } else {
       print("🚨 No session start found! Play time not updated.");
     }
   }
 
   static Future<int> getTotalPlayTime() async {
+    await updatePlayTime(); // Update play time before returning
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt('timePlayedSeconds') ?? 0;
   }
@@ -146,46 +149,42 @@ class StateManager {
       return true;
     }
 
-    // ✅ Parse and normalize expiration time
-    final utcExpireTime = DateTime.parse(expireDateUtc).toUtc().copyWith(microsecond: 0);
-    final utcNow = DateTime.now().toUtc().copyWith(microsecond: 0);
+    // Convert stored UTC expiration to DateTime
+    final utcExpireTime = DateTime.parse(expireDateUtc).toUtc();
 
-    print("🚨 Board Expired Time Raw (Stored): $expireDateUtc");
-    print("⏳ Current UTC Time: $utcNow");
-    print("📌 Board Expiration UTC: $utcExpireTime");
-    print("🚨 Board Expired: ${utcNow.isAfter(utcExpireTime)}");
+    // ✅ Get the player's local time
+    final nowLocal = DateTime.now();
 
-    return utcNow.isAfter(utcExpireTime);
+    // ✅ Convert expiration to player's local time
+    final localExpireTime = utcExpireTime.toLocal();
+
+    print("🚨 Stored Expiration UTC: $utcExpireTime");
+    print("🌍 Converted Expiration Local: $localExpireTime");
+    print("⏳ Current Local Time: $nowLocal");
+    print("🚨 Expired?: ${nowLocal.isAfter(localExpireTime)}");
+
+    // ✅ Check if local time has passed expiration time
+    return nowLocal.isAfter(localExpireTime);
   }
 
   static Future<int?> boardExpiredDuration() async {
     final prefs = await SharedPreferences.getInstance();
-    final expireDate = prefs.getString('boardExpireDate');
+    final expireDateUtc = prefs.getString('boardExpireDate');
 
-    if (expireDate == null) {
+    if (expireDateUtc == null) {
       print("🚨 No board expiration date found. Returning null.");
       return null; // No board data yet
     }
 
-    // ✅ Convert expiration time and now to UTC with microseconds removed for consistency
-    final expiry = DateTime.parse(expireDate).toUtc().copyWith(microsecond: 0);
-    final utcNow = DateTime.now().toUtc().copyWith(microsecond: 0);
-
-    // ✅ Log timestamps for debugging
-    print("📌 Board Expiration UTC: $expiry");
-    print("⏳ Current UTC Time: $utcNow");
-    print("🕰️ Time Since Expiration: ${utcNow.difference(expiry).inMinutes} minutes");
-
-    // ✅ If board is still valid, return 0
-    if (utcNow.isBefore(expiry)) {
-      print("✅ Board is still active. Returning 0.");
-      return 0;
+    final utcExpireTime = DateTime.parse(expireDateUtc).toUtc();
+    final nowLocal = DateTime.now();
+    if (nowLocal.isAfter(utcExpireTime)) {
+      print("🚨 Board expired! Returning duration.");
+      return nowLocal.difference(utcExpireTime).inMinutes;
+    } else {
+      print("✅ Board is still valid. Returning 0.");
+      return 0; // Board is still valid
     }
-
-    // ✅ Return minutes since expiration
-    final minutesExpired = utcNow.difference(expiry).inMinutes;
-    print("🚨 Board expired $minutesExpired minutes ago.");
-    return minutesExpired;
   }
 
   static Future<Map<String, String?>> getUserData() async {

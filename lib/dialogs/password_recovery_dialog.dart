@@ -51,18 +51,7 @@ class ForgotPasswordDialog {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // 🔹 Title & Close Button
-                    Stack(
-                      children: [
-                        Center(child: Text('Password Recovery', style: AppStyles.dialogTitleStyle)),
-                        Positioned(
-                          right: 0,
-                          child: GestureDetector(
-                            onTap: () => Navigator.of(context).pop(),
-                            child: const FaIcon(FontAwesomeIcons.circleXmark, size: 20.0, color: AppStyles.textColor),
-                          ),
-                        ),
-                      ],
-                    ),
+                    Stack(children: [Center(child: Text('Password Recovery', style: AppStyles.dialogTitleStyle))]),
                     const SizedBox(height: 16.0),
 
                     // 🔹 Email Input Field

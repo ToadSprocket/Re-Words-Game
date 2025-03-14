@@ -122,6 +122,7 @@ class AppStyles {
     color: Color.fromARGB(255, 240, 240, 240),
     fontWeight: FontWeight.bold,
   );
+  static const TextStyle dialogContentHighLiteStyle = TextStyle(fontSize: 16.0, color: Color.fromARGB(230, 4, 190, 29));
   static const TextStyle inputContentStyle = TextStyle(fontSize: 18.0, color: Color.fromARGB(211, 240, 240, 240));
   static const TextStyle dialogLinkStyle = TextStyle(
     fontSize: 14.0,
@@ -134,15 +135,16 @@ class AppStyles {
     color: Color.fromARGB(255, 54, 244, 54),
     fontWeight: FontWeight.bold,
   );
+
   // Button Styles
   static ButtonStyle buttonStyle(BuildContext context) {
     return ElevatedButton.styleFrom(
-      backgroundColor: normalSquareColor,
-      foregroundColor: const Color.fromARGB(255, 221, 220, 220),
+      backgroundColor: Color.fromARGB(61, 79, 185, 69),
+      foregroundColor: const Color.fromARGB(255, 236, 232, 232),
       padding: const EdgeInsets.symmetric(horizontal: baseButtonHorizontalPadding, vertical: baseButtonVerticalPadding),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(baseButtonBorderRadius),
-        side: const BorderSide(color: Colors.white, width: baseButtonBorderThickness),
+        side: const BorderSide(color: Color.fromARGB(255, 236, 232, 232), width: baseButtonBorderThickness),
       ),
       textStyle: const TextStyle(fontSize: baseButtonFontSize, fontWeight: FontWeight.bold),
       // Apply text offset

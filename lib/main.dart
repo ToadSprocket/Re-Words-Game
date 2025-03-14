@@ -127,6 +127,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     print("📡 Loading game data...");
 
     await WordLoader.loadWords();
+    await StateManager.setStartTime(); // Set start time for new session
     await _applyDebugControls();
     final userData = await StateManager.getUserData();
     bool isNewUser = await StateManager.isNewUser();
@@ -214,7 +215,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
         // ✅ Reset game state before loading a new board
         await StateManager.resetState(_gridKey);
-        await StateManager.setStartTime(); // Start new play session
 
         bool success = await GridLoader.loadNewBoard(api, finalScore);
         if (success) {
