@@ -1,84 +1,79 @@
 // components/letter_square_component.dart
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../models/tile.dart';
+import '../managers/gameLayoutManager.dart';
 
 class LetterSquareComponent extends StatelessWidget {
   final Tile tile;
-  final Map<String, dynamic> sizes; // Add sizes parameter
+  final GameLayoutManager gameLayoutManager;
+  final bool helpDialog;
 
-  const LetterSquareComponent({super.key, required this.tile, required this.sizes});
+  const LetterSquareComponent({
+    super.key,
+    required this.tile,
+    required this.gameLayoutManager,
+    required this.helpDialog,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final squareTheme = Theme.of(context).extension<SquareTheme>()!;
-    final textTheme = Theme.of(context).textTheme;
-
     Color bgColor;
-    Color borderColor;
-    Color letterColor;
     Color valueColor;
 
     switch (tile.state) {
       case 'unused':
-        bgColor = squareTheme.normalBackground;
-        borderColor = squareTheme.normalBorder;
-        letterColor = squareTheme.normalLetter;
-        valueColor = tile.isExtra || tile.isHybrid ? AppStyles.wildcardValueTextColor : squareTheme.normalValue;
+        bgColor = AppStyles.normalSquareColor;
+        valueColor = tile.isExtra || tile.isHybrid ? AppStyles.wildcardValueTextColor : AppStyles.normalValueTextColor;
         break;
       case 'selected':
-        bgColor = squareTheme.selectedBackground;
-        borderColor = squareTheme.selectedBorder;
-        letterColor = squareTheme.selectedLetter;
-        valueColor = tile.isExtra || tile.isHybrid ? AppStyles.wildcardValueTextColor : squareTheme.normalValue;
+        bgColor = AppStyles.selectedSquareColor;
+        valueColor = tile.isExtra || tile.isHybrid ? AppStyles.wildcardValueTextColor : AppStyles.normalValueTextColor;
         break;
       case 'used':
-        bgColor = squareTheme.usedBackground;
-        borderColor = squareTheme.usedBorder;
-        letterColor = squareTheme.usedLetter;
-        valueColor = tile.isExtra || tile.isHybrid ? AppStyles.wildcardValueTextColor : squareTheme.normalValue;
+        bgColor = AppStyles.usedSquareColor;
+        valueColor = tile.isExtra || tile.isHybrid ? AppStyles.wildcardValueTextColor : AppStyles.normalValueTextColor;
         break;
       default:
-        bgColor = squareTheme.normalBackground;
-        borderColor = squareTheme.normalBorder;
-        letterColor = squareTheme.normalLetter;
-        valueColor = tile.isExtra || tile.isHybrid ? AppStyles.wildcardValueTextColor : squareTheme.normalValue;
+        bgColor = AppStyles.normalSquareColor;
+        valueColor = tile.isExtra || tile.isHybrid ? AppStyles.wildcardValueTextColor : AppStyles.normalValueTextColor;
     }
 
     if (!tile.isHybrid && tile.useCount > 1) {
       valueColor = AppStyles.usedValueTextColor;
     }
 
-    String valueText =
-        tile.isExtra || tile.isHybrid
-            ? '${tile.value}x' // Add "x" for wildcards/hybrids
-            : tile.useCount > 0 && tile.value > 1
-            ? '${tile.value}'
-            : '${tile.value}';
-
     return Container(
-      width: sizes['squareSize'] as double,
-      height: sizes['squareSize'] as double,
+      width: helpDialog ? gameLayoutManager.gridSquareSize : GameLayoutManager.helpDialogSquareSize,
+      height: helpDialog ? gameLayoutManager.gridSquareSize : GameLayoutManager.helpDialogSquareSize,
       decoration: BoxDecoration(
         color: bgColor,
-        border: Border.all(color: borderColor, width: AppStyles.squareBorderWidth),
-        borderRadius: BorderRadius.circular(AppStyles.squareBorderRadius),
+        border: Border.all(color: AppStyles.squareBorderColor, width: GameLayoutManager.squareBorderWidth),
+        borderRadius: BorderRadius.circular(GameLayoutManager.squareBorderRadius),
       ),
       child: Stack(
         children: [
           Positioned(
-            left: AppStyles.squareValueLeft,
-            top: AppStyles.squareValueTop,
+            left: gameLayoutManager.squareValueOffsetLeft,
+            top: gameLayoutManager.squareValueOffsetTop,
             child: Text(
-              valueText,
-              style: textTheme.labelSmall?.copyWith(fontSize: sizes['squareValueSize'] as double, color: valueColor),
+              tile.value.toString(),
+              style: TextStyle(
+                fontSize:
+                    helpDialog ? GameLayoutManager.helpDialogSquareValueSize : gameLayoutManager.squareValueFontSize,
+                color: valueColor, // Directly use the color
+              ),
             ),
           ),
           Center(
             child: Text(
               tile.letter.toUpperCase(),
-              style: textTheme.labelLarge?.copyWith(fontSize: sizes['squareLetterSize'] as double, color: letterColor),
+              style: TextStyle(
+                fontSize:
+                    helpDialog ? GameLayoutManager.helpDialogSquareLetterSize : gameLayoutManager.squareLetterFontSize,
+                color: AppStyles.normalLetterTextColor, // Directly use the color
+              ),
             ),
           ),
         ],

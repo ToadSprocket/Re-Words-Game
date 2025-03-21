@@ -1,12 +1,13 @@
 // components/game_message_component.dart
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
-import '../styles/app_styles.dart';
 
 class GameMessageComponent extends StatefulWidget {
   final String message;
+  final double width;
+  final double height;
 
-  const GameMessageComponent({super.key, required this.message});
+  const GameMessageComponent({super.key, required this.width, required this.height, required this.message});
 
   @override
   _GameMessageComponentState createState() => _GameMessageComponentState();

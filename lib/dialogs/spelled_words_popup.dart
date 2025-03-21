@@ -1,11 +1,12 @@
 // layouts/spelled_words_popup.dart
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../logic/spelled_words_handler.dart';
+import '../managers/gameLayoutManager.dart';
 
 class SpelledWordsPopup {
-  static void show(BuildContext context) {
+  static void show(BuildContext context, GameLayoutManager gameLayoutManager) {
     showDialog(
       context: context,
       builder:
@@ -18,7 +19,7 @@ class SpelledWordsPopup {
                 padding: const EdgeInsets.all(AppStyles.dialogPadding),
                 child: Column(
                   children: [
-                    const Text('Words Found', style: AppStyles.dialogTitleStyle),
+                    Text('Words Found', style: gameLayoutManager.dialogTitleStyle),
                     const SizedBox(height: 16.0),
                     Expanded(
                       child: SingleChildScrollView(
@@ -48,7 +49,7 @@ class SpelledWordsPopup {
                     const SizedBox(height: 16.0),
                     ElevatedButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      style: AppStyles.buttonStyle(context),
+                      style: gameLayoutManager.buttonStyle(context),
                       child: const Text('Close'),
                     ),
                   ],

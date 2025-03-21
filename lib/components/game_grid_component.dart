@@ -1,6 +1,7 @@
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 // file: lib/components/game_grid_component.dart
 import 'package:flutter/material.dart';
+import 'package:reword_game/managers/gameLayoutManager.dart';
 import '../styles/app_styles.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../logic/grid_loader.dart';
@@ -12,14 +13,14 @@ class GameGridComponent extends StatefulWidget {
   final bool showBorders;
   final ValueChanged<String>? onMessage;
   final VoidCallback updateScoresRefresh; // Add this
-  final Map<String, dynamic> sizes;
+  final GameLayoutManager gameLayoutManager;
 
   const GameGridComponent({
     super.key,
     this.showBorders = false,
     this.onMessage,
     required this.updateScoresRefresh, // Required to match WideScreen
-    required this.sizes,
+    required this.gameLayoutManager,
   });
 
   @override
@@ -38,15 +39,13 @@ class GameGridComponentState extends State<GameGridComponent> {
   Future<void> _loadTiles() async {
     // Use GridLoader's already-loaded data
     if (GridLoader.gridTiles.isEmpty) {
-      print('No tiles available in GridLoader');
       return;
     }
     setState(() {
       tiles =
           GridLoader.gridTiles.map((tileData) {
-            return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: false);
+            return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: false, isRemoved: false);
           }).toList();
-      print('Loaded tiles: ${tiles.length}');
     });
   }
 
@@ -54,16 +53,15 @@ class GameGridComponentState extends State<GameGridComponent> {
     setState(() {
       _loadTiles();
       selectedIndices.clear();
-      print('Reloaded grid tiles');
     });
   }
 
   bool _isAdjacent(int newIndex, int lastIndex) {
     if (lastIndex == -1) return true;
-    final newRow = newIndex ~/ AppStyles.gridCols;
-    final newCol = newIndex % AppStyles.gridCols;
-    final lastRow = lastIndex ~/ AppStyles.gridCols;
-    final lastCol = lastIndex % AppStyles.gridCols;
+    final newRow = newIndex ~/ GameLayoutManager.gridCols;
+    final newCol = newIndex % GameLayoutManager.gridCols;
+    final lastRow = lastIndex ~/ GameLayoutManager.gridCols;
+    final lastCol = lastIndex % GameLayoutManager.gridCols;
     final rowDiff = (newRow - lastRow).abs();
     final colDiff = (newCol - lastCol).abs();
     return (rowDiff <= 1 && colDiff <= 1) && !(rowDiff == 0 && colDiff == 0);
@@ -82,7 +80,6 @@ class GameGridComponentState extends State<GameGridComponent> {
         tiles[index].select(); // Toggles to selected
         selectedIndices.add(index);
       }
-      print('Tile $index state: ${tiles[index].state}, Selected: $selectedIndices');
     });
   }
 
@@ -104,71 +101,63 @@ class GameGridComponentState extends State<GameGridComponent> {
           tiles[index].markUsed();
         }
         selectedIndices.clear();
-        print('Valid word submitted');
       } else {
         for (var index in selectedIndices) {
           tiles[index].revert();
         }
         selectedIndices.clear();
-        print('Invalid word submitted');
       }
       widget.onMessage?.call(message);
       widget.updateScoresRefresh();
     });
   }
 
-  void _onDrop(int index, Tile tile) {
-    setState(() {
-      if (tiles[index].state == 'unused') {
-        tiles[index].applyWildcard(tile.letter, tile.value);
-        widget.onMessage?.call('Wildcard applied to ${tiles[index].letter}');
-        _incrementWildcardUse();
-      } else {
-        widget.onMessage?.call('Can only drop on unused tiles');
-      }
-    });
-  }
+  // void _onDrop(int index, Tile tile) {
+  //   setState(() {
+  //     if (tiles[index].state == 'unused') {
+  //       tiles[index].applyWildcard(tile.letter, tile.value);
+  //       widget.onMessage?.call('Wildcard applied to ${tiles[index].letter}');
+  //       _incrementWildcardUse();
+  //     } else {
+  //       widget.onMessage?.call('Can only drop on unused tiles');
+  //     }
+  //   });
+  // }
 
   void _incrementWildcardUse() async {
     final prefs = await SharedPreferences.getInstance();
     final currentUses = prefs.getInt('wildcardUses') ?? 0;
     await prefs.setInt('wildcardUses', currentUses + 1);
-    print('Wildcard uses incremented: ${currentUses + 1}');
   }
 
   @override
   Widget build(BuildContext context) {
-    final gridSize = widget.sizes['gridSize'] as double;
-    final squareSize = widget.sizes['squareSize'] as double;
-    final gridSpacing = widget.sizes['gridSpacing'] as double;
-    print('Grid sizes - gridSize: $gridSize, squareSize: $squareSize, gridSpacing: $gridSpacing');
-
     return Container(
-      width: gridSize,
-      height: gridSize,
-      decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 2)) : null,
+      width: widget.gameLayoutManager.gridWidthSize,
+      height: widget.gameLayoutManager.gridHeightSize,
+      decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 1)) : null,
       child:
           tiles.isEmpty
               ? const Center(child: CircularProgressIndicator())
               : GridView.count(
-                crossAxisCount: AppStyles.gridCols,
+                crossAxisCount: GameLayoutManager.gridCols,
                 shrinkWrap: true,
                 padding: EdgeInsets.zero,
-                mainAxisSpacing: gridSpacing,
-                crossAxisSpacing: gridSpacing,
+                mainAxisSpacing: widget.gameLayoutManager.gridSpacing,
+                crossAxisSpacing: widget.gameLayoutManager.gridSpacing,
                 children: List.generate(tiles.length, (index) {
                   return DragTarget<Tile>(
-                    onWillAccept: (Tile? tile) {
+                    onWillAcceptWithDetails: (details) {
                       // ✅ Only allow drops on UNUSED tiles
-                      bool canAccept = tile != null && tiles[index].state == 'unused';
+                      bool canAccept = details.data != null && tiles[index].state == 'unused';
                       if (!canAccept) {
                         widget.onMessage?.call('Can only drop on unused tiles');
                       }
                       return canAccept;
                     },
-                    onAccept: (Tile tile) {
+                    onAcceptWithDetails: (details) {
                       // ✅ Apply wildcard only to valid tiles
-                      tiles[index].applyWildcard(tile.letter, tile.value);
+                      tiles[index].applyWildcard(details.data.letter, details.data.value);
                       widget.onMessage?.call('Wildcard applied to ${tiles[index].letter}');
                       _incrementWildcardUse();
                     },
@@ -179,7 +168,11 @@ class GameGridComponentState extends State<GameGridComponent> {
                     builder: (context, candidateData, rejectedData) {
                       return GestureDetector(
                         onTap: () => _onTileTapped(index),
-                        child: LetterSquareComponent(tile: tiles[index], sizes: widget.sizes),
+                        child: LetterSquareComponent(
+                          tile: tiles[index],
+                          gameLayoutManager: widget.gameLayoutManager,
+                          helpDialog: false,
+                        ),
                       );
                     },
                   );

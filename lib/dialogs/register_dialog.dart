@@ -3,9 +3,10 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:email_validator/email_validator.dart';
 import '../styles/app_styles.dart';
 import '../logic/api_service.dart';
+import '../managers/gameLayoutManager.dart';
 
 class RegisterDialog {
-  static Future<void> show(BuildContext context, ApiService api) async {
+  static Future<void> show(BuildContext context, ApiService api, GameLayoutManager gameLayoutManager) async {
     final userNameController = TextEditingController();
     final displayNameController = TextEditingController();
     final passwordController = TextEditingController();
@@ -26,27 +27,27 @@ class RegisterDialog {
               ),
               backgroundColor: AppStyles.dialogBackgroundColor,
               child: Container(
-                width: AppStyles.dialogWidth,
+                width: gameLayoutManager.dialogMaxWidth,
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // 🔹 Title & Close Button
-                    Stack(children: [Center(child: Text('Create Account', style: AppStyles.dialogTitleStyle))]),
+                    Stack(children: [Center(child: Text('Create Account', style: gameLayoutManager.dialogTitleStyle))]),
                     const SizedBox(height: 16.0),
 
                     // 🔹 Input Fields (Centered)
                     SizedBox(
-                      width: AppStyles.dialogWidth * 0.8,
+                      width: gameLayoutManager.dialogMaxWidth * 0.8,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildInputField(userNameController, 'Username', false),
-                          _buildInputField(displayNameController, 'Display Name', false),
-                          _buildInputField(emailController, 'Email Address', false),
-                          _buildInputField(confirmEmailController, 'Confirm Email Address', false),
-                          _buildInputField(passwordController, 'Password', true),
+                          _buildInputField(userNameController, 'Username', false, gameLayoutManager),
+                          _buildInputField(displayNameController, 'Display Name', false, gameLayoutManager),
+                          _buildInputField(emailController, 'Email Address', false, gameLayoutManager),
+                          _buildInputField(confirmEmailController, 'Confirm Email Address', false, gameLayoutManager),
+                          _buildInputField(passwordController, 'Password', true, gameLayoutManager),
 
                           // 🔹 Error Message Display (Fixed Size)
                           Container(
@@ -56,7 +57,7 @@ class RegisterDialog {
                                 errorMessage != null
                                     ? Text(
                                       errorMessage!,
-                                      style: AppStyles.dialogErrorStyle,
+                                      style: gameLayoutManager.dialogErrorStyle,
                                       textAlign: TextAlign.center,
                                     )
                                     : const SizedBox.shrink(),
@@ -72,16 +73,16 @@ class RegisterDialog {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         SizedBox(
-                          width: AppStyles.dialogWidth * 0.3,
+                          width: gameLayoutManager.dialogMaxWidth * 0.3,
                           child: ElevatedButton(
                             onPressed: () => Navigator.pop(context),
-                            style: AppStyles.buttonStyle(context),
+                            style: gameLayoutManager.buttonStyle(context),
                             child: const Text('Cancel'),
                           ),
                         ),
                         const SizedBox(width: 16.0),
                         SizedBox(
-                          width: AppStyles.dialogWidth * 0.3,
+                          width: gameLayoutManager.dialogMaxWidth * 0.3,
                           child: ElevatedButton(
                             onPressed: () async {
                               setState(() => errorMessage = null); // Clear old errors
@@ -131,7 +132,7 @@ class RegisterDialog {
                                 setState(() => errorMessage = "Registration failed. Please try again.");
                               }
                             },
-                            style: AppStyles.buttonStyle(context),
+                            style: gameLayoutManager.buttonStyle(context),
                             child: const Text('Register'),
                           ),
                         ),
@@ -148,15 +149,20 @@ class RegisterDialog {
   }
 
   // 🔹 Helper Function to Build Input Fields
-  static Widget _buildInputField(TextEditingController controller, String label, bool isPassword) {
+  static Widget _buildInputField(
+    TextEditingController controller,
+    String label,
+    bool isPassword,
+    GameLayoutManager gameLayoutManager,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppStyles.InputTitleStyle),
+        Text(label, style: gameLayoutManager.dialogInputTitleStyle),
         const SizedBox(height: 4.0),
         TextFormField(
           controller: controller,
-          style: AppStyles.inputContentStyle,
+          style: gameLayoutManager.dialogInputContentStyle,
           obscureText: isPassword,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),

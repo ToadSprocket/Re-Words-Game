@@ -1,6 +1,5 @@
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'dart:convert';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -11,6 +10,11 @@ import '../components/game_grid_component.dart';
 import '../components/wildcard_column_component.dart';
 import '../models/tile.dart';
 import '../models/api_models.dart';
+import '../logic/logging_handler.dart';
+
+extension DateTimeExtension on DateTime {
+  DateTime dateOnly() => DateTime(year, month, day);
+}
 
 class StateManager {
   // Existing game state methods (unchanged)
@@ -31,7 +35,6 @@ class StateManager {
       final wildcardState = wildcardKey.currentState!;
       await prefs.setString('wildcardTiles', jsonEncode(wildcardState.tiles.map((t) => t.toJson()).toList()));
     }
-    print('Saved game state');
   }
 
   static Future<void> restoreState(
@@ -47,7 +50,6 @@ class StateManager {
     SpelledWordsLogic.spelledWords = prefs.getStringList('spelledWords') ?? [];
     scoreNotifier.value = SpelledWordsLogic.score;
     spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
-    print('Restored SpelledWordsLogic - Score: ${SpelledWordsLogic.score}, Words: ${SpelledWordsLogic.spelledWords}');
 
     // Restore grid state
     final gridTilesJson = prefs.getString('gridTiles');
@@ -60,9 +62,6 @@ class StateManager {
       gridKey?.currentState?.selectedIndices = (jsonDecode(selectedIndicesJson) as List).cast<int>();
     }
     gridKey?.currentState?.setState(() {}); // Trigger UI update
-    print(
-      'Restored grid - Tiles: ${gridKey?.currentState?.tiles.length}, Selected: ${gridKey?.currentState?.selectedIndices}',
-    );
 
     // Restore wildcard state
     final wildcardTilesJson = prefs.getString('wildcardTiles');
@@ -70,8 +69,8 @@ class StateManager {
       final List<dynamic> tileData = jsonDecode(wildcardTilesJson);
       wildcardKey?.currentState?.tiles = tileData.map((data) => Tile.fromJson(data)).toList();
       wildcardKey?.currentState?.setState(() {}); // Trigger UI update
-      print('Restored wildcards - Tiles: ${wildcardKey?.currentState?.tiles.length}');
     }
+    LogService.logInfo('Game state restored successfully');
   }
 
   static Future<void> resetState(GlobalKey<GameGridComponentState>? gridKey) async {
@@ -87,7 +86,7 @@ class StateManager {
     if (gridKey?.currentState != null) {
       gridKey!.currentState!.selectedIndices.clear();
     }
-    print('Reset game state');
+    LogService.logInfo('Game state reset successfully');
   }
 
   static Future<void> setStartTime() async {
@@ -97,10 +96,7 @@ class StateManager {
     if (existingStart == null) {
       String now = DateTime.now().toIso8601String();
       await prefs.setString('sessionStart', now);
-      print('🔹 Session Start Time Set: $now');
-    } else {
-      print('🔹 Session Start Time Already Exists: $existingStart');
-    }
+    } else {}
   }
 
   static Future<void> updatePlayTime() async {
@@ -114,13 +110,11 @@ class StateManager {
       int totalTime = (prefs.getInt('timePlayedSeconds') ?? 0) + elapsed;
       await prefs.setInt('timePlayedSeconds', totalTime);
 
-      print('✅ Updated Play Time: $totalTime seconds');
-
       // Move the clock forward so we can keep updating the time as the game progresses.
       // This because the user can go into the stats window multiple times and we don't want to keep adding time.
       await setStartTime();
     } else {
-      print("🚨 No session start found! Play time not updated.");
+      LogService.logError("🚨 No session start found! Play time not updated.");
     }
   }
 
@@ -140,31 +134,33 @@ class StateManager {
     return DateTime.now().difference(DateTime.parse(refreshTokenDate)).inDays > 90; // 3-month expiry
   }
 
+  static bool isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
   static Future<bool> isBoardExpired() async {
     final prefs = await SharedPreferences.getInstance();
     final expireDateUtc = prefs.getString('boardExpireDate');
 
     if (expireDateUtc == null) {
-      print("🚨 No expire date stored! Board is expired by default.");
+      LogService.logError("🚨 No board expiration date found. Returning true.");
       return true;
     }
 
     // Convert stored UTC expiration to DateTime
-    final utcExpireTime = DateTime.parse(expireDateUtc).toUtc();
+    final utcDate = DateTime.parse(expireDateUtc).toUtc();
+    final utcExpireDate = utcDate.dateOnly();
 
     // ✅ Get the player's local time
-    final nowLocal = DateTime.now();
+    final nowLocal = DateTime.now().dateOnly();
 
-    // ✅ Convert expiration to player's local time
-    final localExpireTime = utcExpireTime.toLocal();
-
-    print("🚨 Stored Expiration UTC: $utcExpireTime");
-    print("🌍 Converted Expiration Local: $localExpireTime");
-    print("⏳ Current Local Time: $nowLocal");
-    print("🚨 Expired?: ${nowLocal.isAfter(localExpireTime)}");
+    LogService.logInfo("🌍 Local Timezone: ${nowLocal.timeZoneName}");
+    LogService.logInfo("🌍 Expiration UTC: $utcExpireDate");
+    LogService.logInfo("🌍 Current Local Time: $nowLocal");
+    LogService.logInfo("🌍 Expired?: ${nowLocal.isAfter(utcExpireDate)}");
 
     // ✅ Check if local time has passed expiration time
-    return nowLocal.isAfter(localExpireTime);
+    return nowLocal.isAfter(utcExpireDate);
   }
 
   static Future<int?> boardExpiredDuration() async {
@@ -172,18 +168,20 @@ class StateManager {
     final expireDateUtc = prefs.getString('boardExpireDate');
 
     if (expireDateUtc == null) {
-      print("🚨 No board expiration date found. Returning null.");
+      LogService.logError("🚨 No board expiration date found. Returning null.");
       return null; // No board data yet
     }
 
     final utcExpireTime = DateTime.parse(expireDateUtc).toUtc();
+    final localExpireTime = utcExpireTime.toLocal();
     final nowLocal = DateTime.now();
-    if (nowLocal.isAfter(utcExpireTime)) {
-      print("🚨 Board expired! Returning duration.");
-      return nowLocal.difference(utcExpireTime).inMinutes;
-    } else {
-      print("✅ Board is still valid. Returning 0.");
+    if (isSameDay(localExpireTime, utcExpireTime)) {
       return 0; // Board is still valid
+    } else {
+      DateTime todayMidnight = DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
+      Duration difference = nowLocal.difference(todayMidnight);
+      int minutesSinceMidnight = difference.inMinutes;
+      return minutesSinceMidnight; // Return minutes since midnight
     }
   }
 
@@ -251,9 +249,6 @@ class StateManager {
         .add(const Duration(days: 1))
         .copyWith(hour: 0, minute: 0, second: 0, millisecond: 0, microsecond: 0);
 
-    print("🌍 Local Midnight Expiration: $nextMidnightLocal");
-    print("🌍 UTC Expiration Time Stored: $nextMidnightUtc");
-
     final boardData = {
       'grid': gameData.grid,
       'wildcards': gameData.wildcards,
@@ -266,7 +261,5 @@ class StateManager {
     await prefs.setString('cachedGrid', jsonEncode(boardData));
     await prefs.setString('boardExpireDate', nextMidnightUtc.toIso8601String());
     await prefs.setString('boardLoadedDate', DateTime.now().toUtc().toIso8601String());
-
-    print("✅ Board Expiration Set to: $nextMidnightUtc UTC");
   }
 }

@@ -1,10 +1,11 @@
 // models/tile.dart
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 class Tile {
   String letter;
   int value;
   bool isExtra;
   bool isHybrid;
+  bool isRemoved = false;
   String? originalLetter;
   int? originalValue;
   String state;
@@ -16,6 +17,7 @@ class Tile {
     required this.letter,
     required this.value,
     required this.isExtra,
+    required this.isRemoved,
     this.isHybrid = false,
     this.originalLetter,
     this.originalValue,
@@ -47,7 +49,7 @@ class Tile {
       if (useCount <= 8) {
         // Cap at 3 uses
         useCount++;
-        if (!this.isHybrid) {
+        if (!isHybrid) {
           if (value == 1 && useCount == 2) {
             value = 2; // First use: 1 → 2
             multiplier = 2.0;
@@ -91,6 +93,7 @@ class Tile {
     'previousState': previousState,
     'useCount': useCount,
     'multiplier': multiplier,
+    'isRemoved': isRemoved,
   };
 
   factory Tile.fromJson(Map<String, dynamic> json) => Tile(
@@ -104,5 +107,6 @@ class Tile {
     previousState: json['previousState'] as String?,
     useCount: json['useCount'] as int? ?? 0,
     multiplier: (json['multiplier'] as num?)?.toDouble() ?? 1.0,
+    isRemoved: json['isRemoved'] as bool? ?? false,
   );
 }

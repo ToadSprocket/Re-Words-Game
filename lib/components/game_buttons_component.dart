@@ -1,13 +1,19 @@
 // layouts/game_buttons.dart
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
-import '../styles/app_styles.dart';
+import '../managers/gameLayoutManager.dart';
 
 class GameButtonsComponent extends StatelessWidget {
   final VoidCallback onSubmit;
   final VoidCallback onClear;
+  final GameLayoutManager gameLayoutManager;
 
-  const GameButtonsComponent({super.key, required this.onSubmit, required this.onClear});
+  const GameButtonsComponent({
+    super.key,
+    required this.onSubmit,
+    required this.onClear,
+    required this.gameLayoutManager,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -16,18 +22,18 @@ class GameButtonsComponent extends StatelessWidget {
       children: [
         ElevatedButton(
           onPressed: onSubmit,
-          style: AppStyles.buttonStyle(context),
+          style: gameLayoutManager.buttonStyle(context),
           child: Transform.translate(
-            offset: Offset(0, AppStyles.buttonTextOffset), // -4.0 moves up
+            offset: Offset(0, gameLayoutManager.buttonTextOffset), // -4.0 moves up
             child: const Text("Submit"),
           ),
         ),
         const SizedBox(width: 16.0),
         ElevatedButton(
           onPressed: onClear,
-          style: AppStyles.buttonStyle(context),
+          style: gameLayoutManager.buttonStyle(context),
           child: Transform.translate(
-            offset: Offset(0, AppStyles.buttonTextOffset), // -4.0 moves up
+            offset: Offset(0, gameLayoutManager.buttonTextOffset), // -4.0 moves up
             child: const Text("Clear"),
           ),
         ),

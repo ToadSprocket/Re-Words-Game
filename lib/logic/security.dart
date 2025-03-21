@@ -1,4 +1,4 @@
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import '../config/config.dart';

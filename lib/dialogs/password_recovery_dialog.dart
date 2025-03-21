@@ -1,13 +1,13 @@
 // lib/dialogs/password_recovery_dialog.dart
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../styles/app_styles.dart';
 import '../logic/api_service.dart';
 import 'reset_password_dialog.dart';
+import '../managers/gameLayoutManager.dart';
 
 class ForgotPasswordDialog {
-  static Future<void> show(BuildContext context, ApiService api) async {
+  static Future<void> show(BuildContext context, ApiService api, GameLayoutManager gameLayoutManager) async {
     final emailController = TextEditingController();
     String? errorMessage;
     String? successMessage;
@@ -22,7 +22,7 @@ class ForgotPasswordDialog {
           if (dialogContext.mounted && Navigator.canPop(dialogContext)) {
             Navigator.pop(dialogContext); // ✅ Ensure dialog is still in the tree
           }
-          ResetPasswordDialog.show(dialogContext, api, email);
+          ResetPasswordDialog.show(dialogContext, api, email, gameLayoutManager);
         } else {
           setState(() {
             errorMessage = "🚨 Failed to send reset email. Please try again.";
@@ -44,27 +44,29 @@ class ForgotPasswordDialog {
               ),
               backgroundColor: AppStyles.dialogBackgroundColor,
               child: Container(
-                width: AppStyles.dialogWidth,
+                width: gameLayoutManager.dialogMaxWidth,
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // 🔹 Title & Close Button
-                    Stack(children: [Center(child: Text('Password Recovery', style: AppStyles.dialogTitleStyle))]),
+                    Stack(
+                      children: [Center(child: Text('Password Recovery', style: gameLayoutManager.dialogTitleStyle))],
+                    ),
                     const SizedBox(height: 16.0),
 
                     // 🔹 Email Input Field
                     SizedBox(
-                      width: AppStyles.dialogWidth * 0.8,
+                      width: gameLayoutManager.dialogMaxWidth * 0.8,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Enter your email address', style: AppStyles.InputTitleStyle),
+                          Text('Enter your email address', style: gameLayoutManager.dialogInputTitleStyle),
                           const SizedBox(height: 4.0),
                           TextFormField(
                             controller: emailController,
-                            style: AppStyles.inputContentStyle,
+                            style: gameLayoutManager.dialogInputContentStyle,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(vertical: 6.0, horizontal: 10.0),
@@ -79,13 +81,13 @@ class ForgotPasswordDialog {
                                 errorMessage != null
                                     ? Text(
                                       errorMessage!,
-                                      style: AppStyles.dialogErrorStyle,
+                                      style: gameLayoutManager.dialogErrorStyle,
                                       textAlign: TextAlign.center,
                                     )
                                     : successMessage != null
                                     ? Text(
                                       successMessage!,
-                                      style: AppStyles.dialogSuccessStyle,
+                                      style: gameLayoutManager.dialogSuccessStyle,
                                       textAlign: TextAlign.center,
                                     )
                                     : const SizedBox.shrink(),
@@ -101,16 +103,16 @@ class ForgotPasswordDialog {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         SizedBox(
-                          width: AppStyles.dialogWidth * 0.3,
+                          width: gameLayoutManager.dialogMaxWidth * 0.3,
                           child: ElevatedButton(
                             onPressed: () => Navigator.pop(context),
-                            style: AppStyles.buttonStyle(context),
+                            style: gameLayoutManager.buttonStyle(context),
                             child: const Text('Cancel'),
                           ),
                         ),
                         const SizedBox(width: 16.0),
                         SizedBox(
-                          width: AppStyles.dialogWidth * 0.3,
+                          width: gameLayoutManager.dialogMaxWidth * 0.3,
                           child: ElevatedButton(
                             onPressed: () async {
                               setState(() {
@@ -120,7 +122,7 @@ class ForgotPasswordDialog {
                               await attemptReset(dialogContext, setState); // ✅ Use the correct context
                               setState(() {});
                             },
-                            style: AppStyles.buttonStyle(context),
+                            style: gameLayoutManager.buttonStyle(context),
                             child: const Text('Submit'),
                           ),
                         ),

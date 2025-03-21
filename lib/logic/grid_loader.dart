@@ -1,8 +1,9 @@
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:reword_game/models/api_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../managers/state_manager.dart';
 import '../logic/api_service.dart';
+import '../logic/logging_handler.dart';
 
 class GridLoader {
   static List<Map<String, dynamic>> gridTiles = [];
@@ -41,23 +42,17 @@ class GridLoader {
   static Future<bool> loadStoredBoard() async {
     _gridData = await StateManager.getBoardData();
     if (_gridData.isEmpty) {
-      print('No stored board data available');
+      LogService.logError('No stored board data available');
       return false;
     }
     _setBoardValues();
-    print('Loaded stored board: ${_gridData['dateStart']}');
     return true;
   }
 
   static Future<bool> loadNewBoard(ApiService apiService, SubmitScoreRequest scoreData) async {
-    print("📢 loadNewBoard() called!");
-
     final prefs = await SharedPreferences.getInstance();
 
     try {
-      print("📡 Calling getGameToday API...");
-
-      // 🚨 🔥 CLEAR OLD BOARD DATA FIRST
       _gridData.clear();
       gridTiles.clear();
       wildcardTiles.clear();
@@ -66,11 +61,9 @@ class GridLoader {
       final gameData = response.gameData;
 
       if (gameData == null) {
-        print("🚨 Error: getGameToday returned null gameData");
+        LogService.logError("getGameToday returned null gameData");
         return false;
       }
-
-      print("✅ Successfully fetched new game: ${gameData.dateStart}");
 
       // ✅ Save board data to preferences
       await StateManager.saveBoardData(gameData);
@@ -90,7 +83,7 @@ class GridLoader {
 
       return true;
     } catch (e) {
-      print("🚨 Error in loadNewBoard: $e");
+      LogService.logError("Error loading new board: $e");
       return false;
     }
   }

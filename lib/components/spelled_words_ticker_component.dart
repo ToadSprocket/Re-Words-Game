@@ -1,13 +1,15 @@
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../dialogs/spelled_words_popup.dart';
+import '../managers/gameLayoutManager.dart';
 
 class SpelledWordsTickerComponent extends StatelessWidget {
   final double gridSize;
   final double squareSize;
   final List<String> words; // Add this
   final VoidCallback? onTap;
+  final GameLayoutManager gameLayoutManager;
 
   const SpelledWordsTickerComponent({
     super.key,
@@ -15,6 +17,7 @@ class SpelledWordsTickerComponent extends StatelessWidget {
     required this.squareSize,
     required this.words, // Required prop
     this.onTap,
+    required this.gameLayoutManager,
   });
 
   List<String> _getFittingWords(BuildContext context, double maxWidth) {
@@ -61,7 +64,7 @@ class SpelledWordsTickerComponent extends StatelessWidget {
         ),
         const SizedBox(height: 4.0),
         GestureDetector(
-          onTap: onTap ?? () => SpelledWordsPopup.show(context),
+          onTap: onTap ?? () => SpelledWordsPopup.show(context, gameLayoutManager),
           child: Container(
             width: tickerWidth,
             height: AppStyles.tickerHeight - AppStyles.tickerTitleFontSize,

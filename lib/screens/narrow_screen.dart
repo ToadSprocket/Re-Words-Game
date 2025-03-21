@@ -1,6 +1,5 @@
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
-import '../styles/app_styles.dart';
 import '../components/wildcard_column_component.dart';
 import '../components/game_top_bar_component.dart';
 import '../components/game_title_component.dart';
@@ -9,8 +8,8 @@ import '../components/game_grid_component.dart';
 import '../components/game_buttons_component.dart';
 import '../components/spelled_words_ticker_component.dart';
 import '../logic/spelled_words_handler.dart';
-import '../logic/game_layout.dart';
 import '../components/game_message_component.dart';
+import '../logic/logging_handler.dart';
 
 class NarrowScreen extends StatelessWidget {
   final bool showBorders;
@@ -27,8 +26,8 @@ class NarrowScreen extends StatelessWidget {
   final ValueNotifier<int> scoreNotifier; // Add this
   final ValueNotifier<List<String>> spelledWordsNotifier; // Add this
   final VoidCallback updateScoresRefresh; // Add this
-  final Map<String, dynamic> sizes;
   final dynamic api; // Add this
+  final dynamic gameLayoutManager;
   final SpelledWordsLogic spelledWordsLogic;
 
   const NarrowScreen({
@@ -40,7 +39,8 @@ class NarrowScreen extends StatelessWidget {
     required this.onHighScores,
     required this.onLegal,
     required this.onLogin,
-    required this.api, // Add this
+    required this.api,
+    required this.gameLayoutManager,
     required this.spelledWordsLogic,
     this.gridKey,
     this.wildcardKey,
@@ -49,15 +49,10 @@ class NarrowScreen extends StatelessWidget {
     required this.scoreNotifier,
     required this.spelledWordsNotifier,
     required this.updateScoresRefresh,
-    required this.sizes,
   });
 
   @override
   Widget build(BuildContext context) {
-    final gridSize = sizes['gridSize'] as double;
-    final squareSize = sizes['squareSize'] as double;
-    final gridSpacing = sizes['gridSpacing'] as double;
-
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -68,56 +63,71 @@ class NarrowScreen extends StatelessWidget {
           onLogin: onLogin,
           api: api,
           spelledWordsLogic: SpelledWordsLogic(), // Pass this
-
           showBorders: showBorders,
+          gameLayoutManager: gameLayoutManager,
         ),
         const Divider(height: 1.0, thickness: 1.0, color: Colors.grey),
         const SizedBox(height: 10.0),
-        const GameTitleComponent(width: 300, showBorders: false), // Const to avoid rebuild
+        GameTitleComponent(
+          width: 300,
+          height: 150, // Pass height here
+          showBorders: false,
+          gameLayoutManager: gameLayoutManager,
+        ), // Const to avoid rebuild
         const SizedBox(height: 20.0),
         ValueListenableBuilder<List<String>>(
           valueListenable: spelledWordsNotifier,
           builder: (context, words, child) {
-            print('SpelledWordsTickerComponent build');
-            return SpelledWordsTickerComponent(gridSize: gridSize, squareSize: squareSize, words: words);
+            LogService.logDebug('SpelledWordsTickerComponent rebuild');
+            return SpelledWordsTickerComponent(
+              gridSize: gameLayoutManager.gridWidthSize,
+              squareSize: gameLayoutManager.gridSquareSize,
+              words: words,
+              gameLayoutManager: gameLayoutManager,
+            );
           },
         ),
         const SizedBox(height: 20.0),
         ValueListenableBuilder<int>(
           valueListenable: scoreNotifier,
           builder: (context, score, child) {
-            print('GameScores build');
-            return GameScores(width: gridSize, score: score);
+            LogService.logDebug('GameScoresComponent rebuild');
+            return GameScores(
+              width: gameLayoutManager.gridWidthSize,
+              height: 100,
+              score: score,
+              gameLayoutManager: gameLayoutManager,
+            );
           },
         ),
-        SizedBox(height: gridSpacing),
+        SizedBox(height: gameLayoutManager.gridSpacing),
         GameGridComponent(
           key: gridKey,
           showBorders: showBorders,
           onMessage: onMessage,
           updateScoresRefresh: updateScoresRefresh, // Pass this
-          sizes: sizes,
+          gameLayoutManager: gameLayoutManager,
         ),
-        SizedBox(height: gridSpacing),
+        SizedBox(height: gameLayoutManager.gridSpacing),
         WildcardColumnComponent(
           key: wildcardKey,
-          width: gridSize,
-          height: squareSize * 2,
+          width: gameLayoutManager.gridWidthSize,
+          height: gameLayoutManager.gridSquareSize * 2,
           showBorders: showBorders,
           isHorizontal: true,
-          gridSpacing: gridSpacing,
-          sizes: sizes,
+          gridSpacing: gameLayoutManager.gridSpacing,
+          gameLayoutManager: gameLayoutManager,
         ),
         const SizedBox(height: 5.0),
         ValueListenableBuilder<String>(
           valueListenable: messageNotifier,
           builder: (context, message, child) {
-            print('GameMessageComponent build');
-            return GameMessageComponent(message: message);
+            LogService.logDebug('GameMessageComponent rebuild');
+            return GameMessageComponent(width: gameLayoutManager.gridWidthSize, height: 100, message: message);
           },
         ),
         const SizedBox(height: 5.0),
-        GameButtonsComponent(onSubmit: onSubmit, onClear: onClear),
+        GameButtonsComponent(onSubmit: onSubmit, onClear: onClear, gameLayoutManager: gameLayoutManager),
       ],
     );
   }

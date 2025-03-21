@@ -1,4 +1,4 @@
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -23,8 +23,10 @@ import 'logic/word_loader.dart';
 import 'logic/spelled_words_handler.dart';
 import 'package:provider/provider.dart';
 import 'models/api_models.dart';
+import '../logic/logging_handler.dart';
+import '../managers/gameLayoutManager.dart';
 
-const bool debugShowBorders = false;
+const bool debugShowBorders = true;
 const bool? debugForceIsWeb = null;
 const bool debugForceExpiredBoard = false; // Force expired board
 const bool debugForceValidBoard = false; // Force valid board
@@ -32,17 +34,18 @@ const bool debugClearPrefs = false; // Clear all prefs for new user
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final GameLayoutManager layoutManager = GameLayoutManager();
 
   if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
     await windowManager.ensureInitialized();
     WindowOptions windowOptions = const WindowOptions(
-      size: Size(1440, 900),
+      size: Size(1440, 700),
       center: true,
       backgroundColor: Colors.transparent,
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.normal,
     );
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.show();
       await windowManager.focus();
     });
@@ -50,21 +53,23 @@ void main() async {
 
   runApp(
     ChangeNotifierProvider<ApiService>(
-      create: (context) => ApiService(), // ✅ Provide a single instance
-      child: const ReWordApp(),
+      create: (context) => ApiService(),
+      child: ReWordApp(layoutManager: layoutManager), // ✅ Pass it in
     ),
   );
 }
 
 class ReWordApp extends StatelessWidget {
-  const ReWordApp({super.key});
+  GameLayoutManager layoutManager = GameLayoutManager();
+
+  ReWordApp({super.key, required this.layoutManager});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Re-Word Game',
       theme: AppStyles.appTheme,
-      home: const GameLayoutProvider(child: HomeScreen()),
+      home: GameLayoutProvider(gameLayoutManager: layoutManager, child: HomeScreen()),
     );
   }
 }
@@ -82,6 +87,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   final ValueNotifier<String> messageNotifier = ValueNotifier<String>(''); // Notifier for message
   final ValueNotifier<int> scoreNotifier = ValueNotifier<int>(0);
   final ValueNotifier<List<String>> spelledWordsNotifier = ValueNotifier<List<String>>([]); // Notifier for words
+  final GameLayoutManager gameLayoutManager = GameLayoutManager();
   Map<String, dynamic>? sizes;
   int loginAttempts = 0;
 
@@ -89,6 +95,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // Ensure this runs only after the first frame is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      gameLayoutManager.calculateLayoutSizes(context);
+      setState(() {}); // ✅ Force rebuild to apply new sizes
+    });
+
     if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
       windowManager.addListener(this);
     }
@@ -121,10 +134,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     await windowManager.destroy();
   }
 
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    // Force recalculation and rebuild when screen metrics change
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          gameLayoutManager.calculateLayoutSizes(context);
+        });
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Force recalculation when dependencies change
+    gameLayoutManager.calculateLayoutSizes(context);
+    setState(() {});
+  }
+
   Future<void> _loadData() async {
     final api = Provider.of<ApiService>(context, listen: false);
-
-    print("📡 Loading game data...");
 
     await WordLoader.loadWords();
     await StateManager.setStartTime(); // Set start time for new session
@@ -136,19 +168,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
 
     if (isNewUser) {
-      print("👤 New User Detected - Registering...");
+      LogService.logInfo("👤 New User Detected - Registering...");
       await _handleNewUser(api);
     } else {
-      print("🔄 Handling existing user...");
+      LogService.logInfo("👤 Existing User Detected - Loading board...");
       await _handleExistingUser(api, userData);
     }
 
     // 🚨 **Ensure we have a valid board loaded before continuing**
     if (GridLoader.gridTiles.isEmpty) {
-      print("❌ No tiles loaded! Showing failure dialog...");
-      await FailureDialog.show(context);
+      LogService.logError("❌ No tiles loaded! Showing failure dialog...");
+      await FailureDialog.show(context, gameLayoutManager);
     } else {
-      print("✅ Board successfully loaded! Syncing UI...");
+      LogService.logInfo("✅ Board successfully loaded! Syncing UI...");
 
       // ✅ Ensure UI updates after loading board
       scoreNotifier.value = SpelledWordsLogic.score;
@@ -167,7 +199,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
     if (debugClearPrefs) {
       await prefs.clear();
-      print('Debug: Cleared all preferences');
     }
 
     if (debugForceValidBoard) {
@@ -177,7 +208,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
       final nextMidnightUtc = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day + 1, 5, 5, 0, 0, 0);
 
       await prefs.setString('boardExpireDate', nextMidnightUtc.toIso8601String());
-      print('🛠 Debug: Forced valid board with expiration at $nextMidnightUtc UTC');
     }
   }
 
@@ -185,14 +215,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     try {
       final response = await api.register(Platform.localeName, 'Windows');
       if (response.security == null) {
-        print('Error: Registration failed - null security');
+        LogService.logError('Error: Registration failed - null security');
         return;
       }
       final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
       await GridLoader.loadNewBoard(api, finalScore); // This fetches and saves gameData
-      print('New user loaded: ${GridLoader.gridTiles}');
     } catch (e) {
-      print('Error registering new user: $e');
+      LogService.logError('Error registering new user: $e');
     }
   }
 
@@ -203,16 +232,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     //await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
 
     if (isExpired) {
-      print("⚠️ Board Expired - Checking if we should load a new one...");
-
       // ✅ Ensure we calculate the score BEFORE switching boards
       final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
-      print("📊 Final Score Before New Board: $finalScore");
-
       final loadNewBoard = await _shouldLoadNewBoard();
       if (loadNewBoard) {
-        print("🔄 Loading new board...");
-
         // ✅ Reset game state before loading a new board
         await StateManager.resetState(_gridKey);
 
@@ -220,17 +243,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         if (success) {
           await _gridKey.currentState?.reloadTiles();
           await _wildcardKey.currentState?.reloadWildcardTiles();
-          print('✅ New board loaded: ${GridLoader.gridTiles}');
         } else {
-          print("🚨 Failed to load new board. Falling back to stored board.");
+          LogService.logError("❌ Failed to load new board. Falling back to stored board.");
           await GridLoader.loadStoredBoard();
         }
       } else {
-        print("🔄 Keeping the current expired board.");
         await GridLoader.loadStoredBoard();
       }
     } else {
-      print("🔄 Board still valid. Loading stored board...");
       await GridLoader.loadStoredBoard();
     }
 
@@ -244,14 +264,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     if (expiredTime == null || expiredTime > 120) {
       return true; // Auto-refresh if expired > 2 hours
     }
-    return await BoardExpiredDialog.show(context) ?? false; // Ask user if < 2 hours
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    sizes = GameLayout.of(context).sizes;
-    print('HomeScreen didChangeDependencies - sizes set');
+    return await BoardExpiredDialog.show(context, gameLayoutManager) ?? false; // Ask user if < 2 hours
   }
 
   void submitWord() {
@@ -262,48 +275,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     _gridKey.currentState?.clearSelectedTiles();
     _wildcardKey.currentState?.clearSelectedTiles();
     messageNotifier.value = '';
-    print('Clear clicked');
   }
 
   void _handleMessage(String message) {
     messageNotifier.value = message;
     scoreNotifier.value = SpelledWordsLogic.score; // Sync on submit
     spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
-    print('Updated: Message: $message, Score: ${scoreNotifier.value}, Words: ${spelledWordsNotifier.value}');
   }
 
   void updateScoresRefresh() {
     scoreNotifier.value = SpelledWordsLogic.score;
     spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
-    print('Scores refreshed: Score: ${scoreNotifier.value}, Words: ${spelledWordsNotifier.value}');
   }
 
   @override
   Widget build(BuildContext context) {
-    print('GameTitleComponent build');
-    if (sizes == null) {
-      return const SizedBox.shrink();
-    }
     final api = ApiService();
-    final isWebOverride = debugForceIsWeb ?? sizes!['isWeb'] as bool;
-    print(
-      'screenWidth: ${MediaQuery.of(context).size.width}, debugForceIsWeb: $debugForceIsWeb, isWeb: $isWebOverride',
-    );
+    final isWebOverride = debugForceIsWeb ?? gameLayoutManager.isWeb;
     final isWeb = isWebOverride;
 
     return Scaffold(
-      body: Center(
+      body: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
         child:
             isWeb
                 ? WideScreen(
                   showBorders: debugShowBorders,
                   onSubmit: submitWord,
                   onClear: clearWords,
-                  onInstructions: () => HowToPlayDialog.show(context),
-                  onHighScores: () => HighScoresDialog.show(context, ApiService(), SpelledWordsLogic()),
-                  onLegal: () => LegalDialog.show(context),
-                  onLogin: () => LoginDialog.show(context, api),
+                  onInstructions: () => HowToPlayDialog.show(context, gameLayoutManager),
+                  onHighScores:
+                      () => HighScoresDialog.show(context, ApiService(), SpelledWordsLogic(), gameLayoutManager),
+                  onLegal: () => LegalDialog.show(context, gameLayoutManager),
+                  onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
                   api: api,
+                  gameLayoutManager: gameLayoutManager,
                   spelledWordsLogic: SpelledWordsLogic(),
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,
@@ -312,17 +319,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   scoreNotifier: scoreNotifier, // Pass notifier
                   spelledWordsNotifier: spelledWordsNotifier, // Pass notifier
                   updateScoresRefresh: updateScoresRefresh,
-                  sizes: sizes!,
                 )
                 : NarrowScreen(
                   showBorders: debugShowBorders,
                   onSubmit: submitWord,
                   onClear: clearWords,
-                  onInstructions: () => HowToPlayDialog.show(context),
-                  onHighScores: () => HighScoresDialog.show(context, ApiService(), SpelledWordsLogic()),
-                  onLegal: () => LegalDialog.show(context),
-                  onLogin: () => LoginDialog.show(context, api),
-                  api: api, // Pass api
+                  onInstructions: () => HowToPlayDialog.show(context, gameLayoutManager),
+                  onHighScores:
+                      () => HighScoresDialog.show(context, ApiService(), SpelledWordsLogic(), gameLayoutManager),
+                  onLegal: () => LegalDialog.show(context, gameLayoutManager),
+                  onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
+                  api: api,
+                  gameLayoutManager: gameLayoutManager,
                   spelledWordsLogic: SpelledWordsLogic(),
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,
@@ -331,7 +339,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   scoreNotifier: scoreNotifier, // Pass notifier
                   spelledWordsNotifier: spelledWordsNotifier, // Pass notifier
                   updateScoresRefresh: updateScoresRefresh,
-                  sizes: sizes!,
                 ),
       ),
     );

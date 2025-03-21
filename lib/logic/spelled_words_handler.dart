@@ -1,5 +1,5 @@
 // logic/spelled_words_handler.dart
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/widgets.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
@@ -54,7 +54,7 @@ class SpelledWordsLogic {
     String casedWord = word.isEmpty ? '' : word.substring(0, 1).toUpperCase() + word.substring(1).toLowerCase();
     String reason = "";
 
-    if (casedWord.length == 0) {
+    if (casedWord.isEmpty) {
       return (false, "");
     } else if (casedWord.length >= 4 &&
         casedWord.length <= 12 &&

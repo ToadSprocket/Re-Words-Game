@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
+import '../logic/logging_handler.dart';
 
 class ApiService with ChangeNotifier {
   static final ApiService _instance = ApiService._internal(); // ✅ Singleton instance
@@ -26,7 +27,6 @@ class ApiService with ChangeNotifier {
   set loggedIn(bool value) {
     if (_loggedIn != value) {
       _loggedIn = value;
-      print("🔥 DEBUG: Setting loggedIn = $value"); // ADD THIS
       notifyListeners(); // 🔥 Notify UI when login state changes
     }
   }
@@ -34,7 +34,6 @@ class ApiService with ChangeNotifier {
   /// **Log out user and clear tokens**
   void logout() async {
     loggedIn = false; // 🔥 Trigger UI update
-    print("🚪 User logged out successfully.");
   }
 
   /// **Check if the token is expiring soon**
@@ -46,7 +45,7 @@ class ApiService with ChangeNotifier {
     if (tokenExpiration == null) return false; // No expiration set
 
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    print(
+    LogService.logDebug(
       "⏳ Checking token expiration - Expiration: $tokenExpiration, Now: $now, Time Left: ${tokenExpiration! - now} sec",
     );
 
@@ -71,7 +70,7 @@ class ApiService with ChangeNotifier {
       await prefs.setInt('accessTokenExpiration', expirationTimestamp);
 
       tokenExpiration = expirationTimestamp; // ✅ Now updates immediately
-      print('✅ Tokens Updated - Expires At: $expirationTimestamp');
+      LogService.logDebug('⏳ Tokens updated - Expires At: $expirationTimestamp');
     }
   }
 
@@ -87,7 +86,7 @@ class ApiService with ChangeNotifier {
   /// **Refresh token if needed**
   Future<bool> _refreshTokenIfNeeded() async {
     if (userId == null || refreshToken == null) {
-      print("🚨 No refresh token available.");
+      LogService.logError("🚨 No userId or refresh token available. Cannot refresh.");
       return false;
     }
 
@@ -114,7 +113,7 @@ class ApiService with ChangeNotifier {
         );
         return true;
       } else if (response.statusCode == 401) {
-        print('🚨 Refresh token expired or invalid. Logging out user.');
+        LogService.logError("🚨 Refresh token expired or invalid. Logging out user.");
         logout(); // Clear tokens and redirect to login
       }
     } catch (e) {
@@ -172,7 +171,6 @@ class ApiService with ChangeNotifier {
       if (response.statusCode == 200) {
         {
           loggedIn = true;
-          print('✅ Profile successfully updated!');
         }
 
         // 🔹 Store new tokens
@@ -191,7 +189,7 @@ class ApiService with ChangeNotifier {
         return ApiResponse(message: "An unknown error occurred");
       }
     } catch (e) {
-      print('🚨 Profile update failed: $e');
+      LogService.logError('🚨 Profile update failed: $e');
       return ApiResponse(message: "Server error. Please try again later.");
     }
   }
@@ -223,15 +221,15 @@ class ApiService with ChangeNotifier {
 
       // Handle 401 (Unauthorized) - Login failed
       if (response.statusCode == 401) {
-        print("🚨 Login failed: Invalid credentials");
+        LogService.logError("🚨 Login failed: Invalid credentials");
         return null; // Login failed, return null to UI
       }
 
       // Handle other errors (e.g., 500, 400)
-      print("⚠️ Unexpected login failure: ${response.body}");
+      LogService.logError("🚨 Unexpected login failure: ${response.body}");
       return null;
     } catch (e) {
-      print("❌ Login Exception: $e");
+      LogService.logError("❌ Login Exception: $e");
       return null;
     }
   }
@@ -287,11 +285,10 @@ class ApiService with ChangeNotifier {
     try {
       final response = await http.post(url, headers: headers);
       if (response.statusCode == 204) {
-        print("📩 Password reset email sent to $email");
         return true;
       }
     } catch (e) {
-      print("🚨 Failed to request password reset: $e");
+      LogService.logError("🚨 Failed to request password reset: $e");
     }
     return false;
   }
@@ -307,11 +304,10 @@ class ApiService with ChangeNotifier {
     try {
       final response = await http.post(url, headers: headers);
       if (response.statusCode == 200) {
-        print("🔑 Password successfully reset for $email");
         return true;
       }
     } catch (e) {
-      print("🚨 Failed to reset password: $e");
+      LogService.logError("🚨 Failed to reset password: $e");
     }
     return false;
   }
@@ -321,7 +317,6 @@ class ApiService with ChangeNotifier {
     await _getTokens(); // Ensure tokens are loaded
 
     if (userId == null || accessToken == null) {
-      print("🚨 Cannot submit score: User is not logged in.");
       return false;
     }
 
@@ -339,13 +334,12 @@ class ApiService with ChangeNotifier {
       final response = await http.post(Uri.parse('${Config.apiUrl}/scores/submit'), headers: headers, body: body);
 
       if (response.statusCode == 200) {
-        print("✅ High score submitted successfully!");
         return true;
       } else {
-        print("🚨 Failed to submit high score: ${response.body}");
+        LogService.logError("🚨 Failed to submit high score: ${response.body}");
       }
     } catch (e) {
-      print("❌ Error submitting high score: $e");
+      LogService.logDebug("❌ Error submitting high score: $e");
     }
 
     return false;
@@ -380,7 +374,6 @@ class ApiService with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
 
     if (await _isTokenExpiringSoon()) {
-      print("🔄 Token is expiring soon, refreshing...");
       await _refreshTokenIfNeeded();
       headers['Authorization'] = 'Bearer ${prefs.getString('accessToken')}'; // Update token in headers
     }
@@ -391,11 +384,9 @@ class ApiService with ChangeNotifier {
             : await http.post(Uri.parse(url), headers: headers, body: body);
 
     if (response.statusCode == 401) {
-      print("🚨 Token expired. Refreshing...");
       final refreshed = await _refreshTokenIfNeeded();
 
       if (refreshed) {
-        print("✅ Token refreshed, retrying request...");
         headers['Authorization'] = 'Bearer ${prefs.getString('accessToken')}'; // Update token again
 
         return isGet
@@ -405,7 +396,6 @@ class ApiService with ChangeNotifier {
         throw ApiException(statusCode: 401, detail: 'Token refresh failed - Please log in again');
       }
     }
-
     return response;
   }
 }

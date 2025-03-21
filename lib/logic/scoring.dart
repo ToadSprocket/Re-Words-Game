@@ -1,7 +1,7 @@
 // logic/scoring.dart
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import '../models/tile.dart';
-import 'word_loader.dart'; // For validWords
+// For validWords
 
 class Scoring {
   static int calculateScore(List<Tile> tiles) {

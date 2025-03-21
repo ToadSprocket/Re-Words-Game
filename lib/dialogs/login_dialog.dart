@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../styles/app_styles.dart';
 import '../logic/api_service.dart';
 import 'register_dialog.dart';
 import 'password_recovery_dialog.dart';
+import '../managers/gameLayoutManager.dart';
 
 class LoginDialog {
-  static Future<void> show(BuildContext context, ApiService api) async {
+  static Future<void> show(BuildContext context, ApiService api, GameLayoutManager gameLayoutManager) async {
     final userNameController = TextEditingController();
     final passwordController = TextEditingController();
     String? errorMessage;
@@ -44,27 +44,27 @@ class LoginDialog {
               ),
               backgroundColor: AppStyles.dialogBackgroundColor,
               child: Container(
-                width: AppStyles.dialogWidth,
+                width: gameLayoutManager.dialogMaxWidth,
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // 🔹 Title & Close Button
-                    Stack(children: [Center(child: Text('Reword Login', style: AppStyles.dialogTitleStyle))]),
+                    Stack(children: [Center(child: Text('Reword Login', style: gameLayoutManager.dialogTitleStyle))]),
                     const SizedBox(height: 16.0),
 
                     // 🔹 Input Fields (Centered)
                     SizedBox(
-                      width: AppStyles.dialogWidth * 0.8,
+                      width: gameLayoutManager.dialogMaxWidth * 0.8,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Username or Email Address', style: AppStyles.InputTitleStyle),
+                          Text('Username or Email Address', style: gameLayoutManager.dialogInputContentStyle),
                           const SizedBox(height: 4.0),
                           TextFormField(
                             controller: userNameController,
-                            style: AppStyles.inputContentStyle,
+                            style: gameLayoutManager.dialogInputContentStyle,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(vertical: 6.0, horizontal: 10.0),
@@ -72,11 +72,11 @@ class LoginDialog {
                           ),
                           const SizedBox(height: 12.0),
 
-                          Text('Password', style: AppStyles.InputTitleStyle),
+                          Text('Password', style: gameLayoutManager.dialogInputTitleStyle),
                           const SizedBox(height: 4.0),
                           TextFormField(
                             controller: passwordController,
-                            style: AppStyles.inputContentStyle,
+                            style: gameLayoutManager.dialogInputContentStyle,
                             obscureText: true,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
@@ -92,10 +92,14 @@ class LoginDialog {
                             child: TextButton(
                               onPressed: () {
                                 Navigator.pop(context); // Close login dialog first
-                                ForgotPasswordDialog.show(context, api); // Open forgot password dialog
+                                ForgotPasswordDialog.show(
+                                  context,
+                                  api,
+                                  gameLayoutManager,
+                                ); // Open forgot password dialog
                               },
                               style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft),
-                              child: Text('Forgot Password?', style: AppStyles.dialogLinkStyle),
+                              child: Text('Forgot Password?', style: gameLayoutManager.dialogLinkStyle),
                             ),
                           ),
                           Container(
@@ -105,7 +109,7 @@ class LoginDialog {
                                 errorMessage != null && errorMessage!.isNotEmpty
                                     ? Text(
                                       errorMessage!,
-                                      style: AppStyles.dialogErrorStyle,
+                                      style: gameLayoutManager.dialogErrorStyle,
                                       textAlign: TextAlign.center,
                                     )
                                     : const SizedBox.shrink(), // 🔥 Doesn't take up space when empty
@@ -121,16 +125,16 @@ class LoginDialog {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         SizedBox(
-                          width: AppStyles.dialogWidth * 0.3,
+                          width: gameLayoutManager.dialogMaxWidth * 0.3,
                           child: ElevatedButton(
                             onPressed: () => Navigator.pop(context),
-                            style: AppStyles.buttonStyle(context),
+                            style: gameLayoutManager.buttonStyle(context),
                             child: const Text('Cancel'),
                           ),
                         ),
                         const SizedBox(width: 16.0),
                         SizedBox(
-                          width: AppStyles.dialogWidth * 0.3,
+                          width: gameLayoutManager.dialogMaxWidth * 0.3,
                           child: ElevatedButton(
                             onPressed: () async {
                               setState(() => errorMessage = null); // Clear old errors
@@ -152,7 +156,7 @@ class LoginDialog {
 
                               Navigator.pop(context); // ✅ Close dialog on success
                             },
-                            style: AppStyles.buttonStyle(context),
+                            style: gameLayoutManager.buttonStyle(context),
                             child: const Text('Login'),
                           ),
                         ),
@@ -165,13 +169,13 @@ class LoginDialog {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("Don't have a login yet?", style: AppStyles.dialogContentStyle),
+                        Text("Don't have a login yet?", style: gameLayoutManager.dialogContentStyle),
                         TextButton(
                           onPressed: () {
                             Navigator.pop(context);
-                            RegisterDialog.show(context, api);
+                            RegisterDialog.show(context, api, gameLayoutManager);
                           },
-                          child: Text('Sign Up', style: AppStyles.dialogLinkStyle),
+                          child: Text('Sign Up', style: gameLayoutManager.dialogLinkStyle),
                         ),
                       ],
                     ),

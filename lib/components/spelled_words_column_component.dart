@@ -1,16 +1,16 @@
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
-import '../logic/spelled_words_handler.dart';
+import '../managers/gameLayoutManager.dart';
 
 class SpelledWordsColumnComponent extends StatelessWidget {
   final List<String> words;
   final double columnWidth;
   final double columnHeight;
   final double gridSpacing;
-  final double wordColumnWidth;
   final double wordColumnHeight;
   final bool showBorders;
+  final GameLayoutManager gameLayoutManager;
 
   const SpelledWordsColumnComponent({
     super.key,
@@ -18,97 +18,122 @@ class SpelledWordsColumnComponent extends StatelessWidget {
     required this.columnWidth,
     required this.columnHeight,
     required this.gridSpacing,
-    required this.wordColumnWidth,
     required this.wordColumnHeight,
+    required this.gameLayoutManager,
     this.showBorders = false,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    final splitColumns = SpelledWordsLogic.splitWords(
-      words: words,
-      columnHeight: wordColumnHeight,
-      fontSize: AppStyles.spelledWordsFontSize,
-      spacing: AppStyles.spelledWordsVerticalPadding * 2,
+  int _calculateWordsPerColumn(double height) {
+    const lineHeightFactor = 1.4;
+    const safetyMargin = 0.95; // Add 5% safety margin to prevent overflow
+
+    final totalItemHeight =
+        (gameLayoutManager.spelledWordsFontSize * lineHeightFactor) +
+        (gameLayoutManager.spelledWordsVerticalPadding * 2);
+
+    // Calculate available height with safety margin
+    final availableHeight = height * safetyMargin;
+
+    // Calculate max words that can fit
+    int maxWords = (availableHeight / totalItemHeight).floor();
+
+    // Ensure at least one word fits
+    return maxWords.clamp(1, words.length);
+  }
+
+  List<List<String>> _organizeColumns(BuildContext context, BoxConstraints constraints) {
+    if (words.isEmpty) return [];
+
+    final TextPainter textPainter = TextPainter(
+      textDirection: TextDirection.ltr,
+      text: TextSpan(style: TextStyle(fontSize: gameLayoutManager.spelledWordsFontSize)),
     );
 
+    // Calculate initial words per column
+    int wordsPerColumn = _calculateWordsPerColumn(wordColumnHeight);
+
+    // Initial column distribution
+    List<List<String>> columns = [];
+    for (int i = 0; i < words.length; i += wordsPerColumn) {
+      columns.add(words.sublist(i, i + wordsPerColumn > words.length ? words.length : i + wordsPerColumn));
+    }
+
+    // Calculate total width needed
+    double totalWidth = 0;
+    List<double> columnWidths =
+        columns.map((columnWords) {
+          double maxWidth = 0;
+          for (String word in columnWords) {
+            textPainter.text = TextSpan(text: word, style: TextStyle(fontSize: gameLayoutManager.spelledWordsFontSize));
+            textPainter.layout();
+            if (textPainter.width > maxWidth) maxWidth = textPainter.width;
+          }
+          double columnWidth = maxWidth + (gameLayoutManager.spelledWordsVerticalPadding * 4);
+          totalWidth += columnWidth + gameLayoutManager.spelledWordsColumnSpacing;
+          return columnWidth;
+        }).toList();
+
+    // If columns don't fit in available width, try to optimize distribution
+    if (totalWidth > constraints.maxWidth && columns.length > 1) {
+      // Recalculate with more words per column
+      wordsPerColumn = ((words.length / (columns.length - 1)) + 0.5).floor();
+      wordsPerColumn = wordsPerColumn.clamp(1, _calculateWordsPerColumn(wordColumnHeight));
+
+      columns.clear();
+      for (int i = 0; i < words.length; i += wordsPerColumn) {
+        columns.add(words.sublist(i, i + wordsPerColumn > words.length ? words.length : i + wordsPerColumn));
+      }
+    }
+
+    return columns;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: columnWidth,
       height: columnHeight,
       decoration:
           showBorders
-              ? BoxDecoration(
-                border: Border.all(
-                  color: AppStyles.spelledWordsOuterBorderColor,
-                  width: AppStyles.spelledWordsBorderWidth + 1,
-                ),
-              )
+              ? BoxDecoration(border: Border.all(color: AppStyles.spelledWordsOuterBorderColor, width: 1))
               : null,
-      child: Column(
-        children: [
-          Expanded(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = _organizeColumns(context, constraints);
+
+          if (columns.isEmpty) {
+            return const SizedBox.shrink();
+          }
+
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.start, // Left-align first column
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRect(
-                  // Clip content to height
-                  child: Container(
-                    width: wordColumnWidth,
-                    height: wordColumnHeight,
-                    decoration:
-                        showBorders
-                            ? BoxDecoration(
-                              border: Border.all(
-                                color: AppStyles.spelledWordsColumnBorderColor,
-                                width: AppStyles.spelledWordsBorderWidth,
-                              ),
-                            )
-                            : null,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children:
-                          splitColumns[0].map((word) {
-                            return Padding(
-                              padding: EdgeInsets.symmetric(vertical: AppStyles.spelledWordsVerticalPadding),
-                              child: Text(
-                                word,
-                                style: TextStyle(
-                                  fontSize: AppStyles.spelledWordsFontSize,
-                                  color: AppStyles.spelledWordsTextColor,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                    ),
-                  ),
-                ),
-                if (splitColumns[1].isNotEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(left: gridSpacing),
-                    child: ClipRect(
+              children:
+                  columns.map((columnWords) {
+                    return Padding(
+                      padding: EdgeInsets.only(right: gameLayoutManager.spelledWordsColumnSpacing),
                       child: Container(
-                        width: wordColumnWidth,
                         height: wordColumnHeight,
                         decoration:
                             showBorders
                                 ? BoxDecoration(
-                                  border: Border.all(
-                                    color: AppStyles.spelledWordsColumnBorderColor,
-                                    width: AppStyles.spelledWordsBorderWidth,
-                                  ),
+                                  border: Border.all(color: AppStyles.spelledWordsColumnBorderColor, width: 1),
                                 )
                                 : null,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children:
-                              splitColumns[1].map((word) {
+                              columnWords.map((word) {
                                 return Padding(
-                                  padding: EdgeInsets.symmetric(vertical: AppStyles.spelledWordsVerticalPadding),
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: gameLayoutManager.spelledWordsVerticalPadding,
+                                    horizontal: gameLayoutManager.spelledWordsVerticalPadding * 2,
+                                  ),
                                   child: Text(
                                     word,
                                     style: TextStyle(
-                                      fontSize: AppStyles.spelledWordsFontSize,
+                                      fontSize: gameLayoutManager.spelledWordsFontSize,
                                       color: AppStyles.spelledWordsTextColor,
                                     ),
                                   ),
@@ -116,47 +141,11 @@ class SpelledWordsColumnComponent extends StatelessWidget {
                               }).toList(),
                         ),
                       ),
-                    ),
-                  ),
-                if (splitColumns[2].isNotEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(left: gridSpacing),
-                    child: ClipRect(
-                      child: Container(
-                        width: wordColumnWidth,
-                        height: wordColumnHeight,
-                        decoration:
-                            showBorders
-                                ? BoxDecoration(
-                                  border: Border.all(
-                                    color: AppStyles.spelledWordsColumnBorderColor,
-                                    width: AppStyles.spelledWordsBorderWidth,
-                                  ),
-                                )
-                                : null,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children:
-                              splitColumns[2].map((word) {
-                                return Padding(
-                                  padding: EdgeInsets.symmetric(vertical: AppStyles.spelledWordsVerticalPadding),
-                                  child: Text(
-                                    word,
-                                    style: TextStyle(
-                                      fontSize: AppStyles.spelledWordsFontSize,
-                                      color: AppStyles.spelledWordsTextColor,
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+                    );
+                  }).toList(),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

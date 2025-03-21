@@ -1,11 +1,13 @@
 // layouts/game_top_bar.dart
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '/styles/app_styles.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../logic/api_service.dart';
 import '../dialogs/logout_dialog.dart';
 import '../logic/spelled_words_handler.dart';
+import '../logic/logging_handler.dart';
+import '../managers/gameLayoutManager.dart';
 
 class GameTopBarComponent extends StatefulWidget {
   final VoidCallback onInstructions;
@@ -15,6 +17,7 @@ class GameTopBarComponent extends StatefulWidget {
   final ApiService api;
   final SpelledWordsLogic spelledWordsLogic;
   final bool showBorders;
+  final GameLayoutManager gameLayoutManager;
 
   const GameTopBarComponent({
     super.key,
@@ -25,6 +28,7 @@ class GameTopBarComponent extends StatefulWidget {
     required this.onLogin,
     required this.api,
     required this.spelledWordsLogic,
+    required this.gameLayoutManager,
   });
 
   @override
@@ -45,7 +49,7 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
   }
 
   void _updateState() {
-    print('GameTopBarComponent: Login state changed');
+    LogService.logInfo('GameTopBarComponent: Login state changed');
     setState(() {}); // 🔄 Rebuild when login state changes
   }
 
@@ -54,14 +58,14 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
     bool isLoggedIn = widget.api.loggedIn ?? false;
 
     return Container(
-      decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 1.0)) : null,
+      decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 1)) : null,
       child: SizedBox(
         width: double.infinity,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             IconButton(
-              icon: const Icon(FontAwesomeIcons.circleQuestion, size: 20.0, color: AppStyles.helpIconColor),
+              icon: const Icon(FontAwesomeIcons.circleQuestion, size: 20.0, color: AppStyles.infoBarIconColors),
               padding: const EdgeInsets.all(4.0),
               constraints: const BoxConstraints(),
               onPressed: widget.onInstructions,
@@ -69,7 +73,7 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
             ),
             const SizedBox(width: 6.0),
             IconButton(
-              icon: const Icon(FontAwesomeIcons.chartSimple, size: 20.0, color: AppStyles.helpIconColor),
+              icon: const Icon(FontAwesomeIcons.chartSimple, size: 20.0, color: AppStyles.infoBarIconColors),
               padding: const EdgeInsets.all(4.0),
               constraints: const BoxConstraints(),
               onPressed: widget.onHighScores,
@@ -77,7 +81,7 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
             ),
             const SizedBox(width: 6.0),
             IconButton(
-              icon: const Icon(FontAwesomeIcons.gavel, size: 20.0, color: AppStyles.helpIconColor),
+              icon: const Icon(FontAwesomeIcons.gavel, size: 20.0, color: AppStyles.infoBarIconColors),
               padding: const EdgeInsets.all(4.0),
               constraints: const BoxConstraints(),
               onPressed: widget.onLegal,
@@ -88,13 +92,13 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
               icon: Icon(
                 widget.api.loggedIn ? FontAwesomeIcons.circleUser : FontAwesomeIcons.arrowRightToBracket,
                 size: 20.0,
-                color: widget.api.loggedIn ? Colors.green : AppStyles.helpIconColor,
+                color: widget.api.loggedIn ? Colors.green : AppStyles.infoBarIconColors,
               ),
               padding: const EdgeInsets.all(4.0),
               constraints: const BoxConstraints(),
               onPressed: () {
                 if (widget.api.loggedIn) {
-                  LogoutDialog.show(context, widget.api); // 🔥 Show logout confirmation
+                  LogoutDialog.show(context, widget.api, widget.gameLayoutManager); // 🔥 Show logout confirmation
                 } else {
                   widget.onLogin(); // 🔥 Show login dialog
                 }

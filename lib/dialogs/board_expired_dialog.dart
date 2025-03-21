@@ -1,11 +1,11 @@
 // lib/dialogs/board_expired_dialog.dart
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../managers/gameLayoutManager.dart';
 
 class BoardExpiredDialog {
-  static Future<bool?> show(BuildContext context) {
+  static Future<bool?> show(BuildContext context, GameLayoutManager gameLayoutManager) {
     bool? result;
     return showDialog<bool>(
       context: context,
@@ -17,7 +17,7 @@ class BoardExpiredDialog {
           ),
           backgroundColor: AppStyles.dialogBackgroundColor,
           child: SizedBox(
-            width: AppStyles.dialogWidth, // ✅ Fixed width
+            width: gameLayoutManager.dialogMaxWidth, // ✅ Fixed width
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
               child: Column(
@@ -28,28 +28,18 @@ class BoardExpiredDialog {
                       Center(
                         child: Text(
                           'New Board Available',
-                          style: AppStyles.dialogTitleStyle,
+                          style: gameLayoutManager.dialogTitleStyle,
                           textAlign: TextAlign.center,
-                        ),
-                      ),
-                      Positioned(
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: () {
-                            result = false; // Close means "Keep Playing"
-                            Navigator.of(context).pop();
-                          },
-                          child: const FaIcon(FontAwesomeIcons.circleXmark, size: 20.0, color: AppStyles.textColor),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16.0),
-                  const Text(
+                  Text(
                     'Your current board has expired.\n'
                     'You can keep playing until you have finished this one,\n'
                     'or load a new board.',
-                    style: AppStyles.dialogContentStyle,
+                    style: gameLayoutManager.dialogContentStyle,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24.0), // ✅ More space before buttons
@@ -62,7 +52,7 @@ class BoardExpiredDialog {
                             result = false; // Keep Playing
                             Navigator.of(context).pop(false);
                           }, // Keep Playing
-                          style: AppStyles.buttonStyle(context),
+                          style: gameLayoutManager.buttonStyle(context),
                           child: const Text('Keep Playing'),
                         ),
                       ),
@@ -73,7 +63,7 @@ class BoardExpiredDialog {
                             result = true; // Load New Board
                             Navigator.of(context).pop(true);
                           },
-                          style: AppStyles.buttonStyle(context),
+                          style: gameLayoutManager.buttonStyle(context),
                           child: const Text('Load New Board'),
                         ),
                       ),

@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../styles/app_styles.dart';
 import '../logic/api_service.dart';
+import '../managers/gameLayoutManager.dart';
 
 class ResetPasswordDialog {
-  static Future<void> show(BuildContext context, ApiService api, String email) async {
+  static Future<void> show(
+    BuildContext context,
+    ApiService api,
+    String email,
+    GameLayoutManager gameLayoutManager,
+  ) async {
     final codeController = TextEditingController();
     final passwordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
@@ -58,27 +63,27 @@ class ResetPasswordDialog {
               ),
               backgroundColor: AppStyles.dialogBackgroundColor,
               child: Container(
-                width: AppStyles.dialogWidth,
+                width: gameLayoutManager.dialogMaxWidth,
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // 🔹 Title & Close Button
-                    Stack(children: [Center(child: Text('Reset Password', style: AppStyles.dialogTitleStyle))]),
+                    Stack(children: [Center(child: Text('Reset Password', style: gameLayoutManager.dialogTitleStyle))]),
                     const SizedBox(height: 16.0),
 
                     // 🔹 Input Fields
                     SizedBox(
-                      width: AppStyles.dialogWidth * 0.8,
+                      width: gameLayoutManager.dialogMaxWidth * 0.8,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Enter Reset Code', style: AppStyles.InputTitleStyle),
+                          Text('Enter Reset Code', style: gameLayoutManager.dialogInputTitleStyle),
                           const SizedBox(height: 4.0),
                           TextFormField(
                             controller: codeController,
-                            style: AppStyles.inputContentStyle,
+                            style: gameLayoutManager.dialogInputContentStyle,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(vertical: 6.0, horizontal: 10.0),
@@ -86,12 +91,12 @@ class ResetPasswordDialog {
                           ),
                           const SizedBox(height: 12.0),
 
-                          Text('New Password', style: AppStyles.InputTitleStyle),
+                          Text('New Password', style: gameLayoutManager.dialogInputTitleStyle),
                           const SizedBox(height: 4.0),
                           TextFormField(
                             controller: passwordController,
                             obscureText: true,
-                            style: AppStyles.inputContentStyle,
+                            style: gameLayoutManager.dialogInputContentStyle,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(vertical: 6.0, horizontal: 10.0),
@@ -99,12 +104,12 @@ class ResetPasswordDialog {
                           ),
                           const SizedBox(height: 12.0),
 
-                          Text('Confirm Password', style: AppStyles.InputTitleStyle),
+                          Text('Confirm Password', style: gameLayoutManager.dialogInputTitleStyle),
                           const SizedBox(height: 4.0),
                           TextFormField(
                             controller: confirmPasswordController,
                             obscureText: true,
-                            style: AppStyles.inputContentStyle,
+                            style: gameLayoutManager.dialogInputContentStyle,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(vertical: 6.0, horizontal: 10.0),
@@ -118,13 +123,13 @@ class ResetPasswordDialog {
                                 errorMessage != null
                                     ? Text(
                                       errorMessage!,
-                                      style: AppStyles.dialogErrorStyle,
+                                      style: gameLayoutManager.dialogErrorStyle,
                                       textAlign: TextAlign.center,
                                     )
                                     : successMessage != null
                                     ? Text(
                                       successMessage!,
-                                      style: AppStyles.dialogSuccessStyle,
+                                      style: gameLayoutManager.dialogSuccessStyle,
                                       textAlign: TextAlign.center,
                                     )
                                     : const SizedBox.shrink(),
@@ -140,16 +145,16 @@ class ResetPasswordDialog {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         SizedBox(
-                          width: AppStyles.dialogWidth * 0.3,
+                          width: gameLayoutManager.dialogMaxWidth * 0.3,
                           child: ElevatedButton(
                             onPressed: () => Navigator.pop(context),
-                            style: AppStyles.buttonStyle(context),
+                            style: gameLayoutManager.buttonStyle(context),
                             child: const Text('Cancel'),
                           ),
                         ),
                         const SizedBox(width: 16.0),
                         SizedBox(
-                          width: AppStyles.dialogWidth * 0.3,
+                          width: gameLayoutManager.dialogMaxWidth * 0.3,
                           child: ElevatedButton(
                             onPressed: () async {
                               setState(() {
@@ -164,7 +169,7 @@ class ResetPasswordDialog {
                                 Navigator.pop(context); // ✅ Close only if reset succeeds
                               }
                             },
-                            style: AppStyles.buttonStyle(context),
+                            style: gameLayoutManager.buttonStyle(context),
                             child: const Text('Reset'),
                           ),
                         ),

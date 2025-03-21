@@ -1,12 +1,12 @@
 // lib/dialogs/logout_dialog.dart
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../logic/api_service.dart';
+import '../managers/gameLayoutManager.dart';
 
 class LogoutDialog {
-  static Future<void> show(BuildContext context, ApiService api) {
+  static Future<void> show(BuildContext context, ApiService api, GameLayoutManager gameLayoutManager) {
     return showDialog<void>(
       context: context,
       barrierDismissible: true, // Allow dismiss by tapping outside
@@ -18,7 +18,7 @@ class LogoutDialog {
           ),
           backgroundColor: AppStyles.dialogBackgroundColor,
           child: SizedBox(
-            width: AppStyles.dialogWidth, // ✅ Match width with other dialogs
+            width: gameLayoutManager.dialogMaxWidth, // ✅ Match width with other dialogs
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0), // ✅ Tighter padding
               child: Column(
@@ -30,7 +30,7 @@ class LogoutDialog {
                       Center(
                         child: Text(
                           'Logout Confirmation',
-                          style: AppStyles.dialogTitleStyle,
+                          style: gameLayoutManager.dialogTitleStyle,
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -41,7 +41,7 @@ class LogoutDialog {
                   // 🔹 Logout Message
                   Text(
                     'Are you sure you want to log out?',
-                    style: AppStyles.dialogContentStyle,
+                    style: gameLayoutManager.dialogContentStyle,
                     textAlign: TextAlign.center,
                   ),
 
@@ -52,23 +52,23 @@ class LogoutDialog {
                     children: [
                       // 🔹 Cancel Button
                       SizedBox(
-                        width: AppStyles.dialogWidth * 0.35, // ✅ Matching width
+                        width: gameLayoutManager.dialogMaxWidth * 0.35, // ✅ Matching width
                         child: ElevatedButton(
                           onPressed: () => Navigator.of(context).pop(), // Close dialog
-                          style: AppStyles.buttonStyle(context),
+                          style: gameLayoutManager.buttonStyle(context),
                           child: const Text('Cancel'),
                         ),
                       ),
                       const SizedBox(width: 12.0), // ✅ Adjusted spacing
                       // 🔹 Logout Button
                       SizedBox(
-                        width: AppStyles.dialogWidth * 0.35, // ✅ Matching width
+                        width: gameLayoutManager.dialogMaxWidth * 0.35, // ✅ Matching width
                         child: ElevatedButton(
                           onPressed: () {
                             api.loggedIn = false; // ✅ Log the user out
                             Navigator.of(context).pop(); // Close dialog
                           },
-                          style: AppStyles.buttonStyle(context),
+                          style: gameLayoutManager.buttonStyle(context),
                           child: const Text('Logout'),
                         ),
                       ),

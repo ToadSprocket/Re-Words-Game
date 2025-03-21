@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../styles/app_styles.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../logic/api_service.dart';
 import '../models/api_models.dart';
 import '../logic/spelled_words_handler.dart';
-import '../managers/state_manager.dart';
+import '../logic/logging_handler.dart';
+import '../managers/gameLayoutManager.dart';
 
 class HighScoresDialog {
-  static Future<void> show(BuildContext context, ApiService api, SpelledWordsLogic spelledWordsLogic) async {
-    await _loadAndShowDialog(context, api, spelledWordsLogic);
+  static Future<void> show(
+    BuildContext context,
+    ApiService api,
+    SpelledWordsLogic spelledWordsLogic,
+    GameLayoutManager gameLayoutManager,
+  ) async {
+    await _loadAndShowDialog(context, api, spelledWordsLogic, gameLayoutManager);
   }
 
   static Future<void> _loadAndShowDialog(
     BuildContext context,
     ApiService api,
     SpelledWordsLogic spelledWordsLogic,
+    GameLayoutManager gameLayoutManager,
   ) async {
     List<HighScore> highScores = [];
     String? date = 'Today';
@@ -56,7 +62,7 @@ class HighScoresDialog {
       int topScoreThreshold = highScores.isNotEmpty ? highScores.first.score : 1500;
       hasGoodScore = finalScore.score > (topScoreThreshold * 0.5) || finalScore.score >= 1000;
     } catch (e) {
-      print('Failed to fetch high scores: $e');
+      LogService.logError('Failed to fetch high scores: $e');
     }
 
     showDialog(
@@ -75,24 +81,26 @@ class HighScoresDialog {
               ),
               backgroundColor: AppStyles.dialogBackgroundColor,
               child: Container(
-                width: AppStyles.dialogWidth,
+                width: gameLayoutManager.dialogMaxWidth,
                 height: calculatedHeight, // ✅ Dynamic height
                 padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Stack(children: [Center(child: Text('High Scores - $date', style: AppStyles.dialogTitleStyle))]),
+                    Stack(
+                      children: [Center(child: Text('High Scores - $date', style: gameLayoutManager.dialogTitleStyle))],
+                    ),
                     const SizedBox(height: 16.0),
                     Expanded(
                       child: SingleChildScrollView(
                         child: Center(
                           child: SizedBox(
-                            width: AppStyles.dialogWidth * 0.8,
+                            width: gameLayoutManager.dialogMaxWidth * 0.8,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 if (highScores.isEmpty)
-                                  Text('No high scores available yet.', style: AppStyles.dialogContentStyle)
+                                  Text('No high scores available yet.', style: gameLayoutManager.dialogContentStyle)
                                 else
                                   ...highScores.map((score) {
                                     bool isUser = score.ranking == userRank;
@@ -101,21 +109,46 @@ class HighScoresDialog {
                                       child: Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text(
-                                            '${score.ranking}. ${score.displayName}',
-                                            style:
-                                                isUser
-                                                    ? AppStyles.dialogContentHighLiteStyle
-                                                    : AppStyles.dialogContentStyle,
+                                          Row(
+                                            children: [
+                                              Text(
+                                                '${score.ranking}. ${score.displayName.isNotEmpty ? score.displayName : "Unknown Player"}',
+                                                style:
+                                                    isUser && score.displayName.isNotEmpty
+                                                        ? gameLayoutManager.dialogContentHighLiteStyle
+                                                        : gameLayoutManager.dialogContentStyle,
+                                              ),
+                                              if (score.displayName.isNotEmpty)
+                                                Padding(
+                                                  padding: const EdgeInsets.only(left: 4.0),
+                                                  child: Icon(
+                                                    Icons.person_outline,
+                                                    size: 16.0,
+                                                    color: AppStyles.dialogIconColor,
+                                                  ),
+                                                )
+                                              else
+                                                Padding(
+                                                  padding: const EdgeInsets.only(left: 4.0),
+                                                  child: Icon(
+                                                    Icons
+                                                        .face_retouching_off, // This is similar to a ninja/anonymous face
+                                                    size: 16.0,
+                                                    color: AppStyles.dialogIconColor,
+                                                  ),
+                                                ),
+                                            ],
                                           ),
                                           Text(
                                             '${score.score} (${score.wordCount} words)',
-                                            style: AppStyles.dialogContentStyle.copyWith(fontWeight: FontWeight.bold),
+                                            style: gameLayoutManager.dialogContentStyle.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ],
                                       ),
                                     );
-                                  }).toList(),
+                                  }),
 
                                 // ✅ Show user's ranking if not in top scores
                                 if (userHasSubmitted &&
@@ -126,7 +159,7 @@ class HighScoresDialog {
                                     child: Center(
                                       child: Text(
                                         'Your Ranking: #$userRank out of $scoresSubmittedToday players',
-                                        style: AppStyles.dialogContentHighLiteStyle,
+                                        style: gameLayoutManager.dialogContentHighLiteStyle,
                                       ),
                                     ),
                                   ),
@@ -147,24 +180,29 @@ class HighScoresDialog {
                               try {
                                 final scoreSubmitted = await api.submitHighScore(finalScore);
                                 if (scoreSubmitted) {
-                                  print("✅ High score submitted successfully!");
+                                  LogService.logInfo('High score submitted successfully!');
                                   Navigator.of(context).pop(); // Close dialog
                                   await Future.delayed(const Duration(milliseconds: 300)); // Short delay
-                                  await _loadAndShowDialog(context, api, spelledWordsLogic); // Reload dialog
+                                  await _loadAndShowDialog(
+                                    context,
+                                    api,
+                                    spelledWordsLogic,
+                                    gameLayoutManager,
+                                  ); // Reload dialog
                                   return;
                                 } else {
-                                  print("🚨 Failed to submit high score.");
+                                  LogService.logError('Failed to submit high score.');
                                 }
                               } catch (e) {
-                                print("🚨 Error submitting high score: $e");
+                                LogService.logError('Error submitting high score: $e');
                               }
                             },
-                            style: AppStyles.buttonStyle(context),
+                            style: gameLayoutManager.buttonStyle(context),
                             child: const Text('Submit Score'),
                           ),
                         ElevatedButton(
                           onPressed: () => Navigator.of(context).pop(),
-                          style: AppStyles.buttonStyle(context),
+                          style: gameLayoutManager.buttonStyle(context),
                           child: const Text('Close'),
                         ),
                       ],

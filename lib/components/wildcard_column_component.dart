@@ -1,9 +1,11 @@
-// Copyright © 2025 Riverstone Entertainment. All Rights Reserved.
+// Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../logic/grid_loader.dart';
 import '../models/tile.dart';
 import 'letter_square_component.dart';
+import '../logic/logging_handler.dart';
+import '../managers/gameLayoutManager.dart';
 
 class WildcardColumnComponent extends StatefulWidget {
   final double width;
@@ -11,8 +13,8 @@ class WildcardColumnComponent extends StatefulWidget {
   final bool showBorders;
   final bool isHorizontal;
   final double gridSpacing;
-  final Map<String, dynamic> sizes;
   final VoidCallback? onWildcardUsed;
+  final GameLayoutManager gameLayoutManager;
 
   const WildcardColumnComponent({
     super.key,
@@ -21,7 +23,7 @@ class WildcardColumnComponent extends StatefulWidget {
     this.showBorders = false,
     this.isHorizontal = false,
     required this.gridSpacing,
-    required this.sizes,
+    required this.gameLayoutManager,
     this.onWildcardUsed,
   });
 
@@ -35,20 +37,19 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
   @override
   void initState() {
     super.initState();
+    _loadWildcardTiles();
   }
 
   Future<void> _loadWildcardTiles() async {
-    // Use GridLoader's already-loaded data
     if (GridLoader.wildcardTiles.isEmpty) {
-      print('No wildcard tiles available in GridLoader');
+      LogService.logError('WildcardColumnComponent: No wildcard tiles available in GridLoader');
       return;
     }
     setState(() {
       tiles =
           GridLoader.wildcardTiles.map((tileData) {
-            return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: true);
+            return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: true, isRemoved: false);
           }).toList();
-      print('Loaded wildcard tiles: ${tiles.length}');
     });
   }
 
@@ -68,57 +69,61 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
 
   void removeWildcard(int index) {
     setState(() {
-      tiles.removeAt(index);
+      tiles[index].isRemoved = true; // Mark as removed instead of removing
+      //tiles[index].state = 'used'; // Optional: mark as used to match game logic
       widget.onWildcardUsed?.call();
     });
   }
 
   Future<void> reloadWildcardTiles() async {
-    setState(() {
-      _loadWildcardTiles();
-      print('Reloaded wildcard tiles');
-    });
+    await _loadWildcardTiles();
   }
 
   @override
   Widget build(BuildContext context) {
-    print('WildcardColumn build - Starting');
-
     return Container(
       width: widget.width,
       height: widget.height,
       decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.blue, width: 1)) : null,
       child:
           tiles.isEmpty
-              ? Center(
-                child: Text("", style: TextStyle(color: Colors.white70, fontSize: 16)),
-              ) // ❌ Remove Spinner - Show empty space instead
+              ? Center(child: Text("", style: TextStyle(color: Colors.white70, fontSize: 16)))
               : widget.isHorizontal
               ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(tiles.length, (index) {
-                  final isAvailable = tiles[index].state != 'used';
+                  final isAvailable = tiles[index].state != 'used' && !tiles[index].isRemoved;
                   return Padding(
                     padding: EdgeInsets.symmetric(horizontal: widget.gridSpacing / 2),
-                    child: Draggable<Tile>(
-                      data: tiles[index],
-                      child: Opacity(
-                        opacity: isAvailable ? 1.0 : AppStyles.wildcardDisabledOpacity,
-                        child: LetterSquareComponent(tile: tiles[index], sizes: widget.sizes),
-                      ),
-                      feedback: Opacity(
-                        opacity: 0.7,
-                        child: LetterSquareComponent(tile: tiles[index], sizes: widget.sizes),
-                      ),
-                      childWhenDragging: Container(),
-                      onDragCompleted: () {
-                        removeWildcard(index);
-                      },
-                      onDraggableCanceled: (_, __) {
-                        // ✅ Wildcard will snap back if dropped outside valid areas
-                        print("🔄 Wildcard dropped in an invalid area. Returning to column.");
-                        setState(() {}); // Forces re-render so the wildcard stays
-                      },
+                    child: SizedBox(
+                      width: widget.gameLayoutManager.gridSquareSize,
+                      height: widget.gameLayoutManager.gridSquareSize,
+                      child:
+                          tiles[index].isRemoved
+                              ? Container() // Blank box for removed tiles
+                              : Draggable<Tile>(
+                                data: tiles[index],
+                                feedback: Opacity(
+                                  opacity: 0.7,
+                                  child: LetterSquareComponent(
+                                    tile: tiles[index],
+                                    gameLayoutManager: widget.gameLayoutManager,
+                                    helpDialog: false,
+                                  ),
+                                ),
+                                childWhenDragging: Container(),
+                                onDragCompleted: () {
+                                  removeWildcard(index);
+                                },
+                                onDraggableCanceled: (_, __) {
+                                  setState(() {});
+                                },
+                                child: LetterSquareComponent(
+                                  tile: tiles[index],
+                                  gameLayoutManager: widget.gameLayoutManager,
+                                  helpDialog: false,
+                                ),
+                              ),
                     ),
                   );
                 }),
@@ -127,28 +132,38 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: List.generate(tiles.length, (index) {
-                  final isAvailable = tiles[index].state != 'used';
+                  final isAvailable = tiles[index].state != 'used' && !tiles[index].isRemoved;
                   return Padding(
                     padding: EdgeInsets.symmetric(vertical: widget.gridSpacing / 2),
-                    child: Draggable<Tile>(
-                      data: tiles[index],
-                      child: Opacity(
-                        opacity: isAvailable ? 1.0 : AppStyles.wildcardDisabledOpacity,
-                        child: LetterSquareComponent(tile: tiles[index], sizes: widget.sizes),
-                      ),
-                      feedback: Opacity(
-                        opacity: 0.7,
-                        child: LetterSquareComponent(tile: tiles[index], sizes: widget.sizes),
-                      ),
-                      childWhenDragging: Container(),
-                      onDragCompleted: () {
-                        removeWildcard(index);
-                      },
-                      onDraggableCanceled: (_, __) {
-                        // ✅ Wildcard will snap back if dropped outside valid areas
-                        print("🔄 Wildcard dropped in an invalid area. Returning to column.");
-                        setState(() {}); // Forces re-render so the wildcard stays
-                      },
+                    child: SizedBox(
+                      width: widget.gameLayoutManager.gridSquareSize,
+                      height: widget.gameLayoutManager.gridSquareSize,
+                      child:
+                          tiles[index].isRemoved
+                              ? Container() // Blank box for removed tiles
+                              : Draggable<Tile>(
+                                data: tiles[index],
+                                feedback: Opacity(
+                                  opacity: 0.7,
+                                  child: LetterSquareComponent(
+                                    tile: tiles[index],
+                                    gameLayoutManager: widget.gameLayoutManager,
+                                    helpDialog: false,
+                                  ),
+                                ),
+                                childWhenDragging: Container(),
+                                onDragCompleted: () {
+                                  removeWildcard(index);
+                                },
+                                onDraggableCanceled: (_, __) {
+                                  setState(() {});
+                                },
+                                child: LetterSquareComponent(
+                                  tile: tiles[index],
+                                  gameLayoutManager: widget.gameLayoutManager,
+                                  helpDialog: false,
+                                ),
+                              ),
                     ),
                   );
                 }),
