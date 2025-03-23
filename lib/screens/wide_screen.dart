@@ -11,6 +11,7 @@ import '../components/spelled_words_column_component.dart';
 import '../components/game_message_component.dart';
 import '../logic/spelled_words_handler.dart';
 import '../managers/gameLayoutManager.dart';
+import '../logic/api_service.dart';
 
 class WideScreen extends StatelessWidget {
   final bool showBorders;
@@ -20,20 +21,20 @@ class WideScreen extends StatelessWidget {
   final VoidCallback onHighScores;
   final VoidCallback onLegal;
   final VoidCallback onLogin;
-  final GlobalKey<GameGridComponentState>? gridKey;
-  final GlobalKey<WildcardColumnComponentState>? wildcardKey;
-  final ValueChanged<String>? onMessage;
+  final ApiService api;
+  final GameLayoutManager gameLayoutManager;
+  final SpelledWordsLogic spelledWordsLogic;
+  final GlobalKey<GameGridComponentState> gridKey;
+  final GlobalKey<WildcardColumnComponentState> wildcardKey;
+  final Function(String) onMessage;
   final ValueNotifier<String> messageNotifier;
   final ValueNotifier<int> scoreNotifier;
   final ValueNotifier<List<String>> spelledWordsNotifier;
   final VoidCallback updateScoresRefresh;
-  final dynamic api;
-  final GameLayoutManager gameLayoutManager;
-  final SpelledWordsLogic spelledWordsLogic;
 
   const WideScreen({
     super.key,
-    required this.showBorders,
+    this.showBorders = false,
     required this.onSubmit,
     required this.onClear,
     required this.onInstructions,
@@ -43,9 +44,9 @@ class WideScreen extends StatelessWidget {
     required this.api,
     required this.gameLayoutManager,
     required this.spelledWordsLogic,
-    this.gridKey,
-    this.wildcardKey,
-    this.onMessage,
+    required this.gridKey,
+    required this.wildcardKey,
+    required this.onMessage,
     required this.messageNotifier,
     required this.scoreNotifier,
     required this.spelledWordsNotifier,
@@ -86,7 +87,7 @@ class WideScreen extends StatelessWidget {
                       spelledWordsLogic: spelledWordsLogic,
                       gameLayoutManager: gameLayoutManager,
                     ),
-                    const Divider(height: 1.0, thickness: 1.0, color: Color.fromARGB(73, 158, 158, 158)),
+                    const Divider(height: 1.0, thickness: 1.0, color: Color.fromARGB(237, 94, 94, 94)),
                     const SizedBox(height: 10.0),
                   ],
                 ),
@@ -98,7 +99,11 @@ class WideScreen extends StatelessWidget {
               height: gameLayoutManager.gameBoxHeight - (showBorders ? 2 * borderWidth : 0), // Corrected typo
               child: Container(
                 decoration:
-                    showBorders ? BoxDecoration(border: Border.all(color: Colors.purple, width: borderWidth)) : null,
+                    showBorders
+                        ? BoxDecoration(
+                          border: Border.all(color: const Color.fromARGB(255, 3, 226, 255), width: borderWidth),
+                        )
+                        : null,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,7 +115,9 @@ class WideScreen extends StatelessWidget {
                       child: Container(
                         decoration:
                             showBorders
-                                ? BoxDecoration(border: Border.all(color: Colors.blue, width: borderWidth))
+                                ? BoxDecoration(
+                                  border: Border.all(color: const Color.fromARGB(255, 216, 2, 245), width: borderWidth),
+                                )
                                 : null,
                         child: Column(
                           mainAxisSize: MainAxisSize.max,
@@ -168,6 +175,7 @@ class WideScreen extends StatelessWidget {
                               onMessage: onMessage,
                               updateScoresRefresh: updateScoresRefresh,
                               gameLayoutManager: gameLayoutManager,
+                              disableSpellCheck: spelledWordsLogic.disableSpellCheck,
                             ),
                             ValueListenableBuilder<String>(
                               valueListenable: messageNotifier,
@@ -176,6 +184,7 @@ class WideScreen extends StatelessWidget {
                                   width: gameLayoutManager.gameMessageComponentWidth,
                                   height: gameLayoutManager.gameMessageComponentHeight, // Fixed prop values
                                   message: message,
+                                  gameLayoutManager: gameLayoutManager,
                                 );
                               },
                             ),
@@ -191,11 +200,13 @@ class WideScreen extends StatelessWidget {
                     // Right Column: Spelled Words
                     SizedBox(
                       width: gameLayoutManager.spelledWordsContainerWidth - (showBorders ? 2 * borderWidth : 0),
-                      height: gameLayoutManager.spelledWordsContainerHeight,
+                      height: gameLayoutManager.gameContainerHeight,
                       child: Container(
                         decoration:
                             showBorders
-                                ? BoxDecoration(border: Border.all(color: Colors.green, width: borderWidth))
+                                ? BoxDecoration(
+                                  border: Border.all(color: const Color.fromARGB(255, 175, 76, 76), width: borderWidth),
+                                )
                                 : null,
                         child: Column(
                           mainAxisSize: MainAxisSize.max,
@@ -204,27 +215,29 @@ class WideScreen extends StatelessWidget {
                               height:
                                   gameLayoutManager.gameTitleComponentHeight +
                                   gameLayoutManager.gameScoresComponentHeight -
-                                  5,
+                                  2,
                             ), // Matches title + scores, aligns with wildcards
-                            ValueListenableBuilder<List<String>>(
-                              valueListenable: spelledWordsNotifier,
-                              builder: (context, words, child) {
-                                return SpelledWordsColumnComponent(
-                                  words: words,
-                                  columnWidth: gameLayoutManager.spelledWordsContainerWidth,
-                                  columnHeight:
-                                      gameLayoutManager.gridHeightSize +
-                                      gameLayoutManager.gameMessageComponentHeight +
-                                      gameLayoutManager.buttonHeight,
-                                  gridSpacing: gameLayoutManager.spelledWordsGridSpacing,
-                                  showBorders: showBorders,
-                                  wordColumnHeight:
-                                      gameLayoutManager.gridHeightSize +
-                                      gameLayoutManager.gameMessageComponentHeight +
-                                      gameLayoutManager.buttonHeight,
-                                  gameLayoutManager: gameLayoutManager,
-                                );
-                              },
+                            Expanded(
+                              child: ValueListenableBuilder<List<String>>(
+                                valueListenable: spelledWordsNotifier,
+                                builder: (context, words, child) {
+                                  return SpelledWordsColumnComponent(
+                                    words: words,
+                                    columnWidth: gameLayoutManager.spelledWordsContainerWidth,
+                                    columnHeight:
+                                        gameLayoutManager.gridHeightSize +
+                                        gameLayoutManager.gameMessageComponentHeight +
+                                        gameLayoutManager.gameButtonsComponentHeight,
+                                    gridSpacing: gameLayoutManager.spelledWordsGridSpacing,
+                                    showBorders: showBorders,
+                                    wordColumnHeight:
+                                        gameLayoutManager.gridHeightSize +
+                                        gameLayoutManager.gameMessageComponentHeight +
+                                        gameLayoutManager.gameButtonsComponentHeight,
+                                    gameLayoutManager: gameLayoutManager,
+                                  );
+                                },
+                              ),
                             ),
                           ],
                         ),

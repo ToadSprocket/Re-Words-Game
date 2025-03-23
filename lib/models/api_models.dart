@@ -14,8 +14,9 @@ class SecurityData {
   final String? accessToken;
   final String? refreshToken;
   final String? expirationSeconds;
+  final String? displayName;
 
-  SecurityData({required this.userId, this.accessToken, this.refreshToken, this.expirationSeconds});
+  SecurityData({required this.userId, this.accessToken, this.refreshToken, this.expirationSeconds, this.displayName});
 }
 
 class GameData {

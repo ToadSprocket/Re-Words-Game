@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:window_manager/window_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'styles/app_styles.dart';
 import 'logic/grid_loader.dart';
 import 'logic/game_layout.dart';
@@ -19,27 +20,87 @@ import 'components/game_grid_component.dart';
 import 'components/wildcard_column_component.dart';
 import 'managers/state_manager.dart';
 import 'logic/api_service.dart';
-import 'logic/word_loader.dart';
 import 'logic/spelled_words_handler.dart';
 import 'package:provider/provider.dart';
 import 'models/api_models.dart';
 import '../logic/logging_handler.dart';
 import '../managers/gameLayoutManager.dart';
+import 'package:window_size/window_size.dart';
+import 'services/word_database.dart';
+import 'services/word_service.dart';
+import 'services/word_import_service.dart';
 
-const bool debugShowBorders = true;
+const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
+const bool debugForceIsNarrow = false;
+const bool disableSpellCheck = false;
 const bool debugForceExpiredBoard = false; // Force expired board
 const bool debugForceValidBoard = false; // Force valid board
 const bool debugClearPrefs = false; // Clear all prefs for new user
+
+// Window size constants
+const double MIN_WINDOW_WIDTH = 720.0;
+const double MIN_WINDOW_HEIGHT = 768.0;
+const double NARROW_LAYOUT_THRESHOLD = 900.0;
+const double INITIAL_WINDOW_WIDTH = 1024.0;
+const double INITIAL_WINDOW_HEIGHT = 768.0;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final GameLayoutManager layoutManager = GameLayoutManager();
 
+  // Initialize SQLite for Windows
+  if (Platform.isWindows || Platform.isLinux) {
+    // Initialize FFI for sqflite
+    sqfliteFfiInit();
+    // Change the default factory for Windows
+    databaseFactory = databaseFactoryFfi;
+  }
+
+  // Initialize word services
+  final wordImportService = WordImportService();
+  final wordService = WordService();
+
+  // Import word list if database is empty
+  if (await wordService.getWordCount() == 0) {
+    try {
+      await wordImportService.importWordList();
+    } catch (e) {
+      print('Error importing word list: $e');
+      // Handle the error appropriately
+    }
+  }
+
+  // Set minimum window size and initial window size
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    setWindowTitle('Re-Word Game');
+
+    // Set minimum size
+    setWindowMinSize(const Size(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT));
+
+    // Set initial window size
+    setWindowFrame(Rect.fromLTWH(0, 0, INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT));
+
+    // Center the window
+    getCurrentScreen().then((screen) {
+      if (screen != null) {
+        final screenFrame = screen.visibleFrame;
+        final windowFrame = Rect.fromLTWH(
+          screenFrame.left + (screenFrame.width - INITIAL_WINDOW_WIDTH) / 2,
+          screenFrame.top + (screenFrame.height - INITIAL_WINDOW_HEIGHT) / 2,
+          INITIAL_WINDOW_WIDTH,
+          INITIAL_WINDOW_HEIGHT,
+        );
+        setWindowFrame(windowFrame);
+      }
+    });
+  }
+
   if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
     await windowManager.ensureInitialized();
     WindowOptions windowOptions = const WindowOptions(
-      size: Size(1440, 700),
+      size: Size(INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT),
+      minimumSize: Size(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT),
       center: true,
       backgroundColor: Colors.transparent,
       skipTaskbar: false,
@@ -51,10 +112,14 @@ void main() async {
     });
   }
 
+  // Initialize the word database
+  final wordDb = WordDatabase();
+  await wordDb.initializeIfEmpty();
+
   runApp(
     ChangeNotifierProvider<ApiService>(
       create: (context) => ApiService(),
-      child: ReWordApp(layoutManager: layoutManager), // ✅ Pass it in
+      child: ReWordApp(layoutManager: layoutManager),
     ),
   );
 }
@@ -158,7 +223,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   Future<void> _loadData() async {
     final api = Provider.of<ApiService>(context, listen: false);
 
-    await WordLoader.loadWords();
     await StateManager.setStartTime(); // Set start time for new session
     await _applyDebugControls();
     final userData = await StateManager.getUserData();
@@ -294,50 +358,69 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     final isWebOverride = debugForceIsWeb ?? gameLayoutManager.isWeb;
     final isWeb = isWebOverride;
 
+    // Get the current window width
+    final windowWidth = MediaQuery.of(context).size.width;
+
+    // Determine if we should use narrow layout
+    final useNarrowLayout = debugForceIsNarrow || (!isWeb && windowWidth < NARROW_LAYOUT_THRESHOLD);
+
+    // Update GameLayoutManager with spelledWordsNotifier
+    gameLayoutManager.spelledWordsNotifier = spelledWordsNotifier;
+
     return Scaffold(
       body: SizedBox(
         width: double.infinity,
         height: double.infinity,
         child:
-            isWeb
-                ? WideScreen(
+            useNarrowLayout
+                ? NarrowScreen(
                   showBorders: debugShowBorders,
                   onSubmit: submitWord,
                   onClear: clearWords,
                   onInstructions: () => HowToPlayDialog.show(context, gameLayoutManager),
                   onHighScores:
-                      () => HighScoresDialog.show(context, ApiService(), SpelledWordsLogic(), gameLayoutManager),
+                      () => HighScoresDialog.show(
+                        context,
+                        ApiService(),
+                        SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
+                        gameLayoutManager,
+                      ),
                   onLegal: () => LegalDialog.show(context, gameLayoutManager),
                   onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
                   api: api,
                   gameLayoutManager: gameLayoutManager,
-                  spelledWordsLogic: SpelledWordsLogic(),
+                  spelledWordsLogic: SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,
                   onMessage: _handleMessage,
-                  messageNotifier: messageNotifier, // Pass notifier
-                  scoreNotifier: scoreNotifier, // Pass notifier
-                  spelledWordsNotifier: spelledWordsNotifier, // Pass notifier
+                  messageNotifier: messageNotifier,
+                  scoreNotifier: scoreNotifier,
+                  spelledWordsNotifier: spelledWordsNotifier,
                   updateScoresRefresh: updateScoresRefresh,
                 )
-                : NarrowScreen(
+                : WideScreen(
                   showBorders: debugShowBorders,
                   onSubmit: submitWord,
                   onClear: clearWords,
                   onInstructions: () => HowToPlayDialog.show(context, gameLayoutManager),
                   onHighScores:
-                      () => HighScoresDialog.show(context, ApiService(), SpelledWordsLogic(), gameLayoutManager),
+                      () => HighScoresDialog.show(
+                        context,
+                        ApiService(),
+                        SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
+                        gameLayoutManager,
+                      ),
                   onLegal: () => LegalDialog.show(context, gameLayoutManager),
                   onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
                   api: api,
                   gameLayoutManager: gameLayoutManager,
-                  spelledWordsLogic: SpelledWordsLogic(),
+                  spelledWordsLogic: SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
                   gridKey: _gridKey,
                   wildcardKey: _wildcardKey,
                   onMessage: _handleMessage,
-                  messageNotifier: messageNotifier, // Pass notifier
-                  scoreNotifier: scoreNotifier, // Pass notifier
-                  spelledWordsNotifier: spelledWordsNotifier, // Pass notifier
+                  messageNotifier: messageNotifier,
+                  scoreNotifier: scoreNotifier,
+                  spelledWordsNotifier: spelledWordsNotifier,
                   updateScoresRefresh: updateScoresRefresh,
                 ),
       ),

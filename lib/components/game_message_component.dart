@@ -1,13 +1,21 @@
 // components/game_message_component.dart
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
+import '../managers/gameLayoutManager.dart';
 
 class GameMessageComponent extends StatefulWidget {
   final String message;
   final double width;
   final double height;
+  final GameLayoutManager gameLayoutManager;
 
-  const GameMessageComponent({super.key, required this.width, required this.height, required this.message});
+  const GameMessageComponent({
+    super.key,
+    required this.width,
+    required this.height,
+    required this.message,
+    required this.gameLayoutManager,
+  });
 
   @override
   _GameMessageComponentState createState() => _GameMessageComponentState();
@@ -40,7 +48,11 @@ class _GameMessageComponentState extends State<GameMessageComponent> {
       child: Center(
         child: Text(
           displayMessage ?? '',
-          style: const TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: widget.gameLayoutManager.gameMessageFontSize,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );

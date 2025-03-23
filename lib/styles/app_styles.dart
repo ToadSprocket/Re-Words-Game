@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 
 class AppStyles {
   // Core Colors
-  static const Color infoBarIconColors = Color(0xFFB4B4B6);
+  static const Color infoBarIconColors = Color.fromRGBO(180, 180, 182, 1);
 
   // Title Styles
   static const Color headerTextColor = Color.fromARGB(255, 79, 185, 69);
@@ -34,6 +34,8 @@ class AppStyles {
   static const double tickerWidthFactor = 1.0;
   static const double tickerHeight = 43.0;
   static const Color tickerBorderColor = Color.fromARGB(54, 255, 255, 255);
+  static const Color tickerDotsColor = Color.fromARGB(255, 79, 185, 69);
+  static const double tickerDotSizeFactor = 1.4; // Dot size relative to font size
   static const double tickerBorderWidth = 1.0;
   static const double tickerTitleFontSize = 16.0;
   static const double tickerFontSize = 16.0;
@@ -46,6 +48,8 @@ class AppStyles {
   // Dialog Styles
   static const Color dialogBackgroundColor = Color.fromARGB(255, 42, 42, 42);
   static const Color dialogBorderColor = Colors.white;
+  static const Color dialogInputFocusColor = Color.fromARGB(158, 79, 185, 69); // Green focus color
+  static const Color dialogInputHoverColor = Color.fromARGB(95, 44, 110, 38); // Dark green hover color
   static const double dialogBorderWidth = 2.0;
   static const double dialogBorderRadius = 8.0;
   static const double dialogPadding = 16.0;
@@ -66,5 +70,15 @@ class AppStyles {
       labelSmall: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: normalValueTextColor),
     ),
     primaryColor: CupertinoColors.activeGreen,
+    textSelectionTheme: const TextSelectionThemeData(
+      cursorColor: dialogInputFocusColor,
+      selectionColor: dialogInputHoverColor,
+    ),
+    inputDecorationTheme: const InputDecorationTheme(
+      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: dialogInputFocusColor)),
+      focusColor: dialogInputFocusColor,
+      hoverColor: dialogInputHoverColor,
+      enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: dialogBorderColor)),
+    ),
   );
 }

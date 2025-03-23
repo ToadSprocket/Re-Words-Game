@@ -4,12 +4,17 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'scoring.dart';
-import 'word_loader.dart';
 import '../models/tile.dart';
 import '../managers/state_manager.dart';
 import '../models/api_models.dart';
+import '../services/word_service.dart';
 
 class SpelledWordsLogic {
+  final bool disableSpellCheck;
+  final WordService _wordService = WordService();
+
+  SpelledWordsLogic({this.disableSpellCheck = false});
+
   static List<String> spelledWords = [];
   static int score = 0;
   static int wildCardUses = 0;
@@ -27,40 +32,49 @@ class SpelledWordsLogic {
     required double fontSize,
     required double spacing,
   }) {
+    if (words.isEmpty) return [[]];
+
     final wordsPerColumn = _wordsPerColumn(columnHeight, fontSize, spacing);
     final totalWords = words.length;
+    final numColumns = (totalWords / wordsPerColumn).ceil();
 
-    if (totalWords == 0) {
-      return [[], [], []];
-    } else if (totalWords <= wordsPerColumn) {
-      return [words, [], []];
-    } else if (totalWords <= wordsPerColumn * 2) {
-      final firstColumn = words.sublist(0, wordsPerColumn);
-      final secondColumn = words.sublist(wordsPerColumn);
-      return [firstColumn, secondColumn, []];
-    } else {
-      final firstColumn = words.sublist(0, wordsPerColumn);
-      final secondColumn = words.sublist(wordsPerColumn, wordsPerColumn * 2);
-      final thirdColumn = words.sublist(
-        wordsPerColumn * 2,
-        totalWords > wordsPerColumn * 3 ? wordsPerColumn * 3 : totalWords,
-      );
-      return [firstColumn, secondColumn, thirdColumn];
+    List<List<String>> columns = [];
+    for (int i = 0; i < numColumns; i++) {
+      final start = i * wordsPerColumn;
+      final end = (i + 1) * wordsPerColumn;
+      columns.add(words.sublist(start, end > totalWords ? totalWords : end));
     }
+
+    return columns;
   }
 
-  static (bool, String) addWord(List<Tile> selectedTiles) {
+  Future<bool> isValidWord(String word) async {
+    if (disableSpellCheck) return true;
+    return await _wordService.isValidWord(word);
+  }
+
+  Future<(bool, String)> addWord(List<Tile> selectedTiles) async {
     String word = selectedTiles.map((tile) => tile.letter).join();
-    String casedWord = word.isEmpty ? '' : word.substring(0, 1).toUpperCase() + word.substring(1).toLowerCase();
+    String casedWord = word.isEmpty ? '' : word.toLowerCase();
     String reason = "";
+    word = casedWord.replaceFirst(casedWord[0], casedWord[0].toUpperCase());
 
     if (casedWord.isEmpty) {
       return (false, "");
-    } else if (casedWord.length >= 4 &&
-        casedWord.length <= 12 &&
-        Scoring.isValidWord(casedWord, WordLoader.words) & !isDuplicateWord(casedWord)) {
+    } else if (casedWord.length >= 4 && casedWord.length <= 12) {
+      // Check if word is valid using the database first
+      bool isValid = await isValidWord(casedWord);
+      if (!isValid) {
+        return (false, "'$word' invalid");
+      }
+
+      // Then check for duplicates
+      if (isDuplicateWord(word)) {
+        return (false, "'$word' already used");
+      }
+
       int wordScore = Scoring.calculateScore(selectedTiles);
-      spelledWords.add(casedWord);
+      spelledWords.add(word);
       score += wordScore;
 
       if (doesWordContainWildcard(selectedTiles)) {
@@ -73,13 +87,11 @@ class SpelledWordsLogic {
       return (true, "");
     } else {
       if (casedWord.length < 4) {
-        reason = "'$casedWord' too short";
+        reason = "'$word' too short";
       } else if (casedWord.length > 12) {
         reason = "Word too long";
-      } else if (isDuplicateWord(casedWord)) {
-        reason = "'$casedWord' already used";
       } else {
-        reason = "'$casedWord' Invalid";
+        reason = "'$word' invalid";
       }
       return (false, reason);
     }

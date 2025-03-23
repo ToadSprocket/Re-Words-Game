@@ -2,7 +2,6 @@
 // file: lib/components/game_grid_component.dart
 import 'package:flutter/material.dart';
 import 'package:reword_game/managers/gameLayoutManager.dart';
-import '../styles/app_styles.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../logic/grid_loader.dart';
 import '../logic/spelled_words_handler.dart';
@@ -11,16 +10,18 @@ import 'letter_square_component.dart';
 
 class GameGridComponent extends StatefulWidget {
   final bool showBorders;
-  final ValueChanged<String>? onMessage;
+  final Function(String) onMessage;
   final VoidCallback updateScoresRefresh; // Add this
   final GameLayoutManager gameLayoutManager;
+  final bool disableSpellCheck;
 
   const GameGridComponent({
     super.key,
     this.showBorders = false,
-    this.onMessage,
+    required this.onMessage,
     required this.updateScoresRefresh, // Required to match WideScreen
     required this.gameLayoutManager,
+    this.disableSpellCheck = false,
   });
 
   @override
@@ -28,12 +29,30 @@ class GameGridComponent extends StatefulWidget {
 }
 
 class GameGridComponentState extends State<GameGridComponent> {
-  List<Tile> tiles = [];
-  List<int> selectedIndices = [];
+  late SpelledWordsLogic spelledWordsLogic;
+  List<Tile> selectedTiles = [];
+  List<Tile> gridTiles = [];
+  bool isSelecting = false;
+
+  List<Tile> getTiles() => gridTiles;
+
+  List<int> getSelectedIndices() {
+    return selectedTiles.map((tile) => gridTiles.indexOf(tile)).where((index) => index != -1).toList();
+  }
+
+  void setSelectedIndices(List<int> indices) {
+    selectedTiles = indices.map((index) => gridTiles[index]).where((tile) => tile != null).toList();
+  }
+
+  void setTiles(List<Tile> newTiles) {
+    gridTiles = newTiles;
+  }
 
   @override
   void initState() {
     super.initState();
+    spelledWordsLogic = SpelledWordsLogic(disableSpellCheck: widget.disableSpellCheck);
+    gridTiles = List.from(GridLoader.gridTiles);
   }
 
   Future<void> _loadTiles() async {
@@ -42,7 +61,7 @@ class GameGridComponentState extends State<GameGridComponent> {
       return;
     }
     setState(() {
-      tiles =
+      gridTiles =
           GridLoader.gridTiles.map((tileData) {
             return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: false, isRemoved: false);
           }).toList();
@@ -52,7 +71,7 @@ class GameGridComponentState extends State<GameGridComponent> {
   Future<void> reloadTiles() async {
     setState(() {
       _loadTiles();
-      selectedIndices.clear();
+      selectedTiles.clear();
     });
   }
 
@@ -69,60 +88,63 @@ class GameGridComponentState extends State<GameGridComponent> {
 
   void _onTileTapped(int index) {
     setState(() {
-      final lastIndex = selectedIndices.isEmpty ? -1 : selectedIndices.last;
-      if (tiles[index].state == 'selected' && index == selectedIndices.last) {
-        tiles[index].select(); // Toggles to unselected
-        selectedIndices.removeLast();
-      } else if ((tiles[index].state == 'unused' || tiles[index].state == 'used') &&
-          selectedIndices.length < 12 &&
-          !selectedIndices.contains(index) &&
+      final lastSelectedTile = selectedTiles.isEmpty ? null : selectedTiles.last;
+      final lastIndex = selectedTiles.isEmpty ? -1 : gridTiles.indexOf(lastSelectedTile!);
+
+      if (gridTiles[index].state == 'selected' && gridTiles[index] == selectedTiles.last) {
+        gridTiles[index].select(); // Toggles to unselected
+        selectedTiles.removeLast();
+      } else if ((gridTiles[index].state == 'unused' || gridTiles[index].state == 'used') &&
+          selectedTiles.length < 12 &&
+          !selectedTiles.contains(gridTiles[index]) &&
           _isAdjacent(index, lastIndex)) {
-        tiles[index].select(); // Toggles to selected
-        selectedIndices.add(index);
+        gridTiles[index].select(); // Toggles to selected
+        selectedTiles.add(gridTiles[index]);
       }
     });
   }
 
   void clearSelectedTiles() {
     setState(() {
-      for (var index in selectedIndices) {
-        tiles[index].revert();
+      for (var tile in selectedTiles) {
+        final index = gridTiles.indexOf(tile);
+        if (index != -1) {
+          gridTiles[index].revert();
+        }
       }
-      selectedIndices.clear();
+      selectedTiles.clear();
     });
   }
 
-  void submitWord() {
+  void submitWord() async {
+    if (selectedTiles.isEmpty) return;
+
+    final (success, message) = await spelledWordsLogic.addWord(selectedTiles);
     setState(() {
-      final selectedTiles = selectedIndices.map((i) => tiles[i]).toList();
-      final (success, message) = SpelledWordsLogic.addWord(selectedTiles);
       if (success) {
-        for (var index in selectedIndices) {
-          tiles[index].markUsed();
+        // Mark tiles as used
+        for (var tile in selectedTiles) {
+          final index = gridTiles.indexOf(tile);
+          if (index != -1) {
+            gridTiles[index].markUsed();
+          }
         }
-        selectedIndices.clear();
+        selectedTiles.clear();
+        widget.onMessage(message);
+        widget.updateScoresRefresh(); // Update scores display
       } else {
-        for (var index in selectedIndices) {
-          tiles[index].revert();
+        // Revert tiles to previous state
+        for (var tile in selectedTiles) {
+          final index = gridTiles.indexOf(tile);
+          if (index != -1) {
+            gridTiles[index].revert();
+          }
         }
-        selectedIndices.clear();
+        selectedTiles.clear();
+        widget.onMessage(message);
       }
-      widget.onMessage?.call(message);
-      widget.updateScoresRefresh();
     });
   }
-
-  // void _onDrop(int index, Tile tile) {
-  //   setState(() {
-  //     if (tiles[index].state == 'unused') {
-  //       tiles[index].applyWildcard(tile.letter, tile.value);
-  //       widget.onMessage?.call('Wildcard applied to ${tiles[index].letter}');
-  //       _incrementWildcardUse();
-  //     } else {
-  //       widget.onMessage?.call('Can only drop on unused tiles');
-  //     }
-  //   });
-  // }
 
   void _incrementWildcardUse() async {
     final prefs = await SharedPreferences.getInstance();
@@ -137,7 +159,7 @@ class GameGridComponentState extends State<GameGridComponent> {
       height: widget.gameLayoutManager.gridHeightSize,
       decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 1)) : null,
       child:
-          tiles.isEmpty
+          gridTiles.isEmpty
               ? const Center(child: CircularProgressIndicator())
               : GridView.count(
                 crossAxisCount: GameLayoutManager.gridCols,
@@ -145,31 +167,31 @@ class GameGridComponentState extends State<GameGridComponent> {
                 padding: EdgeInsets.zero,
                 mainAxisSpacing: widget.gameLayoutManager.gridSpacing,
                 crossAxisSpacing: widget.gameLayoutManager.gridSpacing,
-                children: List.generate(tiles.length, (index) {
+                children: List.generate(gridTiles.length, (index) {
                   return DragTarget<Tile>(
                     onWillAcceptWithDetails: (details) {
                       // ✅ Only allow drops on UNUSED tiles
-                      bool canAccept = details.data != null && tiles[index].state == 'unused';
+                      bool canAccept = details.data != null && gridTiles[index].state == 'unused';
                       if (!canAccept) {
-                        widget.onMessage?.call('Can only drop on unused tiles');
+                        widget.onMessage('Can only drop on unused tiles');
                       }
                       return canAccept;
                     },
                     onAcceptWithDetails: (details) {
                       // ✅ Apply wildcard only to valid tiles
-                      tiles[index].applyWildcard(details.data.letter, details.data.value);
-                      widget.onMessage?.call('Wildcard applied to ${tiles[index].letter}');
+                      gridTiles[index].applyWildcard(details.data.letter, details.data.value);
+                      widget.onMessage('Wildcard applied to ${gridTiles[index].letter}');
                       _incrementWildcardUse();
                     },
                     onLeave: (Tile? tile) {
                       // ✅ Optional: Reset message if user drags away
-                      widget.onMessage?.call('');
+                      widget.onMessage('');
                     },
                     builder: (context, candidateData, rejectedData) {
                       return GestureDetector(
                         onTap: () => _onTileTapped(index),
                         child: LetterSquareComponent(
-                          tile: tiles[index],
+                          tile: gridTiles[index],
                           gameLayoutManager: widget.gameLayoutManager,
                           helpDialog: false,
                         ),

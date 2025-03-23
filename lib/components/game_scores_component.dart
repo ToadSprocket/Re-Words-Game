@@ -28,15 +28,24 @@ class GameScores extends StatelessWidget {
     return SizedBox(
       width: width,
       height: height,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end, // Push content to bottom
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 3.0), // 3px gap above grid
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Score section with icon
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Score on left, no padding
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 0.9), // Fine-tune icon alignment
+                  child: Icon(
+                    Icons.stars_rounded,
+                    color: AppStyles.spelledWordsTitleColor,
+                    size: gameLayoutManager.scoreFontSize * 1.2,
+                  ),
+                ),
+                const SizedBox(width: 8.0),
                 Text(
                   'Score: ${SpelledWordsLogic.score}',
                   style: TextStyle(
@@ -45,22 +54,33 @@ class GameScores extends StatelessWidget {
                     color: AppStyles.spelledWordsTitleColor,
                   ),
                 ),
-                // Words Found on right with padding to prevent shifting
+              ],
+            ),
+            // Words Found section with icon
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
                 Padding(
-                  padding: const EdgeInsets.only(right: 24.0), // Fixed space to fit 3 digits
-                  child: Text(
-                    'Words Found: $wordCount',
-                    style: TextStyle(
-                      fontSize: gameLayoutManager.scoreFontSize,
-                      fontWeight: FontWeight.bold,
-                      color: AppStyles.spelledWordsTitleColor,
-                    ),
+                  padding: const EdgeInsets.only(bottom: 0.5), // Fine-tune icon alignment
+                  child: Icon(
+                    Icons.format_list_numbered_rounded,
+                    color: AppStyles.spelledWordsTitleColor,
+                    size: gameLayoutManager.scoreFontSize * 1.2,
+                  ),
+                ),
+                const SizedBox(width: 8.0),
+                Text(
+                  'Words: $wordCount',
+                  style: TextStyle(
+                    fontSize: gameLayoutManager.scoreFontSize,
+                    fontWeight: FontWeight.bold,
+                    color: AppStyles.spelledWordsTitleColor,
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

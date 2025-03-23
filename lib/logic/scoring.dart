@@ -1,7 +1,6 @@
 // logic/scoring.dart
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import '../models/tile.dart';
-// For validWords
 
 class Scoring {
   static int calculateScore(List<Tile> tiles) {
@@ -10,9 +9,5 @@ class Scoring {
       score += tile.value * tile.multiplier.round();
     }
     return score;
-  }
-
-  static bool isValidWord(String word, List<String> validWords) {
-    return validWords.contains(word.toLowerCase());
   }
 }

@@ -34,6 +34,8 @@ class WildcardColumnComponent extends StatefulWidget {
 class WildcardColumnComponentState extends State<WildcardColumnComponent> {
   List<Tile> tiles = [];
 
+  List<Tile> getTiles() => tiles;
+
   @override
   void initState() {
     super.initState();
@@ -103,12 +105,20 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
                               ? Container() // Blank box for removed tiles
                               : Draggable<Tile>(
                                 data: tiles[index],
-                                feedback: Opacity(
-                                  opacity: 0.7,
-                                  child: LetterSquareComponent(
-                                    tile: tiles[index],
-                                    gameLayoutManager: widget.gameLayoutManager,
-                                    helpDialog: false,
+                                feedback: Material(
+                                  // Wrap in Material for proper rendering
+                                  color: Colors.transparent,
+                                  child: SizedBox(
+                                    width: widget.gameLayoutManager.gridSquareSize,
+                                    height: widget.gameLayoutManager.gridSquareSize,
+                                    child: Opacity(
+                                      opacity: 0.7,
+                                      child: LetterSquareComponent(
+                                        tile: tiles[index],
+                                        gameLayoutManager: widget.gameLayoutManager,
+                                        helpDialog: false,
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 childWhenDragging: Container(),
@@ -143,12 +153,20 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
                               ? Container() // Blank box for removed tiles
                               : Draggable<Tile>(
                                 data: tiles[index],
-                                feedback: Opacity(
-                                  opacity: 0.7,
-                                  child: LetterSquareComponent(
-                                    tile: tiles[index],
-                                    gameLayoutManager: widget.gameLayoutManager,
-                                    helpDialog: false,
+                                feedback: Material(
+                                  // Wrap in Material for proper rendering
+                                  color: Colors.transparent,
+                                  child: SizedBox(
+                                    width: widget.gameLayoutManager.gridSquareSize,
+                                    height: widget.gameLayoutManager.gridSquareSize,
+                                    child: Opacity(
+                                      opacity: 0.7,
+                                      child: LetterSquareComponent(
+                                        tile: tiles[index],
+                                        gameLayoutManager: widget.gameLayoutManager,
+                                        helpDialog: false,
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 childWhenDragging: Container(),

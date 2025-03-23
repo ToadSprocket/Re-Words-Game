@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../managers/gameLayoutManager.dart';
+import '../logic/logging_handler.dart';
 
 class SpelledWordsColumnComponent extends StatelessWidget {
   final List<String> words;
@@ -42,6 +43,8 @@ class SpelledWordsColumnComponent extends StatelessWidget {
   }
 
   List<List<String>> _organizeColumns(BuildContext context, BoxConstraints constraints) {
+    var columnsTotal = 0;
+    var totalColumnsWidth = 0.0;
     if (words.isEmpty) return [];
 
     final TextPainter textPainter = TextPainter(
@@ -69,12 +72,16 @@ class SpelledWordsColumnComponent extends StatelessWidget {
             if (textPainter.width > maxWidth) maxWidth = textPainter.width;
           }
           double columnWidth = maxWidth + (gameLayoutManager.spelledWordsVerticalPadding * 4);
-          totalWidth += columnWidth + gameLayoutManager.spelledWordsColumnSpacing;
           return columnWidth;
         }).toList();
 
+    // Calculate total width including spacing between columns
+    totalColumnsWidth =
+        columnWidths.fold(0.0, (sum, width) => sum + width) +
+        (gameLayoutManager.spelledWordsColumnSpacing * (columns.length - 1));
+
     // If columns don't fit in available width, try to optimize distribution
-    if (totalWidth > constraints.maxWidth && columns.length > 1) {
+    if (totalColumnsWidth > constraints.maxWidth && columns.length > 1) {
       // Recalculate with more words per column
       wordsPerColumn = ((words.length / (columns.length - 1)) + 0.5).floor();
       wordsPerColumn = wordsPerColumn.clamp(1, _calculateWordsPerColumn(wordColumnHeight));
@@ -84,6 +91,12 @@ class SpelledWordsColumnComponent extends StatelessWidget {
         columns.add(words.sublist(i, i + wordsPerColumn > words.length ? words.length : i + wordsPerColumn));
       }
     }
+
+    // Update GameLayoutManager with the final values
+    columnsTotal = columns.length;
+
+    // Call calculateSpelledWordsLayout with the calculated values
+    gameLayoutManager.calculateSpelledWordsLayout(columnsTotal, totalColumnsWidth);
 
     return columns;
   }

@@ -23,7 +23,7 @@ class GameConstants {
   static const double minGameButtonsHeigth = 60.0;
   static const double maxGameButtonsHeight = 80.0;
   static const double minGridSquareSize = 40.0;
-  static const double maxGridSquareSize = 100.0;
+  static const double maxGridSquareSize = 80.0;
 
   // Layout Percentages
   static const double infoBoxHeightPercentage = 0.06;
@@ -32,7 +32,7 @@ class GameConstants {
   static const double minSideColumnWidth = 25;
 
   // Component Minimum Heights
-  static const double minInfoBoxHeight = 45.0;
+  static const double minInfoBoxHeight = 44.0;
   static const double minTitleComponentHeight = 63.0;
   static const double minScoresComponentHeight = 30.0;
   static const double minMessageComponentHeight = 30.0;

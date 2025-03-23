@@ -28,12 +28,12 @@ class StateManager {
     await prefs.setInt('wildcardUses', prefs.getInt('wildcardUses') ?? 0);
     if (gridKey.currentState != null) {
       final gridState = gridKey.currentState!;
-      await prefs.setString('gridTiles', jsonEncode(gridState.tiles.map((t) => t.toJson()).toList()));
-      await prefs.setString('selectedIndices', jsonEncode(gridState.selectedIndices));
+      await prefs.setString('gridTiles', jsonEncode(gridState.getTiles().map((t) => t.toJson()).toList()));
+      await prefs.setString('selectedIndices', jsonEncode(gridState.getSelectedIndices()));
     }
     if (wildcardKey.currentState != null) {
       final wildcardState = wildcardKey.currentState!;
-      await prefs.setString('wildcardTiles', jsonEncode(wildcardState.tiles.map((t) => t.toJson()).toList()));
+      await prefs.setString('wildcardTiles', jsonEncode(wildcardState.getTiles().map((t) => t.toJson()).toList()));
     }
   }
 
@@ -56,10 +56,10 @@ class StateManager {
     final selectedIndicesJson = prefs.getString('selectedIndices');
     if (gridTilesJson != null) {
       final List<dynamic> tileData = jsonDecode(gridTilesJson);
-      gridKey?.currentState?.tiles = tileData.map((data) => Tile.fromJson(data)).toList();
+      gridKey?.currentState?.setTiles(tileData.map((data) => Tile.fromJson(data)).toList());
     }
     if (selectedIndicesJson != null) {
-      gridKey?.currentState?.selectedIndices = (jsonDecode(selectedIndicesJson) as List).cast<int>();
+      gridKey?.currentState?.setSelectedIndices((jsonDecode(selectedIndicesJson) as List).cast<int>());
     }
     gridKey?.currentState?.setState(() {}); // Trigger UI update
 
@@ -84,7 +84,7 @@ class StateManager {
     SpelledWordsLogic.spelledWords = [];
     SpelledWordsLogic.score = 0;
     if (gridKey?.currentState != null) {
-      gridKey!.currentState!.selectedIndices.clear();
+      gridKey!.currentState!.setSelectedIndices([]);
     }
     LogService.logInfo('Game state reset successfully');
   }
@@ -152,15 +152,16 @@ class StateManager {
     final utcExpireDate = utcDate.dateOnly();
 
     // ✅ Get the player's local time
-    final nowLocal = DateTime.now().dateOnly();
+
+    final nowLocal = DateTime.now().toUtc().dateOnly();
 
     LogService.logInfo("🌍 Local Timezone: ${nowLocal.timeZoneName}");
     LogService.logInfo("🌍 Expiration UTC: $utcExpireDate");
     LogService.logInfo("🌍 Current Local Time: $nowLocal");
-    LogService.logInfo("🌍 Expired?: ${nowLocal.isAfter(utcExpireDate)}");
+    LogService.logInfo("🌍 Expired?: ${!nowLocal.isBefore(utcExpireDate)}");
 
     // ✅ Check if local time has passed expiration time
-    return nowLocal.isAfter(utcExpireDate);
+    return !nowLocal.isBefore(utcExpireDate);
   }
 
   static Future<int?> boardExpiredDuration() async {

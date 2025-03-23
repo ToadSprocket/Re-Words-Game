@@ -21,19 +21,18 @@ class SpelledWordsTickerComponent extends StatelessWidget {
   });
 
   List<String> _getFittingWords(BuildContext context, double maxWidth) {
-    final textStyle = TextStyle(fontSize: AppStyles.tickerFontSize, color: AppStyles.spelledWordsTextColor);
+    final textStyle = TextStyle(fontSize: gameLayoutManager.tickerFontSize, color: AppStyles.spelledWordsTextColor);
     final List<String> fittingWords = [];
     double currentWidth = 0.0;
     const double widthOffset = 6.0; // Small offset per word
 
     for (String word in words.reversed) {
-      // Use passed words
       final textPainter = TextPainter(
-        text: TextSpan(text: '$word ', style: textStyle), // Single space
+        text: TextSpan(text: '$word ', style: textStyle),
         textDirection: TextDirection.ltr,
       )..layout();
 
-      double adjustedWidth = textPainter.width + widthOffset; // Add offset
+      double adjustedWidth = textPainter.width + widthOffset;
       if (currentWidth + adjustedWidth <= maxWidth) {
         fittingWords.add(word);
         currentWidth += adjustedWidth;
@@ -47,9 +46,22 @@ class SpelledWordsTickerComponent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double tickerWidth = (gridSize + squareSize) * AppStyles.tickerWidthFactor;
+    final double tickerWidth = (gridSize + squareSize) * gameLayoutManager.tickerWidthFactor;
+    final double contentHeight = gameLayoutManager.tickerHeight - gameLayoutManager.tickerTitleFontSize;
 
-    final List<String> visibleWords = _getFittingWords(context, tickerWidth - 16.0); // Padding inset
+    // Create a scroll controller to manage automatic scrolling
+    final ScrollController scrollController = ScrollController();
+
+    // Use a post-frame callback to scroll to the end after layout
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (scrollController.hasClients) {
+        scrollController.animateTo(
+          scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,7 +69,7 @@ class SpelledWordsTickerComponent extends StatelessWidget {
         Text(
           'Latest Words',
           style: TextStyle(
-            fontSize: AppStyles.tickerTitleFontSize,
+            fontSize: gameLayoutManager.tickerTitleFontSize,
             color: AppStyles.spelledWordsTextColor,
             fontWeight: FontWeight.bold,
           ),
@@ -67,25 +79,63 @@ class SpelledWordsTickerComponent extends StatelessWidget {
           onTap: onTap ?? () => SpelledWordsPopup.show(context, gameLayoutManager),
           child: Container(
             width: tickerWidth,
-            height: AppStyles.tickerHeight - AppStyles.tickerTitleFontSize,
+            height: contentHeight,
             decoration: BoxDecoration(
               border: Border.all(
                 color: AppStyles.tickerBorderColor.withOpacity(0.5),
-                width: AppStyles.tickerBorderWidth,
+                width: gameLayoutManager.componentBorderThickness,
               ),
+              borderRadius: BorderRadius.circular(gameLayoutManager.componentBorderRadius),
             ),
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              reverse: false,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Text(
-                    visibleWords.isNotEmpty ? visibleWords.join('  ') : 'No words yet',
-                    style: TextStyle(fontSize: AppStyles.tickerFontSize, color: AppStyles.spelledWordsTextColor),
-                  ),
-                ),
-              ],
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(gameLayoutManager.componentBorderRadius),
+              child: ListView.builder(
+                controller: scrollController,
+                scrollDirection: Axis.horizontal,
+                reverse: false,
+                itemCount: words.length,
+                padding: const EdgeInsets.only(right: 4.0),
+                itemBuilder: (context, index) {
+                  final word = words[index];
+                  return Container(
+                    padding: EdgeInsets.only(
+                      left: index == 0 ? 16.0 : 0.0,
+                      right: index == words.length - 1 ? 20.0 : 0.0,
+                    ),
+                    child: Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            word,
+                            style: TextStyle(
+                              fontSize: gameLayoutManager.tickerFontSize,
+                              color: AppStyles.spelledWordsTextColor,
+                            ),
+                          ),
+                          if (index < words.length - 1)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                              alignment: Alignment.center,
+                              child: Transform.translate(
+                                offset: const Offset(0, -1),
+                                child: Text(
+                                  '•',
+                                  style: TextStyle(
+                                    fontSize: gameLayoutManager.tickerFontSize * AppStyles.tickerDotSizeFactor,
+                                    height: 1.0,
+                                    color: AppStyles.tickerDotsColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ),

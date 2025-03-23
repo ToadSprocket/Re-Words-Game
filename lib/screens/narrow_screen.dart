@@ -1,15 +1,17 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
-import '../components/wildcard_column_component.dart';
+import '../logic/api_service.dart';
+import '../managers/gameLayoutManager.dart';
+import '../logic/spelled_words_handler.dart';
 import '../components/game_top_bar_component.dart';
 import '../components/game_title_component.dart';
 import '../components/game_scores_component.dart';
 import '../components/game_grid_component.dart';
 import '../components/game_buttons_component.dart';
 import '../components/spelled_words_ticker_component.dart';
-import '../logic/spelled_words_handler.dart';
 import '../components/game_message_component.dart';
 import '../logic/logging_handler.dart';
+import '../components/wildcard_column_component.dart';
 
 class NarrowScreen extends StatelessWidget {
   final bool showBorders;
@@ -19,20 +21,20 @@ class NarrowScreen extends StatelessWidget {
   final VoidCallback onHighScores;
   final VoidCallback onLegal;
   final VoidCallback onLogin;
-  final GlobalKey<GameGridComponentState>? gridKey;
-  final GlobalKey<WildcardColumnComponentState>? wildcardKey;
-  final ValueChanged<String>? onMessage;
-  final ValueNotifier<String> messageNotifier;
-  final ValueNotifier<int> scoreNotifier; // Add this
-  final ValueNotifier<List<String>> spelledWordsNotifier; // Add this
-  final VoidCallback updateScoresRefresh; // Add this
-  final dynamic api; // Add this
-  final dynamic gameLayoutManager;
+  final ApiService api;
+  final GameLayoutManager gameLayoutManager;
   final SpelledWordsLogic spelledWordsLogic;
+  final GlobalKey<GameGridComponentState> gridKey;
+  final GlobalKey<WildcardColumnComponentState> wildcardKey;
+  final Function(String) onMessage;
+  final ValueNotifier<String> messageNotifier;
+  final ValueNotifier<int> scoreNotifier;
+  final ValueNotifier<List<String>> spelledWordsNotifier;
+  final VoidCallback updateScoresRefresh;
 
   const NarrowScreen({
     super.key,
-    required this.showBorders,
+    this.showBorders = false,
     required this.onSubmit,
     required this.onClear,
     required this.onInstructions,
@@ -42,9 +44,9 @@ class NarrowScreen extends StatelessWidget {
     required this.api,
     required this.gameLayoutManager,
     required this.spelledWordsLogic,
-    this.gridKey,
-    this.wildcardKey,
-    this.onMessage,
+    required this.gridKey,
+    required this.wildcardKey,
+    required this.onMessage,
     required this.messageNotifier,
     required this.scoreNotifier,
     required this.spelledWordsNotifier,
@@ -54,7 +56,7 @@ class NarrowScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         GameTopBarComponent(
           onInstructions: onInstructions,
@@ -62,72 +64,86 @@ class NarrowScreen extends StatelessWidget {
           onLegal: onLegal,
           onLogin: onLogin,
           api: api,
-          spelledWordsLogic: SpelledWordsLogic(), // Pass this
+          spelledWordsLogic: SpelledWordsLogic(),
           showBorders: showBorders,
           gameLayoutManager: gameLayoutManager,
         ),
         const Divider(height: 1.0, thickness: 1.0, color: Colors.grey),
-        const SizedBox(height: 10.0),
-        GameTitleComponent(
-          width: 300,
-          height: 150, // Pass height here
-          showBorders: false,
-          gameLayoutManager: gameLayoutManager,
-        ), // Const to avoid rebuild
-        const SizedBox(height: 20.0),
-        ValueListenableBuilder<List<String>>(
-          valueListenable: spelledWordsNotifier,
-          builder: (context, words, child) {
-            LogService.logDebug('SpelledWordsTickerComponent rebuild');
-            return SpelledWordsTickerComponent(
-              gridSize: gameLayoutManager.gridWidthSize,
-              squareSize: gameLayoutManager.gridSquareSize,
-              words: words,
-              gameLayoutManager: gameLayoutManager,
-            );
-          },
+        Container(
+          width: gameLayoutManager.gameContainerWidth,
+          child: Column(
+            children: [
+              SizedBox(height: gameLayoutManager.gridSpacing),
+              GameTitleComponent(
+                width: gameLayoutManager.gameTitleComponentWidth,
+                height: gameLayoutManager.gameTitleComponentHeight,
+                showBorders: showBorders,
+                gameLayoutManager: gameLayoutManager,
+              ),
+              SizedBox(height: gameLayoutManager.gridSpacing),
+              ValueListenableBuilder<List<String>>(
+                valueListenable: spelledWordsNotifier,
+                builder: (context, words, child) {
+                  LogService.logDebug('SpelledWordsTickerComponent rebuild');
+                  return SpelledWordsTickerComponent(
+                    gridSize: gameLayoutManager.gameContainerWidth,
+                    squareSize: gameLayoutManager.gridSquareSize,
+                    words: words,
+                    gameLayoutManager: gameLayoutManager,
+                  );
+                },
+              ),
+              SizedBox(height: gameLayoutManager.gridSpacing),
+              ValueListenableBuilder<int>(
+                valueListenable: scoreNotifier,
+                builder: (context, score, child) {
+                  LogService.logDebug('GameScoresComponent rebuild');
+                  return GameScores(
+                    width: gameLayoutManager.gridWidthSize,
+                    height: gameLayoutManager.gameScoresComponentHeight,
+                    score: score,
+                    gameLayoutManager: gameLayoutManager,
+                  );
+                },
+              ),
+              SizedBox(height: gameLayoutManager.gridSpacing),
+              GameGridComponent(
+                key: gridKey,
+                showBorders: showBorders,
+                onMessage: onMessage,
+                updateScoresRefresh: updateScoresRefresh,
+                gameLayoutManager: gameLayoutManager,
+                disableSpellCheck: spelledWordsLogic.disableSpellCheck,
+              ),
+              SizedBox(height: gameLayoutManager.gridSpacing),
+              ValueListenableBuilder<String>(
+                valueListenable: messageNotifier,
+                builder: (context, message, child) {
+                  LogService.logDebug('GameMessageComponent rebuild');
+                  return GameMessageComponent(
+                    width: gameLayoutManager.gameMessageComponentWidth,
+                    height: gameLayoutManager.gameMessageComponentHeight,
+                    message: message,
+                    gameLayoutManager: gameLayoutManager,
+                  );
+                },
+              ),
+
+              WildcardColumnComponent(
+                key: wildcardKey,
+                width: gameLayoutManager.gameContainerWidth,
+                height: gameLayoutManager.wilcardsContainerHeight,
+                showBorders: showBorders,
+                isHorizontal: true,
+                gridSpacing: gameLayoutManager.gridSpacing,
+                gameLayoutManager: gameLayoutManager,
+              ),
+              SizedBox(height: gameLayoutManager.gridSpacing),
+
+              GameButtonsComponent(onSubmit: onSubmit, onClear: onClear, gameLayoutManager: gameLayoutManager),
+            ],
+          ),
         ),
-        const SizedBox(height: 20.0),
-        ValueListenableBuilder<int>(
-          valueListenable: scoreNotifier,
-          builder: (context, score, child) {
-            LogService.logDebug('GameScoresComponent rebuild');
-            return GameScores(
-              width: gameLayoutManager.gridWidthSize,
-              height: 100,
-              score: score,
-              gameLayoutManager: gameLayoutManager,
-            );
-          },
-        ),
-        SizedBox(height: gameLayoutManager.gridSpacing),
-        GameGridComponent(
-          key: gridKey,
-          showBorders: showBorders,
-          onMessage: onMessage,
-          updateScoresRefresh: updateScoresRefresh, // Pass this
-          gameLayoutManager: gameLayoutManager,
-        ),
-        SizedBox(height: gameLayoutManager.gridSpacing),
-        WildcardColumnComponent(
-          key: wildcardKey,
-          width: gameLayoutManager.gridWidthSize,
-          height: gameLayoutManager.gridSquareSize * 2,
-          showBorders: showBorders,
-          isHorizontal: true,
-          gridSpacing: gameLayoutManager.gridSpacing,
-          gameLayoutManager: gameLayoutManager,
-        ),
-        const SizedBox(height: 5.0),
-        ValueListenableBuilder<String>(
-          valueListenable: messageNotifier,
-          builder: (context, message, child) {
-            LogService.logDebug('GameMessageComponent rebuild');
-            return GameMessageComponent(width: gameLayoutManager.gridWidthSize, height: 100, message: message);
-          },
-        ),
-        const SizedBox(height: 5.0),
-        GameButtonsComponent(onSubmit: onSubmit, onClear: onClear, gameLayoutManager: gameLayoutManager),
       ],
     );
   }
