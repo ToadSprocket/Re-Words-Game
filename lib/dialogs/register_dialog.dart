@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:email_validator/email_validator.dart';
 import '../styles/app_styles.dart';
 import '../logic/api_service.dart';
 import '../managers/gameLayoutManager.dart';
+import 'privacy_policy_dialog.dart';
 
 class RegisterDialog {
   static Future<void> show(BuildContext context, ApiService api, GameLayoutManager gameLayoutManager) async {
@@ -46,12 +46,27 @@ class RegisterDialog {
                           _buildInputField(userNameController, 'Username', false, gameLayoutManager),
                           _buildInputField(displayNameController, 'Display Name', false, gameLayoutManager),
                           _buildInputField(emailController, 'Email Address', false, gameLayoutManager),
+
+                          const SizedBox(height: 8.0),
                           _buildInputField(confirmEmailController, 'Confirm Email Address', false, gameLayoutManager),
                           _buildInputField(passwordController, 'Password', true, gameLayoutManager),
+                          Center(
+                            child: TextButton(
+                              onPressed: () => PrivacyPolicyDialog.show(context, gameLayoutManager),
+                              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                              child: Text(
+                                'By signing up, you agree to our Privacy Policy',
+                                style: gameLayoutManager.dialogLinkStyle.copyWith(
+                                  fontSize: gameLayoutManager.dialogBodyFontSize * 0.9,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8.0),
 
                           // 🔹 Error Message Display (Fixed Size)
                           Container(
-                            height: 84.0,
+                            height: 40.0,
                             alignment: Alignment.center,
                             child:
                                 errorMessage != null
@@ -66,7 +81,7 @@ class RegisterDialog {
                       ),
                     ),
 
-                    const SizedBox(height: 16.0),
+                    const SizedBox(height: 3.0),
 
                     // 🔹 Register & Cancel Buttons
                     Row(

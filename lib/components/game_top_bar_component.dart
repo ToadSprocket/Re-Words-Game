@@ -2,7 +2,6 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '/styles/app_styles.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../logic/api_service.dart';
 import '../dialogs/logout_dialog.dart';
 import '../logic/spelled_words_handler.dart';
@@ -65,7 +64,7 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             IconButton(
-              icon: const Icon(FontAwesomeIcons.circleQuestion, size: 20.0, color: AppStyles.infoBarIconColors),
+              icon: const Icon(Icons.help_outline, size: 20.0, color: AppStyles.infoBarIconColors),
               padding: const EdgeInsets.all(4.0),
               constraints: const BoxConstraints(),
               onPressed: widget.onInstructions,
@@ -73,7 +72,7 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
             ),
             const SizedBox(width: 6.0),
             IconButton(
-              icon: const Icon(FontAwesomeIcons.chartSimple, size: 20.0, color: AppStyles.infoBarIconColors),
+              icon: const Icon(Icons.bar_chart, size: 20.0, color: AppStyles.infoBarIconColors),
               padding: const EdgeInsets.all(4.0),
               constraints: const BoxConstraints(),
               onPressed: widget.onHighScores,
@@ -81,7 +80,7 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
             ),
             const SizedBox(width: 6.0),
             IconButton(
-              icon: const Icon(FontAwesomeIcons.gavel, size: 20.0, color: AppStyles.infoBarIconColors),
+              icon: const Icon(Icons.gavel, size: 20.0, color: AppStyles.infoBarIconColors),
               padding: const EdgeInsets.all(4.0),
               constraints: const BoxConstraints(),
               onPressed: widget.onLegal,
@@ -90,7 +89,7 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
             const SizedBox(width: 6.0),
             IconButton(
               icon: Icon(
-                widget.api.loggedIn ? FontAwesomeIcons.circleUser : FontAwesomeIcons.arrowRightToBracket,
+                widget.api.loggedIn ? Icons.account_circle : Icons.login,
                 size: 20.0,
                 color: widget.api.loggedIn ? Colors.green : AppStyles.infoBarIconColors,
               ),

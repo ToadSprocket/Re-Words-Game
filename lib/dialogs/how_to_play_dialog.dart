@@ -36,82 +36,104 @@ class HowToPlayDialog {
                 ),
                 const SizedBox(height: 16.0),
                 Flexible(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Objective', style: gameLayoutManager.dialogTitleStyle.copyWith(fontSize: 18.0)),
-                        Text(
-                          'Find words in the 7x7 grid and maximize your score by strategically reusing letters.',
-                          style: gameLayoutManager.dialogContentStyle,
-                        ),
-                        const SizedBox(height: 12.0),
-                        Text(
-                          'Form words using adjacent letters in any direction (horizontal, vertical, diagonal).\n'
-                          'A letter used more than once in different words doubles in value every time it’s reused.\n'
-                          'You can use a letter up to 8 times, after that it’s value is capped. You cannot use the same word twice.\n\n'
-                          'Five Wildcards can be placed on unused tiles to multiply the total word score.',
-                          style: gameLayoutManager.dialogContentStyle,
-                        ),
-                        const SizedBox(height: 12.0),
-                        Row(
+                  child: Stack(
+                    children: [
+                      SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            LetterSquareComponent(
-                              tile: standardTile,
-                              gameLayoutManager: gameLayoutManager,
-                              helpDialog: true,
-                            ),
-                            const SizedBox(width: 8.0),
+                            Text('Objective', style: gameLayoutManager.dialogTitleStyle.copyWith(fontSize: 18.0)),
                             Text(
-                              'Standard: Letter tile with a base score.',
+                              'Find words in the 7x7 grid and maximize your score by strategically reusing letters.',
                               style: gameLayoutManager.dialogContentStyle,
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 8.0),
-                        Row(
-                          children: [
-                            LetterSquareComponent(
-                              tile: usedTile,
-                              gameLayoutManager: gameLayoutManager,
-                              helpDialog: true,
-                            ),
-                            const SizedBox(width: 8.0),
-                            Text('Used: Each reuse doubles its value.', style: gameLayoutManager.dialogContentStyle),
-                          ],
-                        ),
-                        const SizedBox(height: 8.0),
-                        Row(
-                          children: [
-                            LetterSquareComponent(
-                              tile: wildcardTile,
-                              gameLayoutManager: gameLayoutManager,
-                              helpDialog: true,
-                            ),
-                            const SizedBox(width: 8.0),
+                            const SizedBox(height: 12.0),
                             Text(
-                              'Wildcard: Multiply the word’s total value.',
+                              'Form words using adjacent letters in any direction (horizontal, vertical, diagonal).\n'
+                              'A letter used more than once in different words doubles in value every time it\'s reused.\n'
+                              'You can use a letter up to 8 times, after that it\'s value is capped. You cannot use the same word twice.\n\n'
+                              'Five Wildcards can be placed on unused tiles to multiply the total word score.',
                               style: gameLayoutManager.dialogContentStyle,
                             ),
+                            const SizedBox(height: 12.0),
+                            Row(
+                              children: [
+                                LetterSquareComponent(
+                                  tile: standardTile,
+                                  gameLayoutManager: gameLayoutManager,
+                                  helpDialog: true,
+                                ),
+                                const SizedBox(width: 8.0),
+                                Text(
+                                  'Standard: Letter tile with a base score.',
+                                  style: gameLayoutManager.dialogContentStyle,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8.0),
+                            Row(
+                              children: [
+                                LetterSquareComponent(
+                                  tile: usedTile,
+                                  gameLayoutManager: gameLayoutManager,
+                                  helpDialog: true,
+                                ),
+                                const SizedBox(width: 8.0),
+                                Text(
+                                  'Used: Each reuse doubles its value.',
+                                  style: gameLayoutManager.dialogContentStyle,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8.0),
+                            Row(
+                              children: [
+                                LetterSquareComponent(
+                                  tile: wildcardTile,
+                                  gameLayoutManager: gameLayoutManager,
+                                  helpDialog: true,
+                                ),
+                                const SizedBox(width: 8.0),
+                                Text(
+                                  'Wildcard: Multiply the word\'s total value.',
+                                  style: gameLayoutManager.dialogContentStyle,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12.0),
+                            Text(
+                              'Plan ahead! Reuse letters as much as possible to stack multipliers.\n'
+                              'Wildcards can dramatically boost your score when used in high-value words.\n'
+                              'Longer words = higher points!\n'
+                              'Can you maximize the board and achieve the highest possible score?',
+                              style: gameLayoutManager.dialogContentStyle,
+                            ),
+                            const SizedBox(height: 12.0),
+                            Center(
+                              child: Text(
+                                'Re-Think. Strategize. Re-Word!\n',
+                                style: gameLayoutManager.dialogContentStyle.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 12.0),
-                        Text(
-                          'Plan ahead! Reuse letters as much as possible to stack multipliers.\n'
-                          'Wildcards can dramatically boost your score when used in high-value words.\n'
-                          'Longer words = higher points!\n'
-                          'Can you maximize the board and achieve the highest possible score?',
-                          style: gameLayoutManager.dialogContentStyle,
-                        ),
-                        const SizedBox(height: 12.0),
-                        Center(
-                          child: Text(
-                            'Re-Think. Strategize. Re-Word!',
-                            style: gameLayoutManager.dialogContentStyle.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          height: 40,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [AppStyles.dialogBackgroundColor.withOpacity(0), AppStyles.dialogBackgroundColor],
+                            ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: AppStyles.dialogButtonPadding),
