@@ -25,7 +25,7 @@ class NarrowScreen extends StatelessWidget {
   final GameLayoutManager gameLayoutManager;
   final SpelledWordsLogic spelledWordsLogic;
   final GlobalKey<GameGridComponentState> gridKey;
-  final GlobalKey<WildcardColumnComponentState> wildcardKey;
+  final GlobalKey wildcardKey;
   final Function(String) onMessage;
   final ValueNotifier<String> messageNotifier;
   final ValueNotifier<int> scoreNotifier;

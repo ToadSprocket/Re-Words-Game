@@ -33,6 +33,7 @@ class GameGridComponentState extends State<GameGridComponent> {
   List<Tile> selectedTiles = [];
   List<Tile> gridTiles = [];
   bool isSelecting = false;
+  bool isLoading = true; // Add loading state
 
   List<Tile> getTiles() => gridTiles;
 
@@ -45,7 +46,10 @@ class GameGridComponentState extends State<GameGridComponent> {
   }
 
   void setTiles(List<Tile> newTiles) {
-    gridTiles = newTiles;
+    setState(() {
+      gridTiles = newTiles;
+      isLoading = false;
+    });
   }
 
   @override
@@ -53,23 +57,34 @@ class GameGridComponentState extends State<GameGridComponent> {
     super.initState();
     spelledWordsLogic = SpelledWordsLogic(disableSpellCheck: widget.disableSpellCheck);
     gridTiles = List.from(GridLoader.gridTiles);
+    isLoading = gridTiles.isEmpty;
   }
 
   Future<void> _loadTiles() async {
+    setState(() {
+      isLoading = true;
+    });
+
     // Use GridLoader's already-loaded data
     if (GridLoader.gridTiles.isEmpty) {
+      setState(() {
+        isLoading = false;
+      });
       return;
     }
+
     setState(() {
       gridTiles =
           GridLoader.gridTiles.map((tileData) {
             return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: false, isRemoved: false);
           }).toList();
+      isLoading = false;
     });
   }
 
   Future<void> reloadTiles() async {
     setState(() {
+      isLoading = true;
       _loadTiles();
       selectedTiles.clear();
     });
@@ -159,7 +174,21 @@ class GameGridComponentState extends State<GameGridComponent> {
       height: widget.gameLayoutManager.gridHeightSize,
       decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 1)) : null,
       child:
-          gridTiles.isEmpty
+          isLoading
+              ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Loading Game Board...',
+                      style: TextStyle(color: Colors.grey[600], fontSize: widget.gameLayoutManager.gameMessageFontSize),
+                    ),
+                  ],
+                ),
+              )
+              : gridTiles.isEmpty
               ? const Center(child: CircularProgressIndicator())
               : GridView.count(
                 crossAxisCount: GameLayoutManager.gridCols,
