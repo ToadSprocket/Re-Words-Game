@@ -287,6 +287,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
       // Show initial loading state
       setState(() {
         _gridKey.currentState?.reloadTiles();
+        _wildcardKey.currentState?.reloadWildcardTiles();
       });
 
       final response = await api.register(Platform.localeName, 'Windows');
@@ -304,6 +305,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
       // Update UI with new board
       setState(() {
         _gridKey.currentState?.reloadTiles();
+        _wildcardKey.currentState?.reloadWildcardTiles();
       });
     } catch (e) {
       LogService.logError('Error registering new user: $e');
@@ -317,6 +319,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
       // Show loading state while checking if we should load a new board
       setState(() {
         _gridKey.currentState?.reloadTiles();
+        _wildcardKey.currentState?.reloadWildcardTiles();
       });
 
       // Calculate the score BEFORE switching boards
@@ -332,12 +335,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
           // Show loading animation while updating the UI
           setState(() {
             _gridKey.currentState?.reloadTiles();
+            _wildcardKey.currentState?.reloadWildcardTiles();
           });
         } else {
           LogService.logError("❌ Failed to load new board. Falling back to stored board.");
           await GridLoader.loadStoredBoard();
           setState(() {
             _gridKey.currentState?.reloadTiles();
+            _wildcardKey.currentState?.reloadWildcardTiles();
           });
         }
       } else {
