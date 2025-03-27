@@ -134,6 +134,18 @@ class StateManager {
     return DateTime.now().difference(DateTime.parse(refreshTokenDate)).inDays > 90; // 3-month expiry
   }
 
+  /// Check if welcome animation has been shown
+  static Future<bool> hasShownWelcomeAnimation() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('hasShownWelcomeAnimation') ?? false;
+  }
+
+  /// Mark welcome animation as shown
+  static Future<void> markWelcomeAnimationShown() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hasShownWelcomeAnimation', true);
+  }
+
   static bool isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }

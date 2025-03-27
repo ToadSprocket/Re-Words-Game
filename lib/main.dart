@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:universal_html/html.dart' as html;
 import 'package:window_manager/window_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -30,6 +31,7 @@ import 'services/word_database.dart';
 import 'services/word_service.dart';
 import 'services/word_import_service.dart';
 import 'dialogs/welcome_dialog.dart';
+import 'dialogs/loading_dialog.dart';
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
@@ -49,7 +51,65 @@ const double INITIAL_WINDOW_HEIGHT = 768.0;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Configure logging based on build mode
+  LogService.configureLogging();
+
   final GameLayoutManager layoutManager = GameLayoutManager();
+
+  // Platform-specific authentication
+  String? userId;
+  String? authToken;
+
+  if (kIsWeb) {
+    // Security check for direct access
+    Future.delayed(Duration(milliseconds: 300), () {
+      if (userId == null || authToken == null) {
+        html.document.body?.setInnerHtml(
+          '<div style="text-align:center; padding:2rem; color:white; background-color:#1a1a1a; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">'
+          '<h2 style="color:#ff4444; margin-bottom:1rem;">🚫 Unauthorized Access</h2>'
+          '<p style="font-size:1.2rem;">This game must be launched from the Re-Word platform.</p>'
+          '<p style="margin-top:1rem; color:#888;">Please visit <a href="https://www.rewordgame.net" style="color:#4CAF50;">www.rewordgame.net</a> to play.</p>'
+          '</div>',
+          treeSanitizer: html.NodeTreeSanitizer.trusted,
+        );
+      }
+    });
+
+    // Listen for auth data from React
+    html.window.onMessage.listen((event) {
+      if (event.origin != 'https://alpha.rewordgame.net') {
+        print('Blocked message from unauthorized origin: ${event.origin}');
+        return;
+      }
+
+      if (event.data['type'] == 'AUTH_DATA') {
+        userId = event.data['userId'];
+        authToken = event.data['token'];
+
+        if (userId == null || authToken == null) {
+          print('Missing authentication data');
+          return;
+        }
+
+        // Start the app once we have auth data
+        runApp(
+          ChangeNotifierProvider<ApiService>(
+            create: (context) => ApiService()..setAuthToken(authToken!),
+            child: ReWordApp(layoutManager: layoutManager, userId: userId, authToken: authToken),
+          ),
+        );
+      }
+    });
+  } else {
+    // Non-web platforms will initialize differently
+    runApp(
+      ChangeNotifierProvider<ApiService>(
+        create: (context) => ApiService(),
+        child: ReWordApp(layoutManager: layoutManager),
+      ),
+    );
+  }
 
   // Initialize SQLite for Windows
   if (Platform.isWindows || Platform.isLinux) {
@@ -117,32 +177,33 @@ void main() async {
   // Initialize the word database
   final wordDb = WordDatabase();
   await wordDb.initializeIfEmpty();
-
-  runApp(
-    ChangeNotifierProvider<ApiService>(
-      create: (context) => ApiService(),
-      child: ReWordApp(layoutManager: layoutManager),
-    ),
-  );
 }
 
 class ReWordApp extends StatelessWidget {
-  GameLayoutManager layoutManager = GameLayoutManager();
+  final GameLayoutManager layoutManager;
+  final String? userId;
+  final String? authToken;
 
-  ReWordApp({super.key, required this.layoutManager});
+  ReWordApp({super.key, required this.layoutManager, this.userId, this.authToken});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Re-Word Game',
       theme: AppStyles.appTheme,
-      home: GameLayoutProvider(gameLayoutManager: layoutManager, child: HomeScreen()),
+      home: GameLayoutProvider(
+        gameLayoutManager: layoutManager,
+        child: HomeScreen(userId: userId, authToken: authToken),
+      ),
     );
   }
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String? userId;
+  final String? authToken;
+
+  const HomeScreen({super.key, this.userId, this.authToken});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -229,13 +290,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     await _applyDebugControls();
     final userData = await StateManager.getUserData();
     bool isNewUser = await StateManager.isNewUser();
+    bool hasShownWelcome = await StateManager.hasShownWelcomeAnimation();
 
     // ✅ Restore previous game state BEFORE making any decisions
     await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
 
-    if (debugForceIntroAnimation) {
-      LogService.logInfo("🎬 Debug: Forcing intro animation");
+    if (!hasShownWelcome || debugForceIntroAnimation) {
+      LogService.logInfo("🎬 First time visit - Showing welcome animation");
       await WelcomeDialog.show(context, gameLayoutManager);
+      await StateManager.markWelcomeAnimationShown();
     }
 
     if (isNewUser) {
@@ -316,49 +379,45 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
 
     if (isExpired) {
-      // Show loading state while checking if we should load a new board
-      setState(() {
-        _gridKey.currentState?.reloadTiles();
-        _wildcardKey.currentState?.reloadWildcardTiles();
-      });
-
       // Calculate the score BEFORE switching boards
       final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
       final loadNewBoard = await _shouldLoadNewBoard();
 
       if (loadNewBoard) {
-        // Reset game state before loading a new board
-        await StateManager.resetState(_gridKey);
+        // Show loading dialog
+        LoadingDialog.show(context, gameLayoutManager, message: "Loading new board...");
 
-        bool success = await GridLoader.loadNewBoard(api, finalScore);
-        if (success) {
-          // Show loading animation while updating the UI
-          setState(() {
-            _gridKey.currentState?.reloadTiles();
-            _wildcardKey.currentState?.reloadWildcardTiles();
-          });
-        } else {
-          LogService.logError("❌ Failed to load new board. Falling back to stored board.");
-          await GridLoader.loadStoredBoard();
-          setState(() {
-            _gridKey.currentState?.reloadTiles();
-            _wildcardKey.currentState?.reloadWildcardTiles();
-          });
+        try {
+          // Reset game state before loading a new board
+          await StateManager.resetState(_gridKey);
+
+          bool success = await GridLoader.loadNewBoard(api, finalScore);
+          if (!success) {
+            LogService.logError("❌ Failed to load new board. Falling back to stored board.");
+            await GridLoader.loadStoredBoard();
+          }
+        } finally {
+          // Always try to dismiss the loading dialog
+          if (mounted) {
+            LoadingDialog.dismiss(context);
+          }
         }
       } else {
         // User chose to keep playing with the old board
         await GridLoader.loadStoredBoard();
-        // Don't reload tiles here since we've already restored state
       }
     } else {
       // Board is still valid, just load the stored board
       await GridLoader.loadStoredBoard();
-      // Don't reload tiles here since we've already restored state
     }
 
     // Update UI with current game state
-    scoreNotifier.value = SpelledWordsLogic.score;
-    spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
+    setState(() {
+      _gridKey.currentState?.reloadTiles();
+      _wildcardKey.currentState?.reloadWildcardTiles();
+      scoreNotifier.value = SpelledWordsLogic.score;
+      spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
+    });
   }
 
   Future<bool> _shouldLoadNewBoard() async {

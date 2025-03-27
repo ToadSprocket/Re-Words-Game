@@ -31,6 +31,12 @@ class ApiService with ChangeNotifier {
     }
   }
 
+  void setAuthToken(String token) {
+    accessToken = token;
+    loggedIn = true;
+    notifyListeners();
+  }
+
   /// **Log out user and clear tokens**
   void logout() async {
     loggedIn = false; // 🔥 Trigger UI update

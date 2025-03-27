@@ -4,18 +4,28 @@ import 'package:flutter/foundation.dart';
 enum LogLevel { debug, info, standard, production }
 
 class LogService {
-  /// 🔹 Current log level (default to `LogLevel.debug` for dev)
-  static LogLevel _currentLevel = LogLevel.debug;
+  /// 🔹 Current log level (default to `LogLevel.production` for production)
+  static LogLevel _currentLevel = LogLevel.production;
 
   /// 🔹 Set log level at runtime
   static void setLogLevel(LogLevel level) {
     _currentLevel = level;
   }
 
+  /// 🔹 Configure logging based on build mode
+  static void configureLogging() {
+    if (kDebugMode) {
+      _currentLevel = LogLevel.debug;
+    } else {
+      _currentLevel = LogLevel.production;
+    }
+  }
+
   /// 🔹 Internal log function to check if logging is allowed
   static void _log(String message, LogLevel level, {String prefix = ""}) {
-    if (kDebugMode && level.index >= _currentLevel.index) {
-      String timestamp = DateTime.now().toIso8601String(); // ✅ Add timestamp
+    // Always log errors in production, respect log level for other types
+    if (level == LogLevel.production || (kDebugMode && level.index >= _currentLevel.index)) {
+      String timestamp = DateTime.now().toIso8601String();
       debugPrint("[$timestamp] $prefix$message");
     }
   }
@@ -29,6 +39,6 @@ class LogService {
   /// 🔹 Standard logs (Only important messages)
   static void logStandard(String message) => _log(message, LogLevel.standard, prefix: "📌 [STANDARD] ");
 
-  /// 🔹 Errors (Always logs in `debug`, `info`, and `standard` modes)
+  /// 🔹 Errors (Always logs in all modes)
   static void logError(String message) => _log(message, LogLevel.production, prefix: "🚨 [ERROR] ");
 }
