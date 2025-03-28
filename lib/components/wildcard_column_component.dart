@@ -39,10 +39,15 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
   @override
   void initState() {
     super.initState();
-    _loadWildcardTiles();
+    // Only load from GridLoader if we don't have tiles yet
+    if (tiles.isEmpty) {
+      _loadWildcardTiles();
+    }
   }
 
   Future<void> _loadWildcardTiles() async {
+    if (tiles.isNotEmpty) return; // Skip if we already have tiles
+
     if (GridLoader.wildcardTiles.isEmpty) {
       LogService.logError('WildcardColumnComponent: No wildcard tiles available in GridLoader');
       return;

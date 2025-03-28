@@ -16,8 +16,8 @@ class IntroAnimation extends StatefulWidget {
 class _IntroAnimationState extends State<IntroAnimation> with TickerProviderStateMixin {
   // Animation durations
   static const int letterAnimationDuration = 100; // Duration for each letter animation
-  static const int sloganAnimationDuration = 1000; // Duration for slogan animation
-  static const int logoAnimationDuration = 2000; // Duration for logo animations
+  static const int sloganAnimationDuration = 800; // Duration for slogan animation
+  static const int logoAnimationDuration = 1000; // Duration for logo animations
 
   // Delays between animations
   static const int delayBetweenLetters = 500; // Delay between each letter animation
@@ -254,14 +254,7 @@ class _IntroAnimationState extends State<IntroAnimation> with TickerProviderStat
                   builder: (context, child) {
                     return Transform.translate(
                       offset: _logoSlideAnimations[1].value,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4)),
-                        child: const Center(
-                          child: Text('DR', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
+                      child: Image.asset('assets/images/DRTempSmall.png', width: 32, height: 32),
                     );
                   },
                 ),

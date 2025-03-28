@@ -82,20 +82,7 @@ class LegalDialog {
                               children: [
                                 const FlutterLogo(size: 32, style: FlutterLogoStyle.markOnly),
                                 const SizedBox(width: 16),
-                                Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Center(
-                                    child: Text(
-                                      'DR',
-                                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ),
+                                Image.asset('assets/images/DRTempSmall.png', width: 32, height: 32),
                               ],
                             ),
                             Text(' ', style: gameLayoutManager.dialogContentStyle),

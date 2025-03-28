@@ -43,8 +43,8 @@ const bool debugClearPrefs = false; // Clear all prefs for new user
 const bool debugForceIntroAnimation = false; // Force intro animation to play
 
 // Window size constants
-const double MIN_WINDOW_WIDTH = 720.0;
-const double MIN_WINDOW_HEIGHT = 768.0;
+const double MIN_WINDOW_WIDTH = 1000.0;
+const double MIN_WINDOW_HEIGHT = 800.0;
 const double NARROW_LAYOUT_THRESHOLD = 900.0;
 const double INITIAL_WINDOW_WIDTH = 1024.0;
 const double INITIAL_WINDOW_HEIGHT = 768.0;
@@ -286,45 +286,61 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   Future<void> _loadData() async {
     final api = Provider.of<ApiService>(context, listen: false);
 
-    await StateManager.setStartTime(); // Set start time for new session
+    await StateManager.setStartTime();
     await _applyDebugControls();
-    final userData = await StateManager.getUserData();
     bool isNewUser = await StateManager.isNewUser();
     bool hasShownWelcome = await StateManager.hasShownWelcomeAnimation();
 
-    // ✅ Restore previous game state BEFORE making any decisions
-    await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
-
-    if (!hasShownWelcome || debugForceIntroAnimation) {
-      LogService.logInfo("🎬 First time visit - Showing welcome animation");
+    // Handle welcome animation first
+    if (debugForceIntroAnimation || !hasShownWelcome) {
       await WelcomeDialog.show(context, gameLayoutManager);
       await StateManager.markWelcomeAnimationShown();
     }
 
     if (isNewUser) {
+      // New User Flow
       LogService.logInfo("👤 New User Detected - Registering...");
       await _handleNewUser(api);
     } else {
+      // Returning User Flow
       LogService.logInfo("👤 Existing User Detected - Loading board...");
-      await _handleExistingUser(api, userData);
+
+      // First check if we need a new board
+      final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
+
+      if (isExpired) {
+        final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
+        final loadNewBoard = await _shouldLoadNewBoard();
+
+        if (loadNewBoard) {
+          LoadingDialog.show(context, gameLayoutManager, message: "Loading new board...");
+          try {
+            await StateManager.resetState(_gridKey);
+            bool success = await GridLoader.loadNewBoard(api, finalScore);
+            if (!success) {
+              LogService.logError("❌ Failed to load new board. Falling back to stored board.");
+              await GridLoader.loadStoredBoard();
+            }
+          } finally {
+            if (mounted) LoadingDialog.dismiss(context);
+          }
+        } else {
+          await GridLoader.loadStoredBoard();
+        }
+      } else {
+        // Board is still valid, restore previous state
+        await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
+      }
     }
 
-    // 🚨 **Ensure we have a valid board loaded before continuing**
+    // Final UI sync (only if we have tiles)
     if (GridLoader.gridTiles.isEmpty) {
       LogService.logError("❌ No tiles loaded! Showing failure dialog...");
       await FailureDialog.show(context, gameLayoutManager);
     } else {
       LogService.logInfo("✅ Board successfully loaded! Syncing UI...");
-
-      // ✅ Ensure UI updates after loading board
       scoreNotifier.value = SpelledWordsLogic.score;
       spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
-
-      if (isNewUser || debugForceIntroAnimation) {
-        // Only reload tiles for new users or when forcing intro
-        _gridKey.currentState?.reloadTiles();
-        _wildcardKey.currentState?.reloadWildcardTiles();
-      }
     }
   }
 
@@ -359,9 +375,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         return;
       }
 
-      // Show welcome animation
-      await WelcomeDialog.show(context, gameLayoutManager);
-
       final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
       await GridLoader.loadNewBoard(api, finalScore);
 
@@ -376,6 +389,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   }
 
   Future<void> _handleExistingUser(ApiService api, Map<String, String?> userData) async {
+    // Set up authentication state first
+    if (userData['accessToken'] != null) {
+      api.setAuthToken(userData['accessToken']!);
+    }
+
     final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
 
     if (isExpired) {
@@ -407,14 +425,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         await GridLoader.loadStoredBoard();
       }
     } else {
-      // Board is still valid, just load the stored board
-      await GridLoader.loadStoredBoard();
+      // Board is still valid, restore previous state
+      await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
     }
 
     // Update UI with current game state
     setState(() {
-      _gridKey.currentState?.reloadTiles();
-      _wildcardKey.currentState?.reloadWildcardTiles();
       scoreNotifier.value = SpelledWordsLogic.score;
       spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
     });

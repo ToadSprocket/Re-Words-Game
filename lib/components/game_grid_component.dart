@@ -56,7 +56,10 @@ class GameGridComponentState extends State<GameGridComponent> {
   void initState() {
     super.initState();
     spelledWordsLogic = SpelledWordsLogic(disableSpellCheck: widget.disableSpellCheck);
-    gridTiles = List.from(GridLoader.gridTiles);
+    // Only load from GridLoader if we don't have tiles yet
+    if (gridTiles.isEmpty) {
+      gridTiles = List.from(GridLoader.gridTiles);
+    }
     isLoading = gridTiles.isEmpty;
   }
 
@@ -65,28 +68,31 @@ class GameGridComponentState extends State<GameGridComponent> {
       isLoading = true;
     });
 
-    // Use GridLoader's already-loaded data
-    if (GridLoader.gridTiles.isEmpty) {
+    // Only load from GridLoader if we don't have tiles
+    if (gridTiles.isEmpty && GridLoader.gridTiles.isNotEmpty) {
+      setState(() {
+        gridTiles =
+            GridLoader.gridTiles.map((tileData) {
+              return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: false, isRemoved: false);
+            }).toList();
+        isLoading = false;
+      });
+    } else {
       setState(() {
         isLoading = false;
       });
-      return;
     }
-
-    setState(() {
-      gridTiles =
-          GridLoader.gridTiles.map((tileData) {
-            return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: false, isRemoved: false);
-          }).toList();
-      isLoading = false;
-    });
   }
 
   Future<void> reloadTiles() async {
     setState(() {
       isLoading = true;
-      _loadTiles();
+      // Only reload if we don't have tiles
+      if (gridTiles.isEmpty) {
+        _loadTiles();
+      }
       selectedTiles.clear();
+      isLoading = false;
     });
   }
 

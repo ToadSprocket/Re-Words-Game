@@ -11,6 +11,7 @@ import '../components/wildcard_column_component.dart';
 import '../models/tile.dart';
 import '../models/api_models.dart';
 import '../logic/logging_handler.dart';
+import '../logic/grid_loader.dart';
 
 extension DateTimeExtension on DateTime {
   DateTime dateOnly() => DateTime(year, month, day);
@@ -56,8 +57,15 @@ class StateManager {
     final selectedIndicesJson = prefs.getString('selectedIndices');
     if (gridTilesJson != null) {
       final List<dynamic> tileData = jsonDecode(gridTilesJson);
-      gridKey?.currentState?.setTiles(tileData.map((data) => Tile.fromJson(data)).toList());
+      final List<Tile> restoredTiles = tileData.map((data) => Tile.fromJson(data)).toList();
+
+      // Convert restored tiles to GridLoader format
+      GridLoader.gridTiles = restoredTiles.map((tile) => {'letter': tile.letter, 'value': tile.value}).toList();
+
+      // Set tiles in grid component
+      gridKey?.currentState?.setTiles(restoredTiles);
     }
+
     if (selectedIndicesJson != null) {
       gridKey?.currentState?.setSelectedIndices((jsonDecode(selectedIndicesJson) as List).cast<int>());
     }
@@ -67,9 +75,16 @@ class StateManager {
     final wildcardTilesJson = prefs.getString('wildcardTiles');
     if (wildcardTilesJson != null) {
       final List<dynamic> tileData = jsonDecode(wildcardTilesJson);
-      wildcardKey?.currentState?.tiles = tileData.map((data) => Tile.fromJson(data)).toList();
+      final List<Tile> restoredTiles = tileData.map((data) => Tile.fromJson(data)).toList();
+
+      // Convert restored tiles to GridLoader format
+      GridLoader.wildcardTiles = restoredTiles.map((tile) => {'letter': tile.letter, 'value': tile.value}).toList();
+
+      // Set tiles in wildcard component
+      wildcardKey?.currentState?.tiles = restoredTiles;
       wildcardKey?.currentState?.setState(() {}); // Trigger UI update
     }
+
     LogService.logInfo('Game state restored successfully');
   }
 
