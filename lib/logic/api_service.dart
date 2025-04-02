@@ -351,6 +351,32 @@ class ApiService with ChangeNotifier {
     return false;
   }
 
+  /// **Validate Session**
+  Future<bool> validateSession(String sanityToken) async {
+    await _getTokens(); // Ensure tokens are loaded
+
+    if (userId == null || accessToken == null) {
+      LogService.logError("🚨 Cannot validate session - missing userId or accessToken");
+      return false;
+    }
+
+    final headers = {
+      'X-API-Key': Security.generateApiKeyHash(),
+      'Authorization': 'Bearer $accessToken',
+      'Content-Type': 'application/json',
+    };
+
+    final body = jsonEncode({"userId": userId, "sanityToken": sanityToken});
+
+    try {
+      final response = await _makeApiRequest(false, '${Config.apiUrl}/validate-session', headers, body);
+      return response.statusCode == 200;
+    } catch (e) {
+      LogService.logError("🚨 Session validation failed: $e");
+      return false;
+    }
+  }
+
   /// **Parse API Response into `ApiResponse`**
   ApiResponse _parseResponse(http.Response response) {
     print('📡 API Response - Status: ${response.statusCode}, Body: ${response.body}');

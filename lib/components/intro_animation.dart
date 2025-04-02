@@ -254,7 +254,7 @@ class _IntroAnimationState extends State<IntroAnimation> with TickerProviderStat
                   builder: (context, child) {
                     return Transform.translate(
                       offset: _logoSlideAnimations[1].value,
-                      child: Image.asset('assets/images/DRTempSmall.png', width: 32, height: 32),
+                      child: Image.asset('assets/images/DR_TRANSPARENT.png', width: 32),
                     );
                   },
                 ),

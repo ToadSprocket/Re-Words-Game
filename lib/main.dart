@@ -60,11 +60,22 @@ void main() async {
   // Platform-specific authentication
   String? userId;
   String? authToken;
+  String? sanityToken;
 
   if (kIsWeb) {
-    // Security check for direct access
-    Future.delayed(Duration(milliseconds: 300), () {
-      if (userId == null || authToken == null) {
+    // Show loading state while waiting for auth
+    html.document.body?.setInnerHtml(
+      '<div style="text-align:center; padding:2rem; color:white; background-color:#1a1a1a; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">'
+      '<h2 style="color:#4CAF50; margin-bottom:1rem;">🔄 Loading Re-Word Game</h2>'
+      '<p style="font-size:1.2rem;">Please wait while we verify your session...</p>'
+      '</div>',
+      treeSanitizer: html.NodeTreeSanitizer.trusted,
+    );
+
+    // Listen for auth data from React
+    html.window.onMessage.listen((event) async {
+      if (event.origin != 'https://alpha.rewordgame.net') {
+        LogService.logError('Unauthorized event origin from ${event.origin}');
         html.document.body?.setInnerHtml(
           '<div style="text-align:center; padding:2rem; color:white; background-color:#1a1a1a; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">'
           '<h2 style="color:#ff4444; margin-bottom:1rem;">🚫 Unauthorized Access</h2>'
@@ -73,29 +84,40 @@ void main() async {
           '</div>',
           treeSanitizer: html.NodeTreeSanitizer.trusted,
         );
-      }
-    });
-
-    // Listen for auth data from React
-    html.window.onMessage.listen((event) {
-      if (event.origin != 'https://alpha.rewordgame.net') {
-        print('Blocked message from unauthorized origin: ${event.origin}');
         return;
       }
 
       if (event.data['type'] == 'AUTH_DATA') {
         userId = event.data['userId'];
         authToken = event.data['token'];
+        sanityToken = event.data['sanityToken'];
 
-        if (userId == null || authToken == null) {
-          print('Missing authentication data');
+        if (userId == null || authToken == null || sanityToken == null) {
+          LogService.logError('Missing authentication data');
           return;
         }
 
-        // Start the app once we have auth data
+        // Validate the session before starting the app
+        final apiService = ApiService()..setAuthToken(authToken!);
+        final isValid = await apiService.validateSession(sanityToken!);
+
+        if (!isValid) {
+          LogService.logError('Invalid session detected');
+          html.document.body?.setInnerHtml(
+            '<div style="text-align:center; padding:2rem; color:white; background-color:#1a1a1a; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">'
+            '<h2 style="color:#ff4444; margin-bottom:1rem;">🚫 Invalid Session</h2>'
+            '<p style="font-size:1.2rem;">Your session is invalid or has expired.</p>'
+            '<p style="margin-top:1rem; color:#888;">Please refresh the page or visit <a href="https://www.rewordgame.net" style="color:#4CAF50;">www.rewordgame.net</a> to play.</p>'
+            '</div>',
+            treeSanitizer: html.NodeTreeSanitizer.trusted,
+          );
+          return;
+        }
+
+        // Start the app once we have valid auth data
         runApp(
           ChangeNotifierProvider<ApiService>(
-            create: (context) => ApiService()..setAuthToken(authToken!),
+            create: (context) => apiService,
             child: ReWordApp(layoutManager: layoutManager, userId: userId, authToken: authToken),
           ),
         );

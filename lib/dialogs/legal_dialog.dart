@@ -82,7 +82,7 @@ class LegalDialog {
                               children: [
                                 const FlutterLogo(size: 32, style: FlutterLogoStyle.markOnly),
                                 const SizedBox(width: 16),
-                                Image.asset('assets/images/DRTempSmall.png', width: 32, height: 32),
+                                Image.asset('assets/images/DR_TRANSPARENT.png', width: 32),
                               ],
                             ),
                             Text(' ', style: gameLayoutManager.dialogContentStyle),
