@@ -2,6 +2,7 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // For SystemNavigator.pop
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../styles/app_styles.dart';
 import 'package:window_manager/window_manager.dart';
 import 'dart:io';
@@ -51,7 +52,7 @@ class FailureDialog {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+                    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
                       await windowManager.destroy(); // Force close on desktop
                     } else {
                       SystemNavigator.pop(); // Mobile fallback

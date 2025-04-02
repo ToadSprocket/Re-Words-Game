@@ -134,7 +134,7 @@ void main() async {
   }
 
   // Initialize SQLite for Windows
-  if (Platform.isWindows || Platform.isLinux) {
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
     // Initialize FFI for sqflite
     sqfliteFfiInit();
     // Change the default factory for Windows
@@ -156,7 +156,7 @@ void main() async {
   }
 
   // Set minimum window size and initial window size
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     setWindowTitle('Re-Word Game');
 
     // Set minimum size
@@ -252,6 +252,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
       setState(() {}); // ✅ Force rebuild to apply new sizes
     });
 
+    // Only add window manager listener for desktop platforms
     if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
       windowManager.addListener(this);
     }
@@ -261,6 +262,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    // Only remove window manager listener for desktop platforms
     if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
       windowManager.removeListener(this);
     }
@@ -281,7 +283,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     await StateManager.saveState(_gridKey, _wildcardKey);
     await StateManager.updatePlayTime();
     super.onWindowClose();
-    await windowManager.destroy();
+    // Only destroy window manager for desktop platforms
+    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      await windowManager.destroy();
+    }
   }
 
   @override
@@ -362,7 +367,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
   Future<void> _handleNewUser(ApiService api) async {
     try {
-      final response = await api.register(Platform.localeName, 'Windows');
+      // Get locale based on platform
+      String locale = kIsWeb ? 'en-US' : Platform.localeName;
+      final response = await api.register(locale, kIsWeb ? 'Web' : 'Windows');
       if (response.security == null) {
         LogService.logError('Error: Registration failed - null security');
         return;

@@ -1,7 +1,7 @@
-import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -16,7 +16,11 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDB(String filePath) async {
-    // Initialize FFI for Windows
+    if (kIsWeb) {
+      throw UnsupportedError('Database operations are not supported on web platform');
+    }
+
+    // Initialize FFI for Windows/Linux
     if (Platform.isWindows || Platform.isLinux) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;

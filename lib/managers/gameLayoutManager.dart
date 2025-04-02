@@ -18,7 +18,9 @@ class GameLayoutManager {
   static const Duration minUpdateInterval = Duration(milliseconds: 100);
   ValueNotifier<List<String>>? spelledWordsNotifier;
 
-  GameLayoutManager._internal();
+  GameLayoutManager._internal() {
+    isWeb = kIsWeb;
+  }
 
   // Layout constants
   static const double NARROW_LAYOUT_THRESHOLD = 900.0;

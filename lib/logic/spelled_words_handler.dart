@@ -133,7 +133,7 @@ class SpelledWordsLogic {
     return SubmitScoreRequest(
       userId: "", // ✅ This will be filled in the API service
       platform: kIsWeb ? "Web" : "Windows",
-      locale: Platform.localeName,
+      locale: kIsWeb ? 'en-US' : Platform.localeName,
       timePlayedSeconds: timePlayed,
       wordCount: spelledWords.length,
       wildcardUses: wildCardUses,
