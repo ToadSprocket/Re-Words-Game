@@ -304,34 +304,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     } else {
       // Returning User Flow
       LogService.logInfo("👤 Existing User Detected - Loading board...");
-
-      // First check if we need a new board
-      final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
-
-      if (isExpired) {
-        final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
-        final loadNewBoard = await _shouldLoadNewBoard();
-
-        if (loadNewBoard) {
-          LoadingDialog.show(context, gameLayoutManager, message: "Loading new board...");
-          try {
-            await StateManager.resetState(_gridKey);
-            bool success = await GridLoader.loadNewBoard(api, finalScore);
-            if (!success) {
-              LogService.logError("❌ Failed to load new board. Falling back to stored board.");
-              await GridLoader.loadStoredBoard();
-            }
-          } finally {
-            if (mounted) LoadingDialog.dismiss(context);
-          }
-        } else {
-          await GridLoader.loadStoredBoard();
-        }
-      } else {
-        // Board is still valid, restore previous state
-        await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
-      }
+      await _loadBoardForUser(api);
     }
+
+    _gridKey.currentState?.reloadTiles();
+    _wildcardKey.currentState?.reloadWildcardTiles();
 
     // Final UI sync (only if we have tiles)
     if (GridLoader.gridTiles.isEmpty) {
@@ -363,12 +340,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
   Future<void> _handleNewUser(ApiService api) async {
     try {
-      // Show initial loading state
-      setState(() {
-        _gridKey.currentState?.reloadTiles();
-        _wildcardKey.currentState?.reloadWildcardTiles();
-      });
-
       final response = await api.register(Platform.localeName, 'Windows');
       if (response.security == null) {
         LogService.logError('Error: Registration failed - null security');
@@ -388,52 +359,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     }
   }
 
-  Future<void> _handleExistingUser(ApiService api, Map<String, String?> userData) async {
-    // Set up authentication state first
-    if (userData['accessToken'] != null) {
-      api.setAuthToken(userData['accessToken']!);
-    }
-
+  Future<void> _loadBoardForUser(ApiService api) async {
+    // First check if we need a new board
     final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
 
     if (isExpired) {
-      // Calculate the score BEFORE switching boards
       final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
       final loadNewBoard = await _shouldLoadNewBoard();
 
       if (loadNewBoard) {
-        // Show loading dialog
         LoadingDialog.show(context, gameLayoutManager, message: "Loading new board...");
-
         try {
-          // Reset game state before loading a new board
           await StateManager.resetState(_gridKey);
-
           bool success = await GridLoader.loadNewBoard(api, finalScore);
           if (!success) {
             LogService.logError("❌ Failed to load new board. Falling back to stored board.");
             await GridLoader.loadStoredBoard();
           }
         } finally {
-          // Always try to dismiss the loading dialog
-          if (mounted) {
-            LoadingDialog.dismiss(context);
-          }
+          if (mounted) LoadingDialog.dismiss(context);
         }
       } else {
-        // User chose to keep playing with the old board
         await GridLoader.loadStoredBoard();
       }
     } else {
       // Board is still valid, restore previous state
       await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
     }
-
-    // Update UI with current game state
-    setState(() {
-      scoreNotifier.value = SpelledWordsLogic.score;
-      spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
-    });
   }
 
   Future<bool> _shouldLoadNewBoard() async {

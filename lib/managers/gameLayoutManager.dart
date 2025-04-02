@@ -51,6 +51,8 @@ class GameLayoutManager {
   // Screen properties
   late double screenWidth;
   late double screenHeight;
+  double oldScreenWidth = 0;
+  double oldScreenHeight = 0;
   late bool isWeb;
 
   // Layout properties
@@ -194,6 +196,13 @@ class GameLayoutManager {
     screenWidth = MediaQuery.of(context).size.width;
     screenHeight = MediaQuery.of(context).size.height;
     isWeb = kIsWeb;
+
+    if (oldScreenWidth == 0 && oldScreenHeight == 0) {
+      oldScreenWidth = screenWidth;
+      oldScreenHeight = screenHeight;
+    } else if (oldScreenWidth == screenWidth && oldScreenHeight == screenHeight) {
+      return;
+    }
 
     // Determine if we should use narrow layout
     bool isNarrowLayout = screenWidth < NARROW_LAYOUT_THRESHOLD;
@@ -441,10 +450,6 @@ class GameLayoutManager {
     var gameLayout = isNarrowLayout ? 'Narrow' : 'Wide';
 
     LogService.logInfo('Screen Width: $screenWidth, Screen Height: $screenHeight, Game Layout: $gameLayout');
-    LogService.logInfo('Score Font Size: $scoreFontSize');
-    LogService.logInfo(
-      'Title Font Size: $titleFontSize, Slogan Font Size: $sloganFontSize, TitleComponentHeight: $gameTitleComponentHeight',
-    );
   }
 
   bool calculateSpelledWordsLayout(int totalColumns, double totalWidth) {
@@ -476,11 +481,6 @@ class GameLayoutManager {
       desiredWildcardWidth = desiredWildcardWidth! + neededSpace;
       changed = true;
     }
-
-    // Log final layout state
-    LogService.logInfo(
-      'Final Layout - Desired Spelled Words Width: $desiredSpelledWordsWidth, Desired Wildcard Width: $desiredWildcardWidth, Changed: $changed',
-    );
 
     return changed;
   }
