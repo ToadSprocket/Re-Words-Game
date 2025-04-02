@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:universal_html/html.dart' as html;
 import 'package:window_manager/window_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'styles/app_styles.dart';
 import 'logic/grid_loader.dart';
 import 'logic/game_layout.dart';
@@ -27,11 +26,9 @@ import 'models/api_models.dart';
 import '../logic/logging_handler.dart';
 import '../managers/gameLayoutManager.dart';
 import 'package:window_size/window_size.dart';
-import 'services/word_database.dart';
-import 'services/word_service.dart';
-import 'services/word_import_service.dart';
 import 'dialogs/welcome_dialog.dart';
 import 'dialogs/loading_dialog.dart';
+import 'services/word_service.dart';
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
@@ -54,6 +51,9 @@ void main() async {
 
   // Configure logging based on build mode
   LogService.configureLogging();
+
+  final wordService = WordService();
+  await wordService.initialize();
 
   final GameLayoutManager layoutManager = GameLayoutManager();
 
@@ -133,28 +133,6 @@ void main() async {
     );
   }
 
-  // Initialize SQLite for Windows
-  if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
-    // Initialize FFI for sqflite
-    sqfliteFfiInit();
-    // Change the default factory for Windows
-    databaseFactory = databaseFactoryFfi;
-  }
-
-  // Initialize word services
-  final wordImportService = WordImportService();
-  final wordService = WordService();
-
-  // Import word list if database is empty
-  if (await wordService.getWordCount() == 0) {
-    try {
-      await wordImportService.importWordList();
-    } catch (e) {
-      print('Error importing word list: $e');
-      // Handle the error appropriately
-    }
-  }
-
   // Set minimum window size and initial window size
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     setWindowTitle('Re-Word Game');
@@ -195,10 +173,6 @@ void main() async {
       await windowManager.focus();
     });
   }
-
-  // Initialize the word database
-  final wordDb = WordDatabase();
-  await wordDb.initializeIfEmpty();
 }
 
 class ReWordApp extends StatelessWidget {

@@ -1,44 +1,32 @@
-import 'package:sqflite/sqflite.dart';
-import 'database_helper.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class WordService {
-  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  static final WordService _instance = WordService._internal();
+  static final Set<String> _wordSet = {};
 
-  Future<void> importWords(List<String> words) async {
-    final db = await _dbHelper.database;
-    final batch = db.batch();
+  factory WordService() => _instance;
 
-    for (final word in words) {
-      batch.insert('words', {
-        'word': word.toLowerCase(),
-        'length': word.length,
-      }, conflictAlgorithm: ConflictAlgorithm.ignore);
-    }
-    await batch.commit();
-  }
+  WordService._internal();
 
-  Future<List<String>> getWordsByLength(int length) async {
-    final db = await _dbHelper.database;
-    final List<Map<String, dynamic>> maps = await db.query('words', where: 'length = ?', whereArgs: [length]);
+  Future<void> initialize() async {
+    if (_wordSet.isNotEmpty) return; // Only load once
 
-    return List.generate(maps.length, (i) => maps[i]['word'] as String);
+    final String content = await rootBundle.loadString('assets/words.txt');
+    _wordSet.addAll(content.split('\n').map((w) => w.trim().toLowerCase()));
   }
 
   Future<bool> isValidWord(String word) async {
-    final db = await _dbHelper.database;
-    final List<Map<String, dynamic>> maps = await db.query('words', where: 'word = ?', whereArgs: [word.toLowerCase()]);
-
-    return maps.isNotEmpty;
+    await initialize(); // Ensure words are loaded
+    return _wordSet.contains(word.toLowerCase());
   }
 
   Future<int> getWordCount() async {
-    final db = await _dbHelper.database;
-    final result = await db.rawQuery('SELECT COUNT(*) as count FROM words');
-    return Sqflite.firstIntValue(result) ?? 0;
+    await initialize();
+    return _wordSet.length;
   }
 
-  Future<void> clearWords() async {
-    final db = await _dbHelper.database;
-    await db.delete('words');
+  // Useful for testing
+  void clearWords() {
+    _wordSet.clear();
   }
 }

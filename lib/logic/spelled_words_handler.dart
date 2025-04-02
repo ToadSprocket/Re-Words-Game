@@ -50,7 +50,8 @@ class SpelledWordsLogic {
 
   Future<bool> isValidWord(String word) async {
     if (disableSpellCheck) return true;
-    return await _wordService.isValidWord(word);
+
+    return await _wordService.isValidWord(word.toLowerCase());
   }
 
   Future<(bool, String)> addWord(List<Tile> selectedTiles) async {
