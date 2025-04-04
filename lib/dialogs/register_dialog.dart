@@ -6,6 +6,22 @@ import '../managers/gameLayoutManager.dart';
 import 'privacy_policy_dialog.dart';
 
 class RegisterDialog {
+  static String? _validatePasswordStrength(String password) {
+    if (!RegExp(r'[A-Z]').hasMatch(password)) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!RegExp(r'[a-z]').hasMatch(password)) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!RegExp(r'[0-9]').hasMatch(password)) {
+      return 'Password must contain at least one number';
+    }
+    if (!RegExp(r'[^A-Za-z0-9]').hasMatch(password)) {
+      return 'Password must contain at least one special character (e.g., !@#\$%^&*)';
+    }
+    return null;
+  }
+
   static Future<void> show(BuildContext context, ApiService api, GameLayoutManager gameLayoutManager) async {
     final userNameController = TextEditingController();
     final displayNameController = TextEditingController();
@@ -129,6 +145,13 @@ class RegisterDialog {
                               }
                               if (email != confirmEmail) {
                                 setState(() => errorMessage = "Emails do not match.");
+                                return;
+                              }
+
+                              // Add password strength validation
+                              String? passwordError = _validatePasswordStrength(password);
+                              if (passwordError != null) {
+                                setState(() => errorMessage = passwordError);
                                 return;
                               }
 
