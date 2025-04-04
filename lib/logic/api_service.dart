@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async'; // Add this import for Completer
 import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -24,6 +25,9 @@ class ApiService with ChangeNotifier {
   String? refreshToken;
   int? tokenExpiration;
   bool _loggedIn = false;
+
+  // Token refresh lock to prevent race conditions
+  Completer<void>? _refreshingToken;
 
   bool get loggedIn => _loggedIn; // Getter
 
@@ -113,8 +117,25 @@ class ApiService with ChangeNotifier {
 
   /// **Refresh token if needed**
   Future<bool> _refreshTokenIfNeeded() async {
+    // If there's already a refresh operation in progress, wait for it to complete
+    if (_refreshingToken != null) {
+      LogService.logDebug("⏳ Token refresh already in progress. Waiting for it to complete...");
+      try {
+        await _refreshingToken!.future;
+        return true; // Return true since token was refreshed by another call
+      } catch (e) {
+        LogService.logError("🚨 Waiting for token refresh failed: $e");
+        return false;
+      }
+    }
+
+    // No refresh in progress, create a new completer
+    _refreshingToken = Completer<void>();
+
     if (userId == null || refreshToken == null) {
       LogService.logError("🚨 No userId or refresh token available. Cannot refresh.");
+      _refreshingToken!.completeError("No userId or refresh token available");
+      _refreshingToken = null;
       return false;
     }
 
@@ -142,10 +163,14 @@ class ApiService with ChangeNotifier {
               expirationSeconds: data['expires_in'].toString(),
             ),
           );
+          _refreshingToken!.complete();
+          _refreshingToken = null;
           return true;
         } else if (response.statusCode == 401) {
           LogService.logError("🚨 Refresh token expired or invalid. Logging out user.");
           logout(); // Clear tokens and redirect to login
+          _refreshingToken!.completeError("Refresh token expired or invalid");
+          _refreshingToken = null;
         }
       } on DioException catch (e) {
         // Fall back to standard HTTP client if there's a certificate issue
@@ -163,14 +188,26 @@ class ApiService with ChangeNotifier {
               expirationSeconds: data['expires_in'].toString(),
             ),
           );
+          _refreshingToken!.complete();
+          _refreshingToken = null;
           return true;
         } else if (response.statusCode == 401) {
           LogService.logError("🚨 Refresh token expired or invalid. Logging out user.");
           logout(); // Clear tokens and redirect to login
+          _refreshingToken!.completeError("Refresh token expired or invalid");
+          _refreshingToken = null;
         }
       }
     } catch (e) {
       LogService.logError('🚨 Refresh failed: $e');
+      _refreshingToken!.completeError("Refresh failed: $e");
+      _refreshingToken = null;
+    }
+
+    // If we get here, the refresh failed but we didn't throw an error
+    if (_refreshingToken != null) {
+      _refreshingToken!.completeError("Refresh failed with unknown error");
+      _refreshingToken = null;
     }
 
     return false;
@@ -480,30 +517,39 @@ class ApiService with ChangeNotifier {
   Future<http.Response> _makeApiRequest(bool isGet, String url, Map<String, String> headers, String? body) async {
     final secureStorage = SecureStorage();
 
+    // Check if token is expiring soon
     if (await _isTokenExpiringSoon()) {
-      await _refreshTokenIfNeeded();
-      // Get the latest token from secure storage
-      final latestToken = await secureStorage.getAccessToken();
-      if (latestToken != null) {
-        headers['Authorization'] = 'Bearer $latestToken';
+      // Use the synchronized token refresh mechanism
+      final refreshed = await _refreshTokenIfNeeded();
+
+      if (refreshed) {
+        // Get the latest token after refresh
+        final latestToken = await secureStorage.getAccessToken();
+        if (latestToken != null) {
+          headers['Authorization'] = 'Bearer $latestToken';
+        }
       }
     }
 
+    // Make the API request
     var response =
         isGet
             ? await http.get(Uri.parse(url), headers: headers)
             : await http.post(Uri.parse(url), headers: headers, body: body);
 
+    // Handle 401 Unauthorized - token might have expired during the request
     if (response.statusCode == 401) {
+      // Try to refresh the token using the synchronized mechanism
       final refreshed = await _refreshTokenIfNeeded();
 
       if (refreshed) {
-        // Get the latest token from secure storage after refresh
+        // Get the latest token after refresh
         final latestToken = await secureStorage.getAccessToken();
         if (latestToken != null) {
           headers['Authorization'] = 'Bearer $latestToken';
         }
 
+        // Retry the request with the new token
         return isGet
             ? await http.get(Uri.parse(url), headers: headers)
             : await http.post(Uri.parse(url), headers: headers, body: body);
@@ -511,6 +557,7 @@ class ApiService with ChangeNotifier {
         throw ApiException(statusCode: 401, detail: 'Token refresh failed - Please log in again');
       }
     }
+
     return response;
   }
 }
