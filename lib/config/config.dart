@@ -1,6 +1,105 @@
 class Config {
   static const apiUrl = 'https://rewordgame.net/api';
 
-  static const ApiKey = 'p2LGZ1s1O70icmUpe0Y5KcUMUq9berGljyNrkAveC0s';
-  static const ApiSalt = '72UnOvgtjPn9R69mSvPZtGRFgclm_a_Pc1N7EUO2PdI';
+  // Obfuscated API key and salt as integer arrays
+  static const List<int> _obfuscatedApiKey = [
+    112,
+    50,
+    76,
+    71,
+    90,
+    49,
+    115,
+    49,
+    79,
+    55,
+    48,
+    105,
+    99,
+    109,
+    85,
+    112,
+    101,
+    48,
+    89,
+    53,
+    75,
+    99,
+    85,
+    77,
+    85,
+    113,
+    57,
+    98,
+    101,
+    114,
+    71,
+    108,
+    106,
+    121,
+    78,
+    114,
+    107,
+    65,
+    118,
+    101,
+    67,
+    48,
+    115,
+  ];
+
+  static const List<int> _obfuscatedApiSalt = [
+    55,
+    50,
+    85,
+    110,
+    79,
+    118,
+    103,
+    116,
+    106,
+    80,
+    110,
+    57,
+    82,
+    54,
+    57,
+    109,
+    83,
+    118,
+    80,
+    90,
+    116,
+    71,
+    82,
+    70,
+    103,
+    99,
+    108,
+    109,
+    95,
+    97,
+    95,
+    80,
+    99,
+    49,
+    78,
+    55,
+    69,
+    85,
+    79,
+    50,
+    80,
+    100,
+    73,
+  ];
+
+  // Methods to retrieve the actual values when needed
+  static String getApiKey() {
+    return String.fromCharCodes(_obfuscatedApiKey);
+  }
+
+  static String getApiSalt() {
+    return String.fromCharCodes(_obfuscatedApiSalt);
+  }
 }
