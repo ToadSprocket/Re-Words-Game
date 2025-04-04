@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../logic/security.dart';
 import '../config/config.dart';
@@ -9,6 +10,8 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import '../logic/logging_handler.dart';
+import '../utils/secure_storage.dart';
+import '../utils/secure_http_client.dart';
 
 class ApiService with ChangeNotifier {
   static final ApiService _instance = ApiService._internal(); // ✅ Singleton instance
@@ -38,15 +41,26 @@ class ApiService with ChangeNotifier {
   }
 
   /// **Log out user and clear tokens**
-  void logout() async {
+  Future<void> logout() async {
+    // Clear secure storage
+    final secureStorage = SecureStorage();
+    await secureStorage.clearAuthData();
+
+    // Clear in-memory values
+    userId = null;
+    accessToken = null;
+    refreshToken = null;
+    tokenExpiration = null;
+
+    // Update UI
     loggedIn = false; // 🔥 Trigger UI update
   }
 
   /// **Check if the token is expiring soon**
   Future<bool> _isTokenExpiringSoon() async {
     if (tokenExpiration == null) {
-      final prefs = await SharedPreferences.getInstance();
-      tokenExpiration = prefs.getInt('accessTokenExpiration'); // Load as int
+      final secureStorage = SecureStorage();
+      tokenExpiration = await secureStorage.getTokenExpiration();
     }
     if (tokenExpiration == null) return false; // No expiration set
 
@@ -60,12 +74,19 @@ class ApiService with ChangeNotifier {
 
   /// **Update tokens in memory & storage**
   Future<void> _updateTokens(SecurityData security) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('userId', security.userId);
-    await prefs.setString('accessToken', security.accessToken ?? "");
-    await prefs.setString('refreshToken', security.refreshToken ?? "");
-    await prefs.setString('refreshTokenDate', DateTime.now().toIso8601String());
+    final secureStorage = SecureStorage();
 
+    // Store tokens securely
+    await secureStorage.setUserId(security.userId);
+    if (security.accessToken != null) {
+      await secureStorage.setAccessToken(security.accessToken!);
+    }
+    if (security.refreshToken != null) {
+      await secureStorage.setRefreshToken(security.refreshToken!);
+    }
+    await secureStorage.setRefreshTokenDate(DateTime.now().toIso8601String());
+
+    // Update in-memory values
     userId = security.userId;
     accessToken = security.accessToken;
     refreshToken = security.refreshToken;
@@ -73,7 +94,7 @@ class ApiService with ChangeNotifier {
     if (security.expirationSeconds != null) {
       final expirationInt = int.tryParse(security.expirationSeconds!) ?? 0;
       final expirationTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000 + expirationInt;
-      await prefs.setInt('accessTokenExpiration', expirationTimestamp);
+      await secureStorage.setTokenExpiration(expirationTimestamp);
 
       tokenExpiration = expirationTimestamp; // ✅ Now updates immediately
       LogService.logDebug('⏳ Tokens updated - Expires At: $expirationTimestamp');
@@ -82,11 +103,12 @@ class ApiService with ChangeNotifier {
 
   Future<void> _getTokens() async {
     if (userId != null) return; // Already loaded
-    final prefs = await SharedPreferences.getInstance();
-    userId = prefs.getString('userId');
-    accessToken = prefs.getString('accessToken');
-    refreshToken = prefs.getString('refreshToken');
-    tokenExpiration = prefs.getInt('accessTokenExpiration');
+
+    final secureStorage = SecureStorage();
+    userId = await secureStorage.getUserId();
+    accessToken = await secureStorage.getAccessToken();
+    refreshToken = await secureStorage.getRefreshToken();
+    tokenExpiration = await secureStorage.getTokenExpiration();
   }
 
   /// **Refresh token if needed**
@@ -105,25 +127,50 @@ class ApiService with ChangeNotifier {
         'Content-Type': 'application/json',
       };
 
-      final response = await http.post(Uri.parse('${Config.apiUrl}/users/refresh'), headers: headers);
+      // Use secure HTTP client with certificate pinning
+      final secureClient = SecureHttpClient();
+      try {
+        final response = await secureClient.post('/users/refresh', headers: headers);
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        await _updateTokens(
-          SecurityData(
-            userId: data['userId'],
-            accessToken: data['access_token'],
-            refreshToken: data['refresh_token'],
-            expirationSeconds: data['expires_in'].toString(),
-          ),
-        );
-        return true;
-      } else if (response.statusCode == 401) {
-        LogService.logError("🚨 Refresh token expired or invalid. Logging out user.");
-        logout(); // Clear tokens and redirect to login
+        if (response.statusCode == 200) {
+          final data = response.data;
+          await _updateTokens(
+            SecurityData(
+              userId: data['userId'],
+              accessToken: data['access_token'],
+              refreshToken: data['refresh_token'],
+              expirationSeconds: data['expires_in'].toString(),
+            ),
+          );
+          return true;
+        } else if (response.statusCode == 401) {
+          LogService.logError("🚨 Refresh token expired or invalid. Logging out user.");
+          logout(); // Clear tokens and redirect to login
+        }
+      } on DioException catch (e) {
+        // Fall back to standard HTTP client if there's a certificate issue
+        // This is a temporary fallback during the transition to certificate pinning
+        LogService.logInfo("⚠️ Falling back to standard HTTP client: ${e.message}");
+        final response = await http.post(Uri.parse('${Config.apiUrl}/users/refresh'), headers: headers);
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          await _updateTokens(
+            SecurityData(
+              userId: data['userId'],
+              accessToken: data['access_token'],
+              refreshToken: data['refresh_token'],
+              expirationSeconds: data['expires_in'].toString(),
+            ),
+          );
+          return true;
+        } else if (response.statusCode == 401) {
+          LogService.logError("🚨 Refresh token expired or invalid. Logging out user.");
+          logout(); // Clear tokens and redirect to login
+        }
       }
     } catch (e) {
-      print('🚨 Refresh failed: $e');
+      LogService.logError('🚨 Refresh failed: $e');
     }
 
     return false;
@@ -132,13 +179,24 @@ class ApiService with ChangeNotifier {
   /// **Register a new user**
   Future<ApiResponse> register(String locale, String platform) async {
     final headers = {'X-API-Key': Security.generateApiKeyHash(), 'Content-Type': 'application/json'};
-    final body = jsonEncode({'locale': locale, 'platform': platform});
+    final body = {'locale': locale, 'platform': platform};
 
-    final response = await _makeApiRequest(false, '${Config.apiUrl}/users/register', headers, body);
+    try {
+      // Use secure HTTP client with certificate pinning
+      final secureClient = SecureHttpClient();
+      final response = await secureClient.post('/users/register', data: body, headers: headers);
 
-    final apiResponse = _parseResponse(response);
-    await _updateTokens(apiResponse.security!);
-    return apiResponse;
+      final apiResponse = _parseResponseDio(response);
+      await _updateTokens(apiResponse.security!);
+      return apiResponse;
+    } on DioException catch (e) {
+      // Fall back to standard HTTP client if there's a certificate issue
+      LogService.logInfo("⚠️ Falling back to standard HTTP client for registration: ${e.message}");
+      final response = await _makeApiRequest(false, '${Config.apiUrl}/users/register', headers, jsonEncode(body));
+      final apiResponse = _parseResponse(response);
+      await _updateTokens(apiResponse.security!);
+      return apiResponse;
+    }
   }
 
   /// **Update User Profile**
@@ -374,10 +432,8 @@ class ApiService with ChangeNotifier {
     }
   }
 
-  /// **Parse API Response into `ApiResponse`**
+  /// **Parse API Response from standard HTTP client**
   ApiResponse _parseResponse(http.Response response) {
-    print('📡 API Response - Status: ${response.statusCode}, Body: ${response.body}');
-
     final data = jsonDecode(response.body);
     if (response.statusCode == 200) {
       return ApiResponse(
@@ -398,13 +454,39 @@ class ApiService with ChangeNotifier {
     }
   }
 
+  /// **Parse API Response from Dio client**
+  ApiResponse _parseResponseDio(Response response) {
+    final data = response.data;
+    if (response.statusCode == 200) {
+      return ApiResponse(
+        security:
+            data.containsKey('userId')
+                ? SecurityData(
+                  userId: data['userId'],
+                  accessToken: data['access_token'],
+                  refreshToken: data['refresh_token'],
+                  expirationSeconds: data['expires_in']?.toString(),
+                )
+                : null,
+        gameData: data.containsKey('grid') ? GameData.fromJson(data) : null,
+        highScoreData: data.containsKey('highScores') ? HighScoreData.fromJson(data) : null,
+      );
+    } else {
+      throw ApiException(statusCode: response.statusCode ?? 0, detail: 'Request failed: ${response.data}');
+    }
+  }
+
   /// **Unified API Request Handler**
   Future<http.Response> _makeApiRequest(bool isGet, String url, Map<String, String> headers, String? body) async {
-    final prefs = await SharedPreferences.getInstance();
+    final secureStorage = SecureStorage();
 
     if (await _isTokenExpiringSoon()) {
       await _refreshTokenIfNeeded();
-      headers['Authorization'] = 'Bearer ${prefs.getString('accessToken')}'; // Update token in headers
+      // Get the latest token from secure storage
+      final latestToken = await secureStorage.getAccessToken();
+      if (latestToken != null) {
+        headers['Authorization'] = 'Bearer $latestToken';
+      }
     }
 
     var response =
@@ -416,7 +498,11 @@ class ApiService with ChangeNotifier {
       final refreshed = await _refreshTokenIfNeeded();
 
       if (refreshed) {
-        headers['Authorization'] = 'Bearer ${prefs.getString('accessToken')}'; // Update token again
+        // Get the latest token from secure storage after refresh
+        final latestToken = await secureStorage.getAccessToken();
+        if (latestToken != null) {
+          headers['Authorization'] = 'Bearer $latestToken';
+        }
 
         return isGet
             ? await http.get(Uri.parse(url), headers: headers)

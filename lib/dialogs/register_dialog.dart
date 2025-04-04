@@ -164,7 +164,6 @@ class RegisterDialog {
                               );
 
                               if (response.message != null) {
-                                print('✅ Registration Successful!');
                                 Navigator.pop(context); // ✅ Close dialog on success
                               } else {
                                 setState(() => errorMessage = "Registration failed. Please try again.");

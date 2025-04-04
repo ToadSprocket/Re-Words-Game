@@ -247,8 +247,6 @@ class StateManager {
           DateTime.now().millisecondsSinceEpoch ~/ 1000 + int.parse(security.expirationSeconds!);
       await prefs.setInt('accessTokenExpiration', expirationTimestamp);
     }
-
-    print("✅ Saved user data - Expires in: ${security.expirationSeconds}");
   }
 
   static Future<Map<String, dynamic>> getBoardData() async {

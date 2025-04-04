@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../logic/api_service.dart';
+import '../logic/security.dart';
 import 'register_dialog.dart';
 import 'password_recovery_dialog.dart';
 import '../managers/gameLayoutManager.dart';
@@ -13,10 +14,22 @@ class LoginDialog {
     String? errorMessage;
     bool loginSuccess = false;
     bool isLoading = false;
-    int loginAttempts = 0;
+    final loginSecurity = LoginSecurity();
 
     void attemptLogin(StateSetter setState) async {
       if (isLoading) return;
+
+      // First check if login is locked out
+      final lockoutStatus = await loginSecurity.checkLockoutStatus();
+      if (lockoutStatus['isLocked']) {
+        setState(() {
+          final remainingTime = LoginSecurity.formatLockoutTime(lockoutStatus['remainingSeconds']);
+          errorMessage = "Too many failed attempts. Please try again in $remainingTime.";
+          isLoading = false;
+        });
+        return;
+      }
+
       String username = userNameController.text.trim();
       String password = passwordController.text.trim();
 
@@ -36,19 +49,30 @@ class LoginDialog {
 
         final response = await api.login(username, password);
         if (response == null) {
-          loginAttempts++;
-          if (loginAttempts >= 3) {
-            loginSuccess = false;
-            Navigator.pop(context);
-            return;
+          // Record failed login attempt
+          final failureResult = await loginSecurity.recordFailedAttempt();
+
+          if (failureResult['isLocked']) {
+            // Account is now locked
+            final remainingTime = LoginSecurity.formatLockoutTime(failureResult['remainingSeconds']);
+            setState(() {
+              errorMessage = "Too many failed attempts. Please try again in $remainingTime.";
+              isLoading = false;
+            });
+          } else {
+            // Show attempts remaining
+            final attemptsRemaining = failureResult['attemptsRemaining'];
+            setState(() {
+              errorMessage =
+                  "Invalid username or password. $attemptsRemaining ${attemptsRemaining == 1 ? 'attempt' : 'attempts'} remaining.";
+              isLoading = false;
+            });
           }
-          setState(() {
-            errorMessage = "Invalid username or password. Please try again.";
-            isLoading = false;
-          });
           return;
         }
 
+        // Login successful - reset attempt counter
+        await loginSecurity.resetAttempts();
         loginSuccess = true;
         Navigator.pop(context);
       } catch (e) {

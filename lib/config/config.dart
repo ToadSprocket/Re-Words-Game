@@ -1,6 +1,16 @@
 class Config {
   static const apiUrl = 'https://rewordgame.net/api';
 
+  // Certificate pinning configuration
+  static const bool enableCertificatePinning = true; // Set to false to disable certificate pinning
+  static const String certificateFingerprint =
+      'DD:E9:59:7B:3C:5D:3F:11:00:85:06:6D:B4:5E:1B:80:16:F8:3A:2A:30:5C:33:BF:45:E5:4B:67:CF:05:3B:14';
+
+  // Login security settings
+  static const int maxLoginAttempts = 3; // Maximum allowed attempts before lockout
+  static const int initialLockoutSeconds = 60; // 1 minute initial lockout
+  static const int maxLockoutSeconds = 3600; // 1 hour maximum lockout
+
   // Obfuscated API key and salt as integer arrays
   static const List<int> _obfuscatedApiKey = [
     112,

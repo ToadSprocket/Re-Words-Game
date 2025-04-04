@@ -28,7 +28,9 @@ class UserIdStorage {
   static Future<void> setUserId(String userId) async {
     if (kIsWeb) {
       final expires = DateTime.now().add(Duration(days: 365)).toUtc();
-      html.document.cookie = '$_cookieName=$userId; expires=${expires.toString()}; path=/';
+      // Add Secure, HttpOnly, and SameSite flags for enhanced security
+      html.document.cookie =
+          '$_cookieName=$userId; expires=${expires.toString()}; path=/; Secure; HttpOnly; SameSite=Strict';
     } else {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_prefKey, userId);
