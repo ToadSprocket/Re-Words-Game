@@ -12,33 +12,57 @@ class LoginDialog {
     final passwordController = TextEditingController();
     String? errorMessage;
     bool loginSuccess = false;
+    bool isLoading = false;
+    int loginAttempts = 0;
 
-    void attemptLogin() async {
+    void attemptLogin(StateSetter setState) async {
+      if (isLoading) return;
       String username = userNameController.text.trim();
       String password = passwordController.text.trim();
 
-      if (username.isEmpty || password.isEmpty) {
-        errorMessage = "Please enter both username and password.";
-      } else {
-        final response = await api.login(username, password);
-        if (response == null) {
-          errorMessage = "Invalid username or password. Please try again.";
-        } else {
-          loginSuccess = true;
-          Navigator.pop(context); // Close dialog on successful login
+      try {
+        setState(() {
+          isLoading = true;
+          errorMessage = null;
+        });
+
+        if (username.isEmpty || password.isEmpty) {
+          setState(() {
+            errorMessage = "Please enter both username and password.";
+            isLoading = false;
+          });
           return;
         }
+
+        final response = await api.login(username, password);
+        if (response == null) {
+          loginAttempts++;
+          if (loginAttempts >= 3) {
+            loginSuccess = false;
+            Navigator.pop(context);
+            return;
+          }
+          setState(() {
+            errorMessage = "Invalid username or password. Please try again.";
+            isLoading = false;
+          });
+          return;
+        }
+
+        loginSuccess = true;
+        Navigator.pop(context);
+      } catch (e) {
+        setState(() {
+          errorMessage = "An error occurred. Please try again later.";
+          isLoading = false;
+        });
       }
-      // Force UI to update with error message
-      (context as Element).markNeedsBuild();
     }
 
     await showDialog(
       context: context,
-      barrierDismissible: false, // Prevent dismissing by tapping outside
+      barrierDismissible: false,
       builder: (BuildContext context) {
-        String? errorMessage; // Error message state
-
         return StatefulBuilder(
           builder: (context, setState) {
             return Dialog(
@@ -69,6 +93,7 @@ class LoginDialog {
                           TextFormField(
                             controller: userNameController,
                             style: gameLayoutManager.dialogInputContentStyle,
+                            enabled: !isLoading,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(vertical: 6.0, horizontal: 10.0),
@@ -81,27 +106,27 @@ class LoginDialog {
                           TextFormField(
                             controller: passwordController,
                             style: gameLayoutManager.dialogInputContentStyle,
+                            enabled: !isLoading,
                             obscureText: true,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(vertical: 6.0, horizontal: 10.0),
                             ),
                             textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (_) => attemptLogin(),
+                            onFieldSubmitted: (_) => !isLoading ? attemptLogin(setState) : null,
                           ),
 
                           // Forgot Password Link
                           Align(
                             alignment: Alignment.centerLeft,
                             child: TextButton(
-                              onPressed: () {
-                                Navigator.pop(context); // Close login dialog first
-                                ForgotPasswordDialog.show(
-                                  context,
-                                  api,
-                                  gameLayoutManager,
-                                ); // Open forgot password dialog
-                              },
+                              onPressed:
+                                  isLoading
+                                      ? null
+                                      : () {
+                                        Navigator.pop(context);
+                                        ForgotPasswordDialog.show(context, api, gameLayoutManager);
+                                      },
                               style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft),
                               child: Text('Forgot Password?', style: gameLayoutManager.dialogLinkStyle),
                             ),
@@ -110,7 +135,9 @@ class LoginDialog {
                             height: 34.0,
                             alignment: Alignment.center,
                             child:
-                                errorMessage != null && errorMessage!.isNotEmpty
+                                isLoading
+                                    ? const CircularProgressIndicator()
+                                    : errorMessage != null && errorMessage!.isNotEmpty
                                     ? Text(
                                       errorMessage!,
                                       style: gameLayoutManager.dialogErrorStyle,
@@ -131,10 +158,13 @@ class LoginDialog {
                         SizedBox(
                           width: gameLayoutManager.dialogMaxWidth * 0.3,
                           child: ElevatedButton(
-                            onPressed: () {
-                              loginSuccess = false;
-                              Navigator.pop(context);
-                            },
+                            onPressed:
+                                isLoading
+                                    ? null
+                                    : () {
+                                      loginSuccess = false;
+                                      Navigator.pop(context);
+                                    },
                             style: gameLayoutManager.buttonStyle(context),
                             child: const Text('Cancel'),
                           ),
@@ -143,27 +173,7 @@ class LoginDialog {
                         SizedBox(
                           width: gameLayoutManager.dialogMaxWidth * 0.3,
                           child: ElevatedButton(
-                            onPressed: () async {
-                              setState(() => errorMessage = null); // Clear old errors
-
-                              String username = userNameController.text.trim();
-                              String password = passwordController.text.trim();
-
-                              if (username.isEmpty || password.isEmpty) {
-                                setState(() => errorMessage = "Please enter both username and password.");
-                                return;
-                              }
-
-                              final response = await api.login(username, password);
-
-                              if (response == null) {
-                                setState(() => errorMessage = "Invalid username or password. Please try again.");
-                                return;
-                              }
-
-                              loginSuccess = true;
-                              Navigator.pop(context); // Close dialog on success
-                            },
+                            onPressed: isLoading ? null : () => attemptLogin(setState),
                             style: gameLayoutManager.buttonStyle(context),
                             child: const Text('Login'),
                           ),
@@ -178,12 +188,16 @@ class LoginDialog {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text("Don't have a login yet?", style: gameLayoutManager.dialogContentStyle),
+                          Text("Don't have an account? ", style: gameLayoutManager.dialogContentStyle),
                           TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              RegisterDialog.show(context, api, gameLayoutManager);
-                            },
+                            onPressed:
+                                isLoading
+                                    ? null
+                                    : () {
+                                      Navigator.pop(context);
+                                      RegisterDialog.show(context, api, gameLayoutManager);
+                                    },
+                            style: TextButton.styleFrom(padding: EdgeInsets.zero),
                             child: Text('Sign Up', style: gameLayoutManager.dialogLinkStyle),
                           ),
                         ],

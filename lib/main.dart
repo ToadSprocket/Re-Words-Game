@@ -28,6 +28,7 @@ import 'package:window_size/window_size.dart';
 import 'dialogs/welcome_dialog.dart';
 import 'dialogs/loading_dialog.dart';
 import 'services/word_service.dart';
+import 'utils/web_utils.dart';
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
@@ -285,9 +286,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
       // Log the attempt
       LogService.logError("🔄 Login attempt $loginAttempts: isLoggedIn: $isLoggedIn");
 
-      if (!isLoggedIn && loginAttempts >= 2) {
-        await FailureDialog.show(context, gameLayoutManager);
-        if (Navigator.canPop(context)) {
+      if (!isLoggedIn) {
+        // For web users, redirect to the main website on any failed login
+        if (kIsWeb) {
+          // Show failure dialog if this is the second or later attempt
+          if (loginAttempts >= 1) {
+            await FailureDialog.show(context, gameLayoutManager);
+          }
+
+          // Use a small delay to ensure the dialog is shown before redirecting
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          // Redirect to the main website (without /api)
+          LogService.logError("🔄 Redirecting web user to www.rewordgame.net");
+          WebUtils.redirectToUrl('https://www.rewordgame.net');
+
+          // Force exit the app after redirect
+          if (mounted) {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          }
+
+          return false;
+        } else if (Navigator.canPop(context)) {
           Navigator.pop(context);
         } else {
           // For web, we can't force exit, so just show a message
@@ -297,10 +317,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         }
         return false;
       }
+
       loginAttempts++;
       return isLoggedIn;
     } catch (e) {
       LogService.logError('Error during web login: $e');
+
+      // For web users, redirect to the main website on error
+      if (kIsWeb) {
+        LogService.logError("🔄 Redirecting web user to www.rewordgame.net after error");
+        WebUtils.redirectToUrl('https://www.rewordgame.net');
+
+        // Force exit the app after redirect
+        if (mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      }
+
       return false;
     }
   }
