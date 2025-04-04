@@ -18,7 +18,6 @@ extension DateTimeExtension on DateTime {
 }
 
 class StateManager {
-  // Existing game state methods (unchanged)
   static Future<void> saveState(
     GlobalKey<GameGridComponentState> gridKey,
     GlobalKey<WildcardColumnComponentState> wildcardKey,
@@ -102,6 +101,19 @@ class StateManager {
       gridKey!.currentState!.setSelectedIndices([]);
     }
     LogService.logInfo('Game state reset successfully');
+  }
+
+  Future<bool> hasBoardData() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Check all required components
+    final hasGridTiles = prefs.containsKey('gridTiles');
+    final hasSelectedIndices = prefs.containsKey('selectedIndices');
+    final hasWildcardTiles = prefs.containsKey('wildcardTiles');
+    final hasBoardExpireDate = prefs.containsKey('boardExpireDate');
+
+    // All components must be present for valid board data
+    return hasGridTiles && hasSelectedIndices && hasWildcardTiles && hasBoardExpireDate;
   }
 
   static Future<void> setStartTime() async {

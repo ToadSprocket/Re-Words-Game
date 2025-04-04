@@ -11,7 +11,8 @@ import 'letter_square_component.dart';
 class GameGridComponent extends StatefulWidget {
   final bool showBorders;
   final Function(String) onMessage;
-  final VoidCallback updateScoresRefresh; // Add this
+  final VoidCallback updateScoresRefresh;
+  final VoidCallback updateCurrentGameState;
   final GameLayoutManager gameLayoutManager;
   final bool disableSpellCheck;
 
@@ -19,7 +20,8 @@ class GameGridComponent extends StatefulWidget {
     super.key,
     this.showBorders = false,
     required this.onMessage,
-    required this.updateScoresRefresh, // Required to match WideScreen
+    required this.updateScoresRefresh,
+    required this.updateCurrentGameState,
     required this.gameLayoutManager,
     this.disableSpellCheck = false,
   });
@@ -152,7 +154,8 @@ class GameGridComponentState extends State<GameGridComponent> {
         }
         selectedTiles.clear();
         widget.onMessage(message);
-        widget.updateScoresRefresh(); // Update scores display
+        widget.updateScoresRefresh();
+        widget.updateCurrentGameState();
       } else {
         // Revert tiles to previous state
         for (var tile in selectedTiles) {

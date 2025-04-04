@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:universal_html/html.dart' as html;
 import 'package:window_manager/window_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'styles/app_styles.dart';
@@ -57,81 +56,13 @@ void main() async {
 
   final GameLayoutManager layoutManager = GameLayoutManager();
 
-  // Platform-specific authentication
-  String? userId;
-  String? authToken;
-  String? sanityToken;
-
-  if (kIsWeb) {
-    // Show loading state while waiting for auth
-    html.document.body?.setInnerHtml(
-      '<div style="text-align:center; padding:2rem; color:white; background-color:#1a1a1a; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">'
-      '<h2 style="color:#4CAF50; margin-bottom:1rem;">🔄 Loading Re-Word Game</h2>'
-      '<p style="font-size:1.2rem;">Please wait while we verify your session...</p>'
-      '</div>',
-      treeSanitizer: html.NodeTreeSanitizer.trusted,
-    );
-
-    // Listen for auth data from React
-    html.window.onMessage.listen((event) async {
-      if (event.origin != 'https://alpha.rewordgame.net') {
-        LogService.logError('Unauthorized event origin from ${event.origin}');
-        html.document.body?.setInnerHtml(
-          '<div style="text-align:center; padding:2rem; color:white; background-color:#1a1a1a; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">'
-          '<h2 style="color:#ff4444; margin-bottom:1rem;">🚫 Unauthorized Access</h2>'
-          '<p style="font-size:1.2rem;">This game must be launched from the Re-Word platform.</p>'
-          '<p style="margin-top:1rem; color:#888;">Please visit <a href="https://www.rewordgame.net" style="color:#4CAF50;">www.rewordgame.net</a> to play.</p>'
-          '</div>',
-          treeSanitizer: html.NodeTreeSanitizer.trusted,
-        );
-        return;
-      }
-
-      if (event.data['type'] == 'AUTH_DATA') {
-        userId = event.data['userId'];
-        authToken = event.data['token'];
-        sanityToken = event.data['sanityToken'];
-
-        if (userId == null || authToken == null || sanityToken == null) {
-          LogService.logError('Missing authentication data');
-          return;
-        }
-
-        // Validate the session before starting the app
-        final apiService = ApiService()..setAuthToken(authToken!);
-        final isValid = await apiService.validateSession(sanityToken!);
-
-        if (!isValid) {
-          LogService.logError('Invalid session detected');
-          html.document.body?.setInnerHtml(
-            '<div style="text-align:center; padding:2rem; color:white; background-color:#1a1a1a; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">'
-            '<h2 style="color:#ff4444; margin-bottom:1rem;">🚫 Invalid Session</h2>'
-            '<p style="font-size:1.2rem;">Your session is invalid or has expired.</p>'
-            '<p style="margin-top:1rem; color:#888;">Please refresh the page or visit <a href="https://www.rewordgame.net" style="color:#4CAF50;">www.rewordgame.net</a> to play.</p>'
-            '</div>',
-            treeSanitizer: html.NodeTreeSanitizer.trusted,
-          );
-          return;
-        }
-
-        // Start the app once we have valid auth data
-        runApp(
-          ChangeNotifierProvider<ApiService>(
-            create: (context) => apiService,
-            child: ReWordApp(layoutManager: layoutManager, userId: userId, authToken: authToken),
-          ),
-        );
-      }
-    });
-  } else {
-    // Non-web platforms will initialize differently
-    runApp(
-      ChangeNotifierProvider<ApiService>(
-        create: (context) => ApiService(),
-        child: ReWordApp(layoutManager: layoutManager),
-      ),
-    );
-  }
+  // Non-web platforms will initialize differently
+  runApp(
+    ChangeNotifierProvider<ApiService>(
+      create: (context) => ApiService(),
+      child: ReWordApp(layoutManager: layoutManager),
+    ),
+  );
 
   // Set minimum window size and initial window size
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
@@ -289,6 +220,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
     await StateManager.setStartTime();
     await _applyDebugControls();
+
+    if (kIsWeb) {
+      bool loggedIn = await _handleWebLogin(api);
+      LogService.logError("🔄 Web loggedIn: $loggedIn");
+      if (!loggedIn) return; // Exit if login failed
+    }
+
     bool isNewUser = await StateManager.isNewUser();
     bool hasShownWelcome = await StateManager.hasShownWelcomeAnimation();
 
@@ -339,6 +277,34 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     }
   }
 
+  Future<bool> _handleWebLogin(ApiService api) async {
+    try {
+      // Show login dialog and wait for result
+      bool isLoggedIn = await LoginDialog.show(context, api, gameLayoutManager);
+
+      // Log the attempt
+      LogService.logError("🔄 Login attempt $loginAttempts: isLoggedIn: $isLoggedIn");
+
+      if (!isLoggedIn && loginAttempts >= 2) {
+        await FailureDialog.show(context, gameLayoutManager);
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        } else {
+          // For web, we can't force exit, so just show a message
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Login required to play on web. Please try again later.')));
+        }
+        return false;
+      }
+      loginAttempts++;
+      return isLoggedIn;
+    } catch (e) {
+      LogService.logError('Error during web login: $e');
+      return false;
+    }
+  }
+
   Future<void> _handleNewUser(ApiService api) async {
     try {
       // Get locale based on platform
@@ -365,12 +331,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   Future<void> _loadBoardForUser(ApiService api) async {
     // First check if we need a new board
     final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
+    LogService.logError("🔄 Loading board for user... isExpired: $isExpired");
 
-    if (isExpired) {
+    final hasBoardData = await StateManager().hasBoardData();
+    LogService.logError("🔄 Loading board for user... hasBoardData: $hasBoardData");
+
+    if (isExpired || !hasBoardData) {
       final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
-      final loadNewBoard = await _shouldLoadNewBoard();
+      var loadNewBoard = false;
+      // If we have board data, ask the user if they want to load a new board
+      if (hasBoardData) {
+        loadNewBoard = await _shouldLoadNewBoard();
+      }
 
-      if (loadNewBoard) {
+      if (loadNewBoard || !hasBoardData) {
+        LogService.logError("🔄 Loading new board...");
         LoadingDialog.show(context, gameLayoutManager, message: "Loading new board...");
         try {
           await StateManager.resetState(_gridKey);
@@ -383,10 +358,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
           if (mounted) LoadingDialog.dismiss(context);
         }
       } else {
+        LogService.logError("🔄 Falling back to stored board...");
         await GridLoader.loadStoredBoard();
       }
     } else {
       // Board is still valid, restore previous state
+      LogService.logError("🔄 Restoring state...");
       await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
     }
   }
@@ -418,6 +395,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   void updateScoresRefresh() {
     scoreNotifier.value = SpelledWordsLogic.score;
     spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
+  }
+
+  void updateCurrentGameState() {
+    // Only update game state for web
+    if (kIsWeb) {
+      StateManager.saveState(_gridKey, _wildcardKey);
+      StateManager.updatePlayTime();
+    }
   }
 
   @override
@@ -465,6 +450,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   scoreNotifier: scoreNotifier,
                   spelledWordsNotifier: spelledWordsNotifier,
                   updateScoresRefresh: updateScoresRefresh,
+                  updateCurrentGameState: updateCurrentGameState,
                 )
                 : WideScreen(
                   showBorders: debugShowBorders,
@@ -490,6 +476,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   scoreNotifier: scoreNotifier,
                   spelledWordsNotifier: spelledWordsNotifier,
                   updateScoresRefresh: updateScoresRefresh,
+                  updateCurrentGameState: updateCurrentGameState,
                 ),
       ),
     );

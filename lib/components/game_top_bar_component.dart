@@ -7,6 +7,7 @@ import '../dialogs/logout_dialog.dart';
 import '../logic/spelled_words_handler.dart';
 import '../logic/logging_handler.dart';
 import '../managers/gameLayoutManager.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class GameTopBarComponent extends StatefulWidget {
   final VoidCallback onInstructions;
@@ -97,12 +98,22 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
               constraints: const BoxConstraints(),
               onPressed: () {
                 if (widget.api.loggedIn) {
-                  LogoutDialog.show(context, widget.api, widget.gameLayoutManager); // 🔥 Show logout confirmation
+                  // During alpha testing, prevent web users from logging out
+                  if (kIsWeb) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Logout disabled during alpha testing on web.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                    return;
+                  }
+                  LogoutDialog.show(context, widget.api, widget.gameLayoutManager);
                 } else {
-                  widget.onLogin(); // 🔥 Show login dialog
+                  widget.onLogin();
                 }
               },
-              tooltip: widget.api.loggedIn ? 'Logged In' : 'Login',
+              tooltip: widget.api.loggedIn ? (kIsWeb ? 'Logged In (Alpha)' : 'Logged In') : 'Login',
             ),
             const SizedBox(width: 6.0),
           ],

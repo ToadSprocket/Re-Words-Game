@@ -218,9 +218,6 @@ class ApiService with ChangeNotifier {
           userId = apiResponse.security!.userId;
           accessToken = apiResponse.security!.accessToken;
           refreshToken = apiResponse.security!.refreshToken;
-
-          print("🔥 DEBUG: Login successful, setting loggedIn = true"); // ADD THIS
-
           return apiResponse;
         }
       }

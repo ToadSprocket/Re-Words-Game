@@ -31,6 +31,7 @@ class NarrowScreen extends StatelessWidget {
   final ValueNotifier<int> scoreNotifier;
   final ValueNotifier<List<String>> spelledWordsNotifier;
   final VoidCallback updateScoresRefresh;
+  final VoidCallback updateCurrentGameState;
 
   const NarrowScreen({
     super.key,
@@ -51,6 +52,7 @@ class NarrowScreen extends StatelessWidget {
     required this.scoreNotifier,
     required this.spelledWordsNotifier,
     required this.updateScoresRefresh,
+    required this.updateCurrentGameState,
   });
 
   @override
@@ -114,6 +116,7 @@ class NarrowScreen extends StatelessWidget {
                 updateScoresRefresh: updateScoresRefresh,
                 gameLayoutManager: gameLayoutManager,
                 disableSpellCheck: spelledWordsLogic.disableSpellCheck,
+                updateCurrentGameState: updateCurrentGameState,
               ),
               SizedBox(height: gameLayoutManager.gridSpacing),
               ValueListenableBuilder<String>(

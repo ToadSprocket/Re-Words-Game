@@ -4,12 +4,14 @@ import '../logic/api_service.dart';
 import 'register_dialog.dart';
 import 'password_recovery_dialog.dart';
 import '../managers/gameLayoutManager.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class LoginDialog {
-  static Future<void> show(BuildContext context, ApiService api, GameLayoutManager gameLayoutManager) async {
+  static Future<bool> show(BuildContext context, ApiService api, GameLayoutManager gameLayoutManager) async {
     final userNameController = TextEditingController();
     final passwordController = TextEditingController();
     String? errorMessage;
+    bool loginSuccess = false;
 
     void attemptLogin() async {
       String username = userNameController.text.trim();
@@ -22,18 +24,20 @@ class LoginDialog {
         if (response == null) {
           errorMessage = "Invalid username or password. Please try again.";
         } else {
-          Navigator.pop(context); // ✅ Close dialog on successful login
+          loginSuccess = true;
+          Navigator.pop(context); // Close dialog on successful login
           return;
         }
       }
-      // 🔥 Force UI to update with error message
+      // Force UI to update with error message
       (context as Element).markNeedsBuild();
     }
 
-    showDialog(
+    await showDialog(
       context: context,
+      barrierDismissible: false, // Prevent dismissing by tapping outside
       builder: (BuildContext context) {
-        String? errorMessage; // 🚨 Error message state
+        String? errorMessage; // Error message state
 
         return StatefulBuilder(
           builder: (context, setState) {
@@ -50,11 +54,11 @@ class LoginDialog {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // 🔹 Title & Close Button
+                    // Title & Close Button
                     Stack(children: [Center(child: Text('Reword Login', style: gameLayoutManager.dialogTitleStyle))]),
                     const SizedBox(height: 16.0),
 
-                    // 🔹 Input Fields (Centered)
+                    // Input Fields (Centered)
                     SizedBox(
                       width: gameLayoutManager.dialogMaxWidth * 0.8,
                       child: Column(
@@ -82,11 +86,11 @@ class LoginDialog {
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(vertical: 6.0, horizontal: 10.0),
                             ),
-                            textInputAction: TextInputAction.done, // ✅ Pressing "Enter" submits
-                            onFieldSubmitted: (_) => attemptLogin(), // ✅ Handle Enter key
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => attemptLogin(),
                           ),
 
-                          // 🔹 Forgot Password Link
+                          // Forgot Password Link
                           Align(
                             alignment: Alignment.centerLeft,
                             child: TextButton(
@@ -103,8 +107,8 @@ class LoginDialog {
                             ),
                           ),
                           Container(
-                            height: 34.0, // 🔥 Locks the height to prevent jumping
-                            alignment: Alignment.center, // 🔥 Keeps text centered vertically
+                            height: 34.0,
+                            alignment: Alignment.center,
                             child:
                                 errorMessage != null && errorMessage!.isNotEmpty
                                     ? Text(
@@ -112,7 +116,7 @@ class LoginDialog {
                                       style: gameLayoutManager.dialogErrorStyle,
                                       textAlign: TextAlign.center,
                                     )
-                                    : const SizedBox.shrink(), // 🔥 Doesn't take up space when empty
+                                    : const SizedBox.shrink(),
                           ),
                         ],
                       ),
@@ -120,14 +124,17 @@ class LoginDialog {
 
                     const SizedBox(height: 16.0),
 
-                    // 🔹 Login & Cancel Buttons
+                    // Login & Cancel Buttons
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         SizedBox(
                           width: gameLayoutManager.dialogMaxWidth * 0.3,
                           child: ElevatedButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () {
+                              loginSuccess = false;
+                              Navigator.pop(context);
+                            },
                             style: gameLayoutManager.buttonStyle(context),
                             child: const Text('Cancel'),
                           ),
@@ -154,7 +161,8 @@ class LoginDialog {
                                 return;
                               }
 
-                              Navigator.pop(context); // ✅ Close dialog on success
+                              loginSuccess = true;
+                              Navigator.pop(context); // Close dialog on success
                             },
                             style: gameLayoutManager.buttonStyle(context),
                             child: const Text('Login'),
@@ -163,22 +171,24 @@ class LoginDialog {
                       ],
                     ),
 
-                    const SizedBox(height: 16.0),
-
-                    // 🔹 "Don't have an account?" Text & Sign Up Button
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text("Don't have a login yet?", style: gameLayoutManager.dialogContentStyle),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            RegisterDialog.show(context, api, gameLayoutManager);
-                          },
-                          child: Text('Sign Up', style: gameLayoutManager.dialogLinkStyle),
-                        ),
-                      ],
-                    ),
+                    // Only show signup option for non-web users
+                    if (!kIsWeb) ...[
+                      const SizedBox(height: 16.0),
+                      // "Don't have an account?" Text & Sign Up Button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text("Don't have a login yet?", style: gameLayoutManager.dialogContentStyle),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              RegisterDialog.show(context, api, gameLayoutManager);
+                            },
+                            child: Text('Sign Up', style: gameLayoutManager.dialogLinkStyle),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -187,5 +197,7 @@ class LoginDialog {
         );
       },
     );
+
+    return loginSuccess;
   }
 }

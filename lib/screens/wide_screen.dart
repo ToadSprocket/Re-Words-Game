@@ -31,6 +31,7 @@ class WideScreen extends StatelessWidget {
   final ValueNotifier<int> scoreNotifier;
   final ValueNotifier<List<String>> spelledWordsNotifier;
   final VoidCallback updateScoresRefresh;
+  final VoidCallback updateCurrentGameState;
 
   const WideScreen({
     super.key,
@@ -51,6 +52,7 @@ class WideScreen extends StatelessWidget {
     required this.scoreNotifier,
     required this.spelledWordsNotifier,
     required this.updateScoresRefresh,
+    required this.updateCurrentGameState,
   });
 
   @override
@@ -176,6 +178,7 @@ class WideScreen extends StatelessWidget {
                               updateScoresRefresh: updateScoresRefresh,
                               gameLayoutManager: gameLayoutManager,
                               disableSpellCheck: spelledWordsLogic.disableSpellCheck,
+                              updateCurrentGameState: updateCurrentGameState,
                             ),
                             ValueListenableBuilder<String>(
                               valueListenable: messageNotifier,
