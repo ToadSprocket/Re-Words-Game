@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:email_validator/email_validator.dart';
 import '../styles/app_styles.dart';
-import '../logic/api_service.dart';
+import '../services/api_service.dart';
 import '../managers/gameLayoutManager.dart';
 import 'privacy_policy_dialog.dart';
 

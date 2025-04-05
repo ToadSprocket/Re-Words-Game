@@ -2,7 +2,7 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
-import '../logic/api_service.dart';
+import '../services/api_service.dart';
 import 'reset_password_dialog.dart';
 import '../managers/gameLayoutManager.dart';
 

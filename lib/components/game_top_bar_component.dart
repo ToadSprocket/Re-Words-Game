@@ -2,7 +2,7 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '/styles/app_styles.dart';
-import '../logic/api_service.dart';
+import '../services/api_service.dart';
 import '../dialogs/logout_dialog.dart';
 import '../logic/spelled_words_handler.dart';
 import '../logic/logging_handler.dart';

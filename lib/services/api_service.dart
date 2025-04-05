@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async'; // Add this import for Completer
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
 import '../logic/security.dart';
@@ -10,8 +11,14 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import '../logic/logging_handler.dart';
+import '../logic/error_handler.dart';
+import '../logic/error_reporting.dart';
 import '../utils/secure_storage.dart';
 import '../utils/secure_http_client.dart';
+import '../utils/retry_util.dart';
+import '../utils/error_messages.dart';
+import '../utils/connectivity_monitor.dart';
+import '../utils/offline_mode_handler.dart';
 
 class ApiService with ChangeNotifier {
   static final ApiService _instance = ApiService._internal(); // ✅ Singleton instance
@@ -136,6 +143,7 @@ class ApiService with ChangeNotifier {
         return true; // Return true since token was refreshed by another call
       } catch (e) {
         LogService.logError("🚨 Waiting for token refresh failed: $e");
+        ErrorReporting.reportException(e, StackTrace.current, context: 'Token refresh wait');
         return false;
       }
     }
@@ -159,69 +167,95 @@ class ApiService with ChangeNotifier {
         'Content-Type': 'application/json',
       };
 
-      // Use secure HTTP client with certificate pinning
-      final secureClient = SecureHttpClient();
-      try {
-        final response = await secureClient.post('/users/refresh', headers: headers);
-
-        if (response.statusCode == 200) {
-          final data = response.data;
-          await _updateTokens(
-            SecurityData(
-              userId: data['userId'],
-              accessToken: data['access_token'],
-              refreshToken: data['refresh_token'],
-              expirationSeconds: data['expires_in'].toString(),
-            ),
-          );
-          _refreshingToken!.complete();
-          _refreshingToken = null;
-          return true;
-        } else if (response.statusCode == 401) {
-          LogService.logError("🚨 Refresh token expired or invalid. Logging out user.");
-          logout(); // Clear tokens and redirect to login
-          _refreshingToken!.completeError("Refresh token expired or invalid");
-          _refreshingToken = null;
-        }
-      } on DioException catch (e) {
-        // Fall back to standard HTTP client if there's a certificate issue
-        // This is a temporary fallback during the transition to certificate pinning
-        LogService.logInfo("⚠️ Falling back to standard HTTP client: ${e.message}");
-        final response = await http.post(Uri.parse('${Config.apiUrl}/users/refresh'), headers: headers);
-
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          await _updateTokens(
-            SecurityData(
-              userId: data['userId'],
-              accessToken: data['access_token'],
-              refreshToken: data['refresh_token'],
-              expirationSeconds: data['expires_in'].toString(),
-            ),
-          );
-          _refreshingToken!.complete();
-          _refreshingToken = null;
-          return true;
-        } else if (response.statusCode == 401) {
-          LogService.logError("🚨 Refresh token expired or invalid. Logging out user.");
-          logout(); // Clear tokens and redirect to login
-          _refreshingToken!.completeError("Refresh token expired or invalid");
-          _refreshingToken = null;
-        }
+      // Check connectivity before attempting refresh
+      if (!await ConnectivityMonitor().checkConnection()) {
+        LogService.logError("🚨 Cannot refresh token: No network connection");
+        _refreshingToken!.completeError("No network connection");
+        _refreshingToken = null;
+        OfflineModeHandler.enterOfflineMode();
+        return false;
       }
+
+      // Use retry utility for token refresh
+      return await RetryUtil.withRetry(
+        () async {
+          try {
+            // Use secure HTTP client with certificate pinning
+            final secureClient = SecureHttpClient();
+            final response = await secureClient.post('/users/refresh', headers: headers);
+
+            if (response.statusCode == 200) {
+              final data = response.data;
+              await _updateTokens(
+                SecurityData(
+                  userId: data['userId'],
+                  accessToken: data['access_token'],
+                  refreshToken: data['refresh_token'],
+                  expirationSeconds: data['expires_in'].toString(),
+                ),
+              );
+              _refreshingToken!.complete();
+              _refreshingToken = null;
+              return true;
+            } else if (response.statusCode == 401) {
+              LogService.logError("🚨 Refresh token expired or invalid. Logging out user.");
+              logout(); // Clear tokens and redirect to login
+              _refreshingToken!.completeError("Refresh token expired or invalid");
+              _refreshingToken = null;
+              return false;
+            } else {
+              throw ApiException(
+                statusCode: response.statusCode ?? 0,
+                detail: 'Token refresh failed with status ${response.statusCode}',
+              );
+            }
+          } on DioException catch (e) {
+            // Fall back to standard HTTP client if there's a certificate issue
+            // This is a temporary fallback during the transition to certificate pinning
+            LogService.logInfo("⚠️ Falling back to standard HTTP client: ${e.message}");
+
+            final response = await http.post(Uri.parse('${Config.apiUrl}/users/refresh'), headers: headers);
+
+            if (response.statusCode == 200) {
+              final data = jsonDecode(response.body);
+              await _updateTokens(
+                SecurityData(
+                  userId: data['userId'],
+                  accessToken: data['access_token'],
+                  refreshToken: data['refresh_token'],
+                  expirationSeconds: data['expires_in'].toString(),
+                ),
+              );
+              _refreshingToken!.complete();
+              _refreshingToken = null;
+              return true;
+            } else if (response.statusCode == 401) {
+              LogService.logError("🚨 Refresh token expired or invalid. Logging out user.");
+              logout(); // Clear tokens and redirect to login
+              _refreshingToken!.completeError("Refresh token expired or invalid");
+              _refreshingToken = null;
+              return false;
+            } else {
+              throw ApiException(
+                statusCode: response.statusCode,
+                detail: 'Token refresh failed with status ${response.statusCode}',
+              );
+            }
+          }
+        },
+        maxRetries: 2,
+        retryIf: (e) => e is! ApiException || (e as ApiException).statusCode != 401, // Don't retry auth failures
+        onRetry: (e, attempt) {
+          LogService.logInfo("🔄 Retrying token refresh (attempt $attempt): ${e.toString()}");
+        },
+      );
     } catch (e) {
       LogService.logError('🚨 Refresh failed: $e');
+      ErrorReporting.reportException(e, StackTrace.current, context: 'Token refresh');
       _refreshingToken!.completeError("Refresh failed: $e");
       _refreshingToken = null;
+      return false;
     }
-
-    // If we get here, the refresh failed but we didn't throw an error
-    if (_refreshingToken != null) {
-      _refreshingToken!.completeError("Refresh failed with unknown error");
-      _refreshingToken = null;
-    }
-
-    return false;
   }
 
   /// **Register a new user**
@@ -532,9 +566,16 @@ class ApiService with ChangeNotifier {
     }
   }
 
-  /// **Unified API Request Handler**
+  /// **Unified API Request Handler with enhanced error handling**
   Future<http.Response> _makeApiRequest(bool isGet, String url, Map<String, String> headers, String? body) async {
     final secureStorage = SecureStorage();
+
+    // Check connectivity first
+    if (!await ConnectivityMonitor().checkConnection()) {
+      LogService.logError("🚨 Cannot make API request: No network connection");
+      OfflineModeHandler.enterOfflineMode();
+      throw ApiException(statusCode: 0, detail: 'No network connection');
+    }
 
     // Check if token is expiring soon
     if (await _isTokenExpiringSoon()) {
@@ -550,33 +591,87 @@ class ApiService with ChangeNotifier {
       }
     }
 
-    // Make the API request
-    var response =
-        isGet
-            ? await http.get(Uri.parse(url), headers: headers)
-            : await http.post(Uri.parse(url), headers: headers, body: body);
+    // Use retry utility for API requests
+    return await RetryUtil.withRetry<http.Response>(
+      () async {
+        // Make the API request
+        var response =
+            isGet
+                ? await http.get(Uri.parse(url), headers: headers)
+                : await http.post(Uri.parse(url), headers: headers, body: body);
 
-    // Handle 401 Unauthorized - token might have expired during the request
-    if (response.statusCode == 401) {
-      // Try to refresh the token using the synchronized mechanism
-      final refreshed = await _refreshTokenIfNeeded();
+        // Handle 401 Unauthorized - token might have expired during the request
+        if (response.statusCode == 401) {
+          // Try to refresh the token using the synchronized mechanism
+          final refreshed = await _refreshTokenIfNeeded();
 
-      if (refreshed) {
-        // Get the latest token after refresh
-        final latestToken = await secureStorage.getAccessToken();
-        if (latestToken != null) {
-          headers['Authorization'] = 'Bearer $latestToken';
+          if (refreshed) {
+            // Get the latest token after refresh
+            final latestToken = await secureStorage.getAccessToken();
+            if (latestToken != null) {
+              headers['Authorization'] = 'Bearer $latestToken';
+            }
+
+            // Retry the request with the new token
+            response =
+                isGet
+                    ? await http.get(Uri.parse(url), headers: headers)
+                    : await http.post(Uri.parse(url), headers: headers, body: body);
+
+            if (response.statusCode == 401) {
+              // Still unauthorized after token refresh
+              throw ApiException(statusCode: 401, detail: 'Authentication failed even after token refresh');
+            }
+          } else {
+            throw ApiException(statusCode: 401, detail: 'Token refresh failed - Please log in again');
+          }
         }
 
-        // Retry the request with the new token
-        return isGet
-            ? await http.get(Uri.parse(url), headers: headers)
-            : await http.post(Uri.parse(url), headers: headers, body: body);
+        // Handle server errors
+        if (response.statusCode >= 500) {
+          final errorMessage = ErrorMessages.getMessageForStatusCode(response.statusCode);
+          throw ApiException(statusCode: response.statusCode, detail: errorMessage);
+        }
+
+        return response;
+      },
+      maxRetries: 2,
+      retryIf: (e) {
+        // Only retry network errors and server errors, not client errors
+        if (e is ApiException) {
+          return e.statusCode == 0 || e.statusCode >= 500;
+        }
+        return true;
+      },
+      onRetry: (e, attempt) {
+        LogService.logInfo("🔄 Retrying API request (attempt $attempt): ${e.toString()}");
+      },
+    );
+  }
+
+  /// Show error dialog for API errors
+  void showErrorDialog(BuildContext context, dynamic error) {
+    String category = ErrorHandler.UNKNOWN_ERROR;
+    String message = "An unexpected error occurred";
+
+    if (error is ApiException) {
+      if (error.statusCode == 0 || error.statusCode == -1) {
+        category = ErrorHandler.NETWORK_ERROR;
+      } else if (error.statusCode == 401 || error.statusCode == 403) {
+        category = ErrorHandler.AUTH_ERROR;
+      } else if (error.statusCode >= 500) {
+        category = ErrorHandler.SERVER_ERROR;
       } else {
-        throw ApiException(statusCode: 401, detail: 'Token refresh failed - Please log in again');
+        category = ErrorHandler.DATA_ERROR;
       }
+      message = error.detail;
+    } else if (error is DioException) {
+      category = ErrorHandler.categorizeException(error);
+      message = ErrorMessages.getMessageForException(error);
+    } else {
+      message = error.toString();
     }
 
-    return response;
+    ErrorHandler.handleError(context, category, message);
   }
 }

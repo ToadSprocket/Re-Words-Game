@@ -2,7 +2,7 @@
 import 'package:reword_game/models/api_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../managers/state_manager.dart';
-import '../logic/api_service.dart';
+import '../services/api_service.dart';
 import '../logic/logging_handler.dart';
 
 class GridLoader {

@@ -1,6 +1,6 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
-import '../logic/api_service.dart';
+import '../services/api_service.dart';
 import '../managers/gameLayoutManager.dart';
 import '../logic/spelled_words_handler.dart';
 import '../components/game_top_bar_component.dart';

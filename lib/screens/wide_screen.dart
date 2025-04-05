@@ -11,7 +11,7 @@ import '../components/spelled_words_column_component.dart';
 import '../components/game_message_component.dart';
 import '../logic/spelled_words_handler.dart';
 import '../managers/gameLayoutManager.dart';
-import '../logic/api_service.dart';
+import '../services/api_service.dart';
 
 class WideScreen extends StatelessWidget {
   final bool showBorders;

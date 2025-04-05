@@ -40,7 +40,7 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
   void initState() {
     super.initState();
     // Only load from GridLoader if we don't have tiles yet
-    if (tiles.isEmpty) {
+    if (tiles.isNotEmpty) {
       _loadWildcardTiles();
     }
   }

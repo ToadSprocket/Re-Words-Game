@@ -5,7 +5,7 @@ import 'package:reword_game/managers/gameLayoutManager.dart';
 import '../styles/app_styles.dart';
 import 'dart:math' as math;
 
-class GameTitleComponent extends StatelessWidget {
+class GameTitleComponent extends StatefulWidget {
   final double width;
   final double height; // New prop for height
   final bool showBorders;
@@ -32,25 +32,38 @@ class GameTitleComponent extends StatelessWidget {
     "Multiply Your Words, Maximize Your Score!",
   ];
 
-  String getRandomSlogan() {
+  @override
+  State<GameTitleComponent> createState() => _GameTitleComponentState();
+}
+
+class _GameTitleComponentState extends State<GameTitleComponent> {
+  late String _slogan;
+
+  @override
+  void initState() {
+    super.initState();
+    // Generate the slogan once when the widget is initialized
+    _slogan = _getRandomSlogan();
+  }
+
+  String _getRandomSlogan() {
     final random = math.Random();
-    return slogans[random.nextInt(slogans.length)];
+    return GameTitleComponent.slogans[random.nextInt(GameTitleComponent.slogans.length)];
   }
 
   @override
   Widget build(BuildContext context) {
     const title = 'Re-Word Game';
-    final slogan = getRandomSlogan();
 
     return Container(
-      width: width,
-      height: height,
-      decoration: showBorders ? BoxDecoration(border: Border.all(color: Colors.purple, width: 1)) : null,
+      width: widget.width,
+      height: widget.height,
+      decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.purple, width: 1)) : null,
       child: Column(
         mainAxisSize: MainAxisSize.max,
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          SizedBox(height: height * 0.001),
+          SizedBox(height: widget.height * 0.001),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children:
@@ -63,7 +76,7 @@ class GameTitleComponent extends StatelessWidget {
                     child: Text(
                       letter,
                       style: TextStyle(
-                        fontSize: gameLayoutManager.titleFontSize,
+                        fontSize: widget.gameLayoutManager.titleFontSize,
                         fontWeight: FontWeight.bold,
                         color: AppStyles.headerTextColor,
                       ),
@@ -73,9 +86,9 @@ class GameTitleComponent extends StatelessWidget {
           ),
           const SizedBox(height: 1.0),
           Text(
-            slogan,
+            _slogan,
             style: TextStyle(
-              fontSize: gameLayoutManager.sloganFontSize,
+              fontSize: widget.gameLayoutManager.sloganFontSize,
               fontWeight: FontWeight.normal,
               color: AppStyles.titleSloganTextColor.withOpacity(0.8),
             ),

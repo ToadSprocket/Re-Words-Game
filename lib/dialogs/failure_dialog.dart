@@ -7,66 +7,141 @@ import '../styles/app_styles.dart';
 import 'package:window_manager/window_manager.dart';
 import 'dart:io';
 import '../managers/gameLayoutManager.dart';
+import '../dialogs/enhanced_error_dialog.dart';
+import '../logic/error_handler.dart';
+import '../logic/error_reporting.dart';
+import '../utils/connectivity_monitor.dart';
 
 class FailureDialog {
-  static Future<void> show(BuildContext context, GameLayoutManager gameLayoutManager) {
+  static Future<void> show(
+    BuildContext context,
+    GameLayoutManager gameLayoutManager, {
+    String? title,
+    String? message,
+    VoidCallback? onRetry,
+    bool isNetworkError = false,
+  }) {
+    // Check if this is a network error
+    if (isNetworkError) {
+      // Report the error
+      ErrorReporting.reportWarning('Network error detected when showing failure dialog', context: 'FailureDialog.show');
+
+      // Show the enhanced error dialog with network error message
+      return showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return EnhancedErrorDialog(
+            title: title ?? 'Connection Error',
+            message:
+                message ?? 'Unable to connect to the game server. Please check your internet connection and try again.',
+            onRetry: onRetry,
+            onClose: () async {
+              Navigator.of(context).pop();
+              if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+                await windowManager.destroy(); // Force close on desktop
+              } else {
+                SystemNavigator.pop(); // Mobile fallback
+              }
+            },
+            actionButtonText: onRetry != null ? 'Retry' : null,
+          );
+        },
+      );
+    }
+
+    // Check connectivity
+    ConnectivityMonitor().checkConnection().then((isConnected) {
+      if (!isConnected) {
+        // If we're not connected, report this information
+        ErrorReporting.reportWarning(
+          'No network connection detected when showing failure dialog',
+          context: 'FailureDialog.show',
+        );
+      }
+    });
+
+    // Default server error dialog
     return showDialog<void>(
       context: context,
       barrierDismissible: false, // Prevent dismiss without button
       builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppStyles.dialogBorderRadius),
-            side: BorderSide(color: AppStyles.dialogBorderColor, width: AppStyles.dialogBorderWidth),
-          ),
-          backgroundColor: AppStyles.dialogBackgroundColor,
-          child: Container(
-            width: gameLayoutManager.dialogMaxWidth * 0.8, // ~400px
-            height: gameLayoutManager.dialogMaxHeight * 0.5, // ~200px
-            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Stack(
-                      children: [
-                        Center(
-                          child: Text(
-                            'Server Error',
-                            style: gameLayoutManager.dialogTitleStyle,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 36.0),
-                    Text(
-                      'Failure contacting game server.\nPlease Try Again Later',
-                      style: gameLayoutManager.dialogContentStyle,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
-                      await windowManager.destroy(); // Force close on desktop
-                    } else {
-                      SystemNavigator.pop(); // Mobile fallback
-                    }
-                  },
-                  style: gameLayoutManager.buttonStyle(context),
-                  child: const Text('Close'),
-                ),
-                const SizedBox(height: AppStyles.dialogButtonPadding),
-              ],
-            ),
-          ),
+        return EnhancedErrorDialog(
+          title: title ?? 'Server Error',
+          message: message ?? 'Failure contacting game server.\nPlease Try Again Later',
+          onRetry: onRetry,
+          onClose: () async {
+            Navigator.of(context).pop();
+            if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+              await windowManager.destroy(); // Force close on desktop
+            } else {
+              SystemNavigator.pop(); // Mobile fallback
+            }
+          },
+          actionButtonText: onRetry != null ? 'Retry' : null,
         );
       },
+    );
+  }
+
+  /// Show a specific error dialog based on error type
+  static Future<void> showError(
+    BuildContext context,
+    GameLayoutManager gameLayoutManager,
+    dynamic error, {
+    VoidCallback? onRetry,
+  }) {
+    // Determine error category and message
+    String category = ErrorHandler.UNKNOWN_ERROR;
+    String title = 'Error';
+    String message = 'An unexpected error occurred. Please try again later.';
+
+    // Categorize the error
+    if (error is Exception) {
+      category = ErrorHandler.categorizeException(error);
+
+      // Get appropriate title and message based on category
+      switch (category) {
+        case ErrorHandler.NETWORK_ERROR:
+          title = 'Connection Error';
+          message = 'Unable to connect to the game server. Please check your internet connection and try again.';
+          break;
+        case ErrorHandler.AUTH_ERROR:
+          title = 'Authentication Error';
+          message = 'Your session has expired. Please log in again to continue.';
+          break;
+        case ErrorHandler.SERVER_ERROR:
+          title = 'Server Error';
+          message =
+              'The game server is currently experiencing issues. Our team has been notified and is working on a fix.';
+          break;
+        case ErrorHandler.DATA_ERROR:
+          title = 'Data Error';
+          message = 'There was a problem loading your game data. Please try again.';
+          break;
+        default:
+          title = 'Error';
+          message = 'An unexpected error occurred. Please try again later.';
+      }
+
+      // Report the error
+      ErrorReporting.reportException(error, StackTrace.current, context: 'FailureDialog.showError');
+    } else {
+      // For non-exception errors, use default error handling
+      message = error.toString();
+
+      // Report the error
+      ErrorReporting.reportWarning('Non-exception error: $error', context: 'FailureDialog.showError');
+    }
+
+    // Show the appropriate dialog
+    return show(
+      context,
+      gameLayoutManager,
+      title: title,
+      message: message,
+      onRetry: onRetry,
+      isNetworkError: category == ErrorHandler.NETWORK_ERROR,
     );
   }
 }

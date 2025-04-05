@@ -17,9 +17,12 @@ import 'dialogs/failure_dialog.dart';
 import 'dialogs/login_dialog.dart';
 import 'components/game_grid_component.dart';
 import 'components/wildcard_column_component.dart';
+import 'components/error_boundary.dart';
 import 'managers/state_manager.dart';
-import 'logic/api_service.dart';
+import 'services/api_service.dart';
 import 'logic/spelled_words_handler.dart';
+import 'logic/error_handler.dart';
+import 'logic/error_reporting.dart';
 import 'package:provider/provider.dart';
 import 'models/api_models.dart';
 import '../logic/logging_handler.dart';
@@ -29,6 +32,8 @@ import 'dialogs/welcome_dialog.dart';
 import 'dialogs/loading_dialog.dart';
 import 'services/word_service.dart';
 import 'utils/web_utils.dart';
+import 'utils/connectivity_monitor.dart';
+import 'utils/offline_mode_handler.dart';
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
@@ -51,6 +56,15 @@ void main() async {
 
   // Configure logging based on build mode
   LogService.configureLogging();
+
+  // Initialize error reporting
+  await ErrorReporting.initialize();
+
+  // Initialize connectivity monitoring
+  ConnectivityMonitor().initialize();
+
+  // Initialize offline mode handler
+  OfflineModeHandler.initialize();
 
   final wordService = WordService();
   await wordService.initialize();
@@ -129,10 +143,16 @@ class ReWordApp extends StatelessWidget {
     return MaterialApp(
       title: 'Re-Word Game',
       theme: AppStyles.appTheme,
-      home: GameLayoutProvider(
-        gameLayoutManager: layoutManager,
-        child: HomeScreen(userId: userId, authToken: authToken),
+      home: ErrorBoundary(
+        child: GameLayoutProvider(
+          gameLayoutManager: layoutManager,
+          child: HomeScreen(userId: userId, authToken: authToken),
+        ),
       ),
+      builder: (context, child) {
+        // Add error handling at the app level
+        return ErrorBoundary(child: child ?? const SizedBox());
+      },
     );
   }
 }
@@ -378,49 +398,90 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   }
 
   Future<void> _loadBoardForUser(ApiService api) async {
-    // First check if we need a new board
-    final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
-    LogService.logError("🔄 Loading board for user... isExpired: $isExpired");
+    try {
+      // First check if we need a new board
+      final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
+      LogService.logInfo("🔄 Loading board for user... isExpired: $isExpired");
 
-    final hasBoardData = await StateManager().hasBoardData();
-    LogService.logError("🔄 Loading board for user... hasBoardData: $hasBoardData");
+      final hasBoardData = await StateManager().hasBoardData();
+      LogService.logInfo("🔄 Loading board for user... hasBoardData: $hasBoardData");
 
-    if (isExpired || !hasBoardData) {
-      final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
-      var loadNewBoard = false;
-      // If we have board data, ask the user if they want to load a new board
-      if (hasBoardData) {
-        loadNewBoard = await _shouldLoadNewBoard();
-      }
+      if (isExpired || !hasBoardData) {
+        final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
+        var loadNewBoard = false;
+        // If we have board data, ask the user if they want to load a new board
+        if (hasBoardData) {
+          loadNewBoard = await _shouldLoadNewBoard();
+        }
 
-      if (loadNewBoard || !hasBoardData) {
-        LogService.logError("🔄 Loading new board...");
-        LoadingDialog.show(context, gameLayoutManager, message: "Loading new board...");
-        try {
-          // Get the current score before resetting state
-          final SubmitScoreRequest currentScore = await SpelledWordsLogic.getCurrentScore();
+        if (loadNewBoard || !hasBoardData) {
+          LogService.logInfo("🔄 Loading new board...");
+          LoadingDialog.show(context, gameLayoutManager, message: "Loading new board...");
+          try {
+            // Get the current score before resetting state
+            final SubmitScoreRequest currentScore = await SpelledWordsLogic.getCurrentScore();
 
-          // Load the new board with the current score
-          bool success = await GridLoader.loadNewBoard(api, currentScore);
+            // Check connectivity before loading new board
+            if (!await ConnectivityMonitor().checkConnection()) {
+              LogService.logError("🚨 Cannot load new board: No network connection");
+              OfflineModeHandler.enterOfflineMode();
 
-          // Only reset state after successfully loading the new board
-          if (success) {
-            await StateManager.resetState(_gridKey);
-          } else {
-            LogService.logError("❌ Failed to load new board. Falling back to stored board.");
+              // Show error dialog
+              if (mounted) {
+                ErrorHandler.handleError(
+                  context,
+                  ErrorHandler.NETWORK_ERROR,
+                  "Cannot load new board: No network connection",
+                  onRetry: () => _loadBoardForUser(api),
+                );
+              }
+
+              // Fall back to stored board
+              await GridLoader.loadStoredBoard();
+              return;
+            }
+
+            // Load the new board with the current score
+            bool success = await GridLoader.loadNewBoard(api, currentScore);
+
+            // Only reset state after successfully loading the new board
+            if (success) {
+              await StateManager.resetState(_gridKey);
+            } else {
+              LogService.logError("❌ Failed to load new board. Falling back to stored board.");
+              await GridLoader.loadStoredBoard();
+            }
+          } catch (e) {
+            LogService.logError("🚨 Error loading new board: $e");
+            ErrorReporting.reportException(e, StackTrace.current, context: 'Load new board');
+
+            // Fall back to stored board
             await GridLoader.loadStoredBoard();
+          } finally {
+            if (mounted) LoadingDialog.dismiss(context);
           }
-        } finally {
-          if (mounted) LoadingDialog.dismiss(context);
+        } else {
+          LogService.logInfo("🔄 Falling back to stored board...");
+          await GridLoader.loadStoredBoard();
         }
       } else {
-        LogService.logError("🔄 Falling back to stored board...");
-        await GridLoader.loadStoredBoard();
+        // Board is still valid, restore previous state
+        LogService.logInfo("🔄 Restoring state...");
+        await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
       }
-    } else {
-      // Board is still valid, restore previous state
-      LogService.logError("🔄 Restoring state...");
-      await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
+    } catch (e) {
+      LogService.logError("🚨 Error in _loadBoardForUser: $e");
+      ErrorReporting.reportException(e, StackTrace.current, context: 'Load board for user');
+
+      // Show error dialog
+      if (mounted) {
+        ErrorHandler.handleError(
+          context,
+          ErrorHandler.DATA_ERROR,
+          "Failed to load game board",
+          onRetry: () => _loadBoardForUser(api),
+        );
+      }
     }
   }
 

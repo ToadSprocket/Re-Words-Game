@@ -228,7 +228,7 @@ class GameLayoutManager {
       double widthBasedSquare = (targetGridWidth / (GameConstants.gridCols + 1)) * 0.95; // 95% to account for spacing
 
       // Use the smaller of the two to ensure grid fits both dimensions
-      gridSquareSize = min(heightBasedSquare, widthBasedSquare).clamp(60.0, 85.0);
+      gridSquareSize = min(heightBasedSquare, widthBasedSquare).clamp(55.0, 85.0);
       gridSpacing = gridSquareSize * 0.06; // Spacing proportional to square size
     }
 
@@ -377,7 +377,6 @@ class GameLayoutManager {
       // Clear the desired widths after using them
       desiredSpelledWordsWidth = null;
       desiredWildcardWidth = null;
-      LogService.logInfo('Using desired widths for containers');
     } else {
       // Normal calculation if no desired widths are set
       wildcardContainerWidth = remainingSpace / 2; // Equal distribution of remaining space
@@ -450,8 +449,6 @@ class GameLayoutManager {
     spelledWordStyle = TextStyle(fontSize: spelledWordsFontSize, fontWeight: FontWeight.normal, color: Colors.white);
 
     var gameLayout = isNarrowLayout ? 'Narrow' : 'Wide';
-
-    LogService.logInfo('Screen Width: $screenWidth, Screen Height: $screenHeight, Game Layout: $gameLayout');
   }
 
   bool calculateSpelledWordsLayout(int totalColumns, double totalWidth) {
