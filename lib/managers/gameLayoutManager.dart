@@ -456,7 +456,6 @@ class GameLayoutManager {
 
   bool calculateSpelledWordsLayout(int totalColumns, double totalWidth) {
     var changed = false;
-    LogService.logInfo('Total Columns: $totalColumns, Total Width: $totalWidth');
 
     // Calculate minimum widths
     double minWildcardWidth = gridSquareSize + 4; // Minimum width for wildcard container

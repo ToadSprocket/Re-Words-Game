@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:async'; // Add this import for Completer
 import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../logic/security.dart';
 import '../config/config.dart';
 import '../models/api_models.dart';
@@ -42,6 +41,12 @@ class ApiService with ChangeNotifier {
     accessToken = token;
     loggedIn = true;
     notifyListeners();
+  }
+
+  void setUserInformation(Map<String, String?> userData) {
+    userId = userData['userId'];
+    accessToken = userData['accessToken'];
+    refreshToken = userData['refreshToken'];
   }
 
   /// **Log out user and clear tokens**
@@ -113,6 +118,12 @@ class ApiService with ChangeNotifier {
     accessToken = await secureStorage.getAccessToken();
     refreshToken = await secureStorage.getRefreshToken();
     tokenExpiration = await secureStorage.getTokenExpiration();
+  }
+
+  /// **Initialize API service with stored user data**
+  /// This method should be called at app startup to load user data from storage
+  Future<void> initializeFromStorage() async {
+    await _getTokens();
   }
 
   /// **Refresh token if needed**
@@ -343,12 +354,20 @@ class ApiService with ChangeNotifier {
 
     final headers = {
       'X-API-Key': Security.generateApiKeyHash(),
-      'Authorization': 'Bearer $accessToken',
       'Content-Type': 'application/json',
       'Time-Zone': location.toString(), // ✅ Send player's timezone to API
     };
 
-    scoreRequest.userId = userId!; // Set userId in request
+    // Add Authorization header only if we have an access token
+    if (accessToken != null) {
+      headers['Authorization'] = 'Bearer $accessToken';
+    }
+
+    // Set userId in request if available, otherwise use empty string
+    // The API will handle anonymous requests appropriately
+    if (userId != null) {
+      scoreRequest.userId = userId!;
+    }
 
     final body = jsonEncode(scoreRequest.toJson());
 

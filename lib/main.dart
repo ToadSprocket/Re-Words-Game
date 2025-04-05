@@ -55,12 +55,22 @@ void main() async {
   final wordService = WordService();
   await wordService.initialize();
 
+  // Initialize ApiService with stored user data
+  final apiService = ApiService();
+  await apiService.initializeFromStorage(); // Load user data from storage
+
+  // Check if user is logged in based on tokens
+  if (apiService.accessToken != null && apiService.userId != null) {
+    apiService.loggedIn = true;
+    LogService.logInfo("👤 User already logged in: ${apiService.userId}");
+  }
+
   final GameLayoutManager layoutManager = GameLayoutManager();
 
   // Non-web platforms will initialize differently
   runApp(
     ChangeNotifierProvider<ApiService>(
-      create: (context) => ApiService(),
+      create: (context) => apiService, // Use the initialized instance
       child: ReWordApp(layoutManager: layoutManager),
     ),
   );
@@ -231,6 +241,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     bool isNewUser = await StateManager.isNewUser();
     bool hasShownWelcome = await StateManager.hasShownWelcomeAnimation();
 
+    // Set this here so that we use the API for existing users.
+    if (!isNewUser) {
+      var userData = await StateManager.getUserData();
+      api.setUserInformation(userData);
+    }
+
     // Handle welcome animation first
     if (debugForceIntroAnimation || !hasShownWelcome) {
       await WelcomeDialog.show(context, gameLayoutManager);
@@ -381,9 +397,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         LogService.logError("🔄 Loading new board...");
         LoadingDialog.show(context, gameLayoutManager, message: "Loading new board...");
         try {
-          await StateManager.resetState(_gridKey);
-          bool success = await GridLoader.loadNewBoard(api, finalScore);
-          if (!success) {
+          // Get the current score before resetting state
+          final SubmitScoreRequest currentScore = await SpelledWordsLogic.getCurrentScore();
+
+          // Load the new board with the current score
+          bool success = await GridLoader.loadNewBoard(api, currentScore);
+
+          // Only reset state after successfully loading the new board
+          if (success) {
+            await StateManager.resetState(_gridKey);
+          } else {
             LogService.logError("❌ Failed to load new board. Falling back to stored board.");
             await GridLoader.loadStoredBoard();
           }
@@ -440,7 +463,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
   @override
   Widget build(BuildContext context) {
-    final api = ApiService();
+    final api = Provider.of<ApiService>(context, listen: false);
     final isWebOverride = debugForceIsWeb ?? gameLayoutManager.isWeb;
     final isWeb = isWebOverride;
 
@@ -467,7 +490,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   onHighScores:
                       () => HighScoresDialog.show(
                         context,
-                        ApiService(),
+                        api, // Use the existing api instance from Provider
                         SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
                         gameLayoutManager,
                       ),
@@ -493,7 +516,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                   onHighScores:
                       () => HighScoresDialog.show(
                         context,
-                        ApiService(),
+                        api, // Use the existing api instance from Provider
                         SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
                         gameLayoutManager,
                       ),

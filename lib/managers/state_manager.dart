@@ -186,21 +186,35 @@ class StateManager {
       return true;
     }
 
-    // Convert stored UTC expiration to DateTime
-    final utcDate = DateTime.parse(expireDateUtc).toUtc();
-    final utcExpireDate = utcDate.dateOnly();
+    // ✅ Get user's timezone
+    String localTimeZone = await FlutterTimezone.getLocalTimezone();
+    tz.initializeTimeZones();
+    final location = tz.getLocation(localTimeZone);
 
-    // ✅ Get the player's local time
+    // ✅ Convert stored UTC expiration to DateTime
+    final utcExpireTime = DateTime.parse(expireDateUtc).toUtc();
 
-    final nowLocal = DateTime.now().toUtc().dateOnly();
+    // ✅ Convert UTC expiration to user's local timezone
+    final localExpireTime = tz.TZDateTime.from(utcExpireTime, location);
 
-    LogService.logInfo("🌍 Local Timezone: ${nowLocal.timeZoneName}");
-    LogService.logInfo("🌍 Expiration UTC: $utcExpireDate");
+    // ✅ Get current time in user's timezone
+    final nowLocal = tz.TZDateTime.now(location);
+
+    // ✅ Compare dates (not times)
+    final isExpired =
+        nowLocal.year > localExpireTime.year ||
+        (nowLocal.year == localExpireTime.year && nowLocal.month > localExpireTime.month) ||
+        (nowLocal.year == localExpireTime.year &&
+            nowLocal.month == localExpireTime.month &&
+            nowLocal.day >= localExpireTime.day);
+
+    LogService.logInfo("🌍 User Timezone: $localTimeZone");
     LogService.logInfo("🌍 Current Local Time: $nowLocal");
-    LogService.logInfo("🌍 Expired?: ${!nowLocal.isBefore(utcExpireDate)}");
+    LogService.logInfo("🌍 Expiration UTC: $utcExpireTime");
+    LogService.logInfo("🌍 Expiration Local: $localExpireTime");
+    LogService.logInfo("🌍 Board Expired?: $isExpired");
 
-    // ✅ Check if local time has passed expiration time
-    return !nowLocal.isBefore(utcExpireDate);
+    return isExpired;
   }
 
   static Future<int?> boardExpiredDuration() async {
@@ -212,16 +226,35 @@ class StateManager {
       return null; // No board data yet
     }
 
+    // ✅ Get user's timezone
+    String localTimeZone = await FlutterTimezone.getLocalTimezone();
+    tz.initializeTimeZones();
+    final location = tz.getLocation(localTimeZone);
+
+    // ✅ Convert stored UTC expiration to DateTime
     final utcExpireTime = DateTime.parse(expireDateUtc).toUtc();
-    final localExpireTime = utcExpireTime.toLocal();
-    final nowLocal = DateTime.now();
-    if (isSameDay(localExpireTime, utcExpireTime)) {
+
+    // ✅ Convert UTC expiration to user's local timezone
+    final localExpireTime = tz.TZDateTime.from(utcExpireTime, location);
+
+    // ✅ Get current time in user's timezone
+    final nowLocal = tz.TZDateTime.now(location);
+
+    // Check if the board is still valid (not expired)
+    if (nowLocal.year < localExpireTime.year ||
+        (nowLocal.year == localExpireTime.year && nowLocal.month < localExpireTime.month) ||
+        (nowLocal.year == localExpireTime.year &&
+            nowLocal.month == localExpireTime.month &&
+            nowLocal.day < localExpireTime.day)) {
       return 0; // Board is still valid
     } else {
-      DateTime todayMidnight = DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
+      // Calculate minutes since midnight in user's timezone
+      tz.TZDateTime todayMidnight = tz.TZDateTime(location, nowLocal.year, nowLocal.month, nowLocal.day);
       Duration difference = nowLocal.difference(todayMidnight);
       int minutesSinceMidnight = difference.inMinutes;
-      return minutesSinceMidnight; // Return minutes since midnight
+
+      LogService.logInfo("🌍 Minutes since midnight: $minutesSinceMidnight");
+      return minutesSinceMidnight;
     }
   }
 
@@ -272,20 +305,24 @@ class StateManager {
     tz.initializeTimeZones();
     final location = tz.getLocation(localTimeZone);
 
-    // ✅ Convert expiration time to local midnight
-    DateTime nowLocal = tz.TZDateTime.now(location);
-    DateTime nextMidnightLocal = tz.TZDateTime(
+    // ✅ Get current time in user's timezone
+    tz.TZDateTime nowLocal = tz.TZDateTime.now(location);
+
+    // ✅ Calculate next midnight in user's timezone
+    tz.TZDateTime nextMidnightLocal = tz.TZDateTime(
       location,
       nowLocal.year,
       nowLocal.month,
       nowLocal.day,
     ).add(const Duration(days: 1));
 
-    // ✅ Convert local midnight to UTC before saving
-    DateTime nextMidnightUtc = DateTime.now()
-        .toUtc()
-        .add(const Duration(days: 1))
-        .copyWith(hour: 0, minute: 0, second: 0, millisecond: 0, microsecond: 0);
+    // ✅ Convert to UTC for storage
+    DateTime nextMidnightUtc = nextMidnightLocal.toUtc();
+
+    LogService.logInfo("🌍 User Timezone: $localTimeZone");
+    LogService.logInfo("🌍 Current Local Time: $nowLocal");
+    LogService.logInfo("🌍 Next Midnight Local: $nextMidnightLocal");
+    LogService.logInfo("🌍 Next Midnight UTC: $nextMidnightUtc");
 
     final boardData = {
       'grid': gameData.grid,

@@ -6,6 +6,7 @@ import '../models/api_models.dart';
 import '../logic/spelled_words_handler.dart';
 import '../logic/logging_handler.dart';
 import '../managers/gameLayoutManager.dart';
+import 'login_dialog.dart';
 
 class HighScoresDialog {
   static Future<void> show(
@@ -171,24 +172,41 @@ class HighScoresDialog {
                     ),
                     const SizedBox(height: AppStyles.dialogButtonPadding),
 
+                    // Show encouragement message if user has a good score
+                    if (hasGoodScore && !userHasSubmitted)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: Text(
+                          loggedIn
+                              ? "Great score! Submit it to the leaderboard!"
+                              : "Great score! Log in to submit to the leaderboard!",
+                          style: gameLayoutManager.dialogContentHighLiteStyle,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        if (loggedIn && canSubmitScore)
+                        // If logged in and has good score that can be submitted
+                        if (loggedIn && hasGoodScore && canSubmitScore)
                           ElevatedButton(
                             onPressed: () async {
                               try {
                                 final scoreSubmitted = await api.submitHighScore(finalScore);
-                                if (scoreSubmitted) {
+                                if (scoreSubmitted && context.mounted) {
                                   LogService.logInfo('High score submitted successfully!');
-                                  Navigator.of(context).pop(); // Close dialog
-                                  await Future.delayed(const Duration(milliseconds: 300)); // Short delay
-                                  await _loadAndShowDialog(
-                                    context,
-                                    api,
-                                    spelledWordsLogic,
-                                    gameLayoutManager,
-                                  ); // Reload dialog
+
+                                  // Close this dialog
+                                  Navigator.of(context).pop();
+
+                                  // Use a short delay to ensure the dialog is fully closed
+                                  await Future.delayed(const Duration(milliseconds: 100));
+
+                                  // Show a new high scores dialog with the updated state
+                                  if (context.mounted) {
+                                    await show(context, api, spelledWordsLogic, gameLayoutManager);
+                                  }
                                   return;
                                 } else {
                                   LogService.logError('Failed to submit high score.');
@@ -199,6 +217,29 @@ class HighScoresDialog {
                             },
                             style: gameLayoutManager.buttonStyle(context),
                             child: const Text('Submit Score'),
+                          ),
+                        // If not logged in but has good score
+                        if (!loggedIn && hasGoodScore)
+                          ElevatedButton(
+                            onPressed: () async {
+                              // Show login dialog without closing the high scores dialog
+                              final loginSuccess = await LoginDialog.show(context, api, gameLayoutManager);
+
+                              if (loginSuccess && context.mounted) {
+                                // If login was successful, close this dialog and show a new one
+                                Navigator.of(context).pop();
+
+                                // Use a short delay to ensure the dialog is fully closed
+                                await Future.delayed(const Duration(milliseconds: 100));
+
+                                // Show a new high scores dialog with the updated login state
+                                if (context.mounted) {
+                                  await show(context, api, spelledWordsLogic, gameLayoutManager);
+                                }
+                              }
+                            },
+                            style: gameLayoutManager.buttonStyle(context),
+                            child: const Text('Login to Submit'),
                           ),
                         ElevatedButton(
                           onPressed: () => Navigator.of(context).pop(),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:reword_game/logic/logging_handler.dart';
 import '../styles/app_styles.dart';
 import '../logic/api_service.dart';
 import '../logic/security.dart';
@@ -76,6 +77,7 @@ class LoginDialog {
         loginSuccess = true;
         Navigator.pop(context);
       } catch (e) {
+        LogService.logError("Fatal Error Encountered: $e");
         setState(() {
           errorMessage = "An error occurred. Please try again later.";
           isLoading = false;
