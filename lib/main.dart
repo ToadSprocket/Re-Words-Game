@@ -34,6 +34,7 @@ import 'services/word_service.dart';
 import 'utils/web_utils.dart';
 import 'utils/connectivity_monitor.dart';
 import 'utils/offline_mode_handler.dart';
+import 'utils/device_utils.dart';
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
@@ -184,6 +185,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
     // Ensure this runs only after the first frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Set orientation settings based on device type
+      DeviceUtils.setOrientationSettings(context);
+
       gameLayoutManager.calculateLayoutSizes(context);
       setState(() {}); // ✅ Force rebuild to apply new sizes
     });
@@ -528,74 +532,142 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     final isWebOverride = debugForceIsWeb ?? gameLayoutManager.isWeb;
     final isWeb = isWebOverride;
 
-    // Get the current window width
-    final windowWidth = MediaQuery.of(context).size.width;
+    // Set debug override if needed
+    if (debugForceIsNarrow) {
+      DeviceUtils.forceNarrowLayout = true;
+    }
 
-    // Determine if we should use narrow layout
-    final useNarrowLayout = debugForceIsNarrow || (!isWeb && windowWidth < NARROW_LAYOUT_THRESHOLD);
+    // Determine if we should use narrow layout based on device type and orientation
+    final useNarrowLayout = DeviceUtils.shouldUseNarrowLayout(context, NARROW_LAYOUT_THRESHOLD);
 
     // Update GameLayoutManager with spelledWordsNotifier
     gameLayoutManager.spelledWordsNotifier = spelledWordsNotifier;
 
+    // Determine if we need to use SafeArea based on platform
+    final bool isMobilePlatform = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+
     return Scaffold(
-      body: SizedBox(
-        width: double.infinity,
-        height: double.infinity,
-        child:
-            useNarrowLayout
-                ? NarrowScreen(
-                  showBorders: debugShowBorders,
-                  onSubmit: submitWord,
-                  onClear: clearWords,
-                  onInstructions: () => HowToPlayDialog.show(context, gameLayoutManager),
-                  onHighScores:
-                      () => HighScoresDialog.show(
-                        context,
-                        api, // Use the existing api instance from Provider
-                        SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
-                        gameLayoutManager,
-                      ),
-                  onLegal: () => LegalDialog.show(context, gameLayoutManager),
-                  onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
-                  api: api,
-                  gameLayoutManager: gameLayoutManager,
-                  spelledWordsLogic: SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
-                  gridKey: _gridKey,
-                  wildcardKey: _wildcardKey,
-                  onMessage: _handleMessage,
-                  messageNotifier: messageNotifier,
-                  scoreNotifier: scoreNotifier,
-                  spelledWordsNotifier: spelledWordsNotifier,
-                  updateScoresRefresh: updateScoresRefresh,
-                  updateCurrentGameState: updateCurrentGameState,
-                )
-                : WideScreen(
-                  showBorders: debugShowBorders,
-                  onSubmit: submitWord,
-                  onClear: clearWords,
-                  onInstructions: () => HowToPlayDialog.show(context, gameLayoutManager),
-                  onHighScores:
-                      () => HighScoresDialog.show(
-                        context,
-                        api, // Use the existing api instance from Provider
-                        SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
-                        gameLayoutManager,
-                      ),
-                  onLegal: () => LegalDialog.show(context, gameLayoutManager),
-                  onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
-                  api: api,
-                  gameLayoutManager: gameLayoutManager,
-                  spelledWordsLogic: SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
-                  gridKey: _gridKey,
-                  wildcardKey: _wildcardKey,
-                  onMessage: _handleMessage,
-                  messageNotifier: messageNotifier,
-                  scoreNotifier: scoreNotifier,
-                  spelledWordsNotifier: spelledWordsNotifier,
-                  updateScoresRefresh: updateScoresRefresh,
-                  updateCurrentGameState: updateCurrentGameState,
+      body:
+          isMobilePlatform
+              ? SafeArea(
+                child: SizedBox(
+                  width: double.infinity,
+                  height: double.infinity,
+                  child:
+                      useNarrowLayout
+                          ? NarrowScreen(
+                            showBorders: debugShowBorders,
+                            onSubmit: submitWord,
+                            onClear: clearWords,
+                            onInstructions: () => HowToPlayDialog.show(context, gameLayoutManager),
+                            onHighScores:
+                                () => HighScoresDialog.show(
+                                  context,
+                                  api, // Use the existing api instance from Provider
+                                  SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
+                                  gameLayoutManager,
+                                ),
+                            onLegal: () => LegalDialog.show(context, gameLayoutManager),
+                            onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
+                            api: api,
+                            gameLayoutManager: gameLayoutManager,
+                            spelledWordsLogic: SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
+                            gridKey: _gridKey,
+                            wildcardKey: _wildcardKey,
+                            onMessage: _handleMessage,
+                            messageNotifier: messageNotifier,
+                            scoreNotifier: scoreNotifier,
+                            spelledWordsNotifier: spelledWordsNotifier,
+                            updateScoresRefresh: updateScoresRefresh,
+                            updateCurrentGameState: updateCurrentGameState,
+                          )
+                          : WideScreen(
+                            showBorders: debugShowBorders,
+                            onSubmit: submitWord,
+                            onClear: clearWords,
+                            onInstructions: () => HowToPlayDialog.show(context, gameLayoutManager),
+                            onHighScores:
+                                () => HighScoresDialog.show(
+                                  context,
+                                  api, // Use the existing api instance from Provider
+                                  SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
+                                  gameLayoutManager,
+                                ),
+                            onLegal: () => LegalDialog.show(context, gameLayoutManager),
+                            onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
+                            api: api,
+                            gameLayoutManager: gameLayoutManager,
+                            spelledWordsLogic: SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
+                            gridKey: _gridKey,
+                            wildcardKey: _wildcardKey,
+                            onMessage: _handleMessage,
+                            messageNotifier: messageNotifier,
+                            scoreNotifier: scoreNotifier,
+                            spelledWordsNotifier: spelledWordsNotifier,
+                            updateScoresRefresh: updateScoresRefresh,
+                            updateCurrentGameState: updateCurrentGameState,
+                          ),
                 ),
-      ),
+              )
+              : SizedBox(
+                // For non-mobile platforms, we don't need SafeArea
+                width: double.infinity,
+                height: double.infinity,
+                child:
+                    useNarrowLayout
+                        ? NarrowScreen(
+                          showBorders: debugShowBorders,
+                          onSubmit: submitWord,
+                          onClear: clearWords,
+                          onInstructions: () => HowToPlayDialog.show(context, gameLayoutManager),
+                          onHighScores:
+                              () => HighScoresDialog.show(
+                                context,
+                                api, // Use the existing api instance from Provider
+                                SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
+                                gameLayoutManager,
+                              ),
+                          onLegal: () => LegalDialog.show(context, gameLayoutManager),
+                          onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
+                          api: api,
+                          gameLayoutManager: gameLayoutManager,
+                          spelledWordsLogic: SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
+                          gridKey: _gridKey,
+                          wildcardKey: _wildcardKey,
+                          onMessage: _handleMessage,
+                          messageNotifier: messageNotifier,
+                          scoreNotifier: scoreNotifier,
+                          spelledWordsNotifier: spelledWordsNotifier,
+                          updateScoresRefresh: updateScoresRefresh,
+                          updateCurrentGameState: updateCurrentGameState,
+                        )
+                        : WideScreen(
+                          showBorders: debugShowBorders,
+                          onSubmit: submitWord,
+                          onClear: clearWords,
+                          onInstructions: () => HowToPlayDialog.show(context, gameLayoutManager),
+                          onHighScores:
+                              () => HighScoresDialog.show(
+                                context,
+                                api, // Use the existing api instance from Provider
+                                SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
+                                gameLayoutManager,
+                              ),
+                          onLegal: () => LegalDialog.show(context, gameLayoutManager),
+                          onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
+                          api: api,
+                          gameLayoutManager: gameLayoutManager,
+                          spelledWordsLogic: SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
+                          gridKey: _gridKey,
+                          wildcardKey: _wildcardKey,
+                          onMessage: _handleMessage,
+                          messageNotifier: messageNotifier,
+                          scoreNotifier: scoreNotifier,
+                          spelledWordsNotifier: spelledWordsNotifier,
+                          updateScoresRefresh: updateScoresRefresh,
+                          updateCurrentGameState: updateCurrentGameState,
+                        ),
+              ),
     );
   }
 }
