@@ -45,8 +45,8 @@ class LetterSquareComponent extends StatelessWidget {
     }
 
     return Container(
-      width: helpDialog ? gameLayoutManager.gridSquareSize : GameLayoutManager.helpDialogSquareSize,
-      height: helpDialog ? gameLayoutManager.gridSquareSize : GameLayoutManager.helpDialogSquareSize,
+      width: helpDialog ? GameLayoutManager.helpDialogSquareSize : gameLayoutManager.gridSquareSize,
+      height: helpDialog ? GameLayoutManager.helpDialogSquareSize : gameLayoutManager.gridSquareSize,
       decoration: BoxDecoration(
         color: bgColor,
         border: Border.all(color: AppStyles.squareBorderColor, width: GameLayoutManager.squareBorderWidth),

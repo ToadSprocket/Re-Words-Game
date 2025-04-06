@@ -8,7 +8,7 @@ import '../managers/gameLayoutManager.dart';
 
 class HowToPlayDialog {
   static void show(BuildContext context, GameLayoutManager gameLayoutManager) {
-    final standardTile = Tile(letter: 'A', value: 1, state: 'unused', isExtra: true, isRemoved: false);
+    final standardTile = Tile(letter: 'A', value: 1, state: 'unused', isExtra: false, isRemoved: false);
     final usedTile = Tile(letter: 'B', value: 2, state: 'used', useCount: 1, isExtra: false, isRemoved: false);
     final wildcardTile = Tile(letter: 'W', value: 2, state: 'unused', isExtra: true, isRemoved: false);
 
@@ -65,7 +65,7 @@ class HowToPlayDialog {
                                 ),
                                 const SizedBox(width: 8.0),
                                 Text(
-                                  'Standard: Letter tile with a base score.',
+                                  'Basic: Letter tile with a base score.',
                                   style: gameLayoutManager.dialogContentStyle,
                                 ),
                               ],
@@ -80,7 +80,7 @@ class HowToPlayDialog {
                                 ),
                                 const SizedBox(width: 8.0),
                                 Text(
-                                  'Used: Each reuse doubles its value.',
+                                  'Used: Each re-use doubles its value.',
                                   style: gameLayoutManager.dialogContentStyle,
                                 ),
                               ],
@@ -94,9 +94,11 @@ class HowToPlayDialog {
                                   helpDialog: true,
                                 ),
                                 const SizedBox(width: 8.0),
-                                Text(
-                                  'Wildcard: Multiply the word\'s total value.',
-                                  style: gameLayoutManager.dialogContentStyle,
+                                Expanded(
+                                  child: Text(
+                                    'Wildcard: Multiplies word value.',
+                                    style: gameLayoutManager.dialogContentStyle,
+                                  ),
                                 ),
                               ],
                             ),

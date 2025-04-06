@@ -118,7 +118,7 @@ class NarrowScreen extends StatelessWidget {
                 disableSpellCheck: spelledWordsLogic.disableSpellCheck,
                 updateCurrentGameState: updateCurrentGameState,
               ),
-              SizedBox(height: gameLayoutManager.gridSpacing),
+              SizedBox(height: gameLayoutManager.gridSpacing * 0.7), // Reduced spacing by 30%
               ValueListenableBuilder<String>(
                 valueListenable: messageNotifier,
                 builder: (context, message, child) {
@@ -141,8 +141,8 @@ class NarrowScreen extends StatelessWidget {
                 gridSpacing: gameLayoutManager.gridSpacing,
                 gameLayoutManager: gameLayoutManager,
               ),
-              SizedBox(height: gameLayoutManager.gridSpacing),
 
+              //SizedBox(height: gameLayoutManager.gridSpacing * 0.4), // Reduced spacing by 30%
               GameButtonsComponent(onSubmit: onSubmit, onClear: onClear, gameLayoutManager: gameLayoutManager),
             ],
           ),

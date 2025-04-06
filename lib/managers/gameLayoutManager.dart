@@ -40,15 +40,15 @@ class GameLayoutManager {
 
   // Help dialog constants
   static const double helpDialogSquareSize = 44.0;
-  static const double helpDialogSquareLetterSize = 26.0;
-  static const double helpDialogSquareValueSize = 18.0;
+  static const double helpDialogSquareLetterSize = 20.5; // Reduced by ~7% from 22.0
+  static const double helpDialogSquareValueSize = 14.0; // Reduced from 18.0
 
   // Dialog constants
-  static const double dialogMaxWidthPercentage = 0.85;
+  static const double dialogMaxWidthPercentage = 0.90;
   static const double dialogMaxHeightPercentage = 0.9;
   static const double dialogMinHeightBase = 200.0;
   static const double dialogWidth = 600.0;
-  static const double dialogMaxWidthLimit = 600.0;
+  static const double dialogMaxWidthLimit = 750.0;
 
   // Screen properties
   late double screenWidth;
@@ -215,20 +215,21 @@ class GameLayoutManager {
 
     // Calculate grid size first
     if (isNarrowLayout) {
-      gridSquareSize = (screenWidth / 8.5).clamp(40.0, 90.0);
+      // Increase grid size by ~6% by reducing divisor from 8.5 to 8.0
+      gridSquareSize = (screenWidth / 8.0).clamp(42.0, 95.0); // Increased min/max values
       gridSpacing = 3.0;
     } else {
       // For wide layout, calculate grid size based on both screen dimensions
       // Target the grid to be roughly 50-60% of screen height
-      double targetGridHeight = screenHeight * 0.55; // 55% of screen height
-      double targetGridWidth = screenWidth * 0.4; // 40% of screen width
+      double targetGridHeight = screenHeight * 0.58; // Increased from 0.55 to 0.58 (about 6% larger)
+      double targetGridWidth = screenWidth * 0.42; // Increased from 0.4 to 0.42 (about 5% larger)
 
       // Calculate potential square sizes based on height and width
       double heightBasedSquare = (targetGridHeight / (GameConstants.gridRows + 1)) * 0.95; // 95% to account for spacing
       double widthBasedSquare = (targetGridWidth / (GameConstants.gridCols + 1)) * 0.95; // 95% to account for spacing
 
       // Use the smaller of the two to ensure grid fits both dimensions
-      gridSquareSize = min(heightBasedSquare, widthBasedSquare).clamp(55.0, 85.0);
+      gridSquareSize = min(heightBasedSquare, widthBasedSquare).clamp(58.0, 90.0); // Increased min/max values
       gridSpacing = gridSquareSize * 0.06; // Spacing proportional to square size
     }
 

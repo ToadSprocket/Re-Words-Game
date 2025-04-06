@@ -388,6 +388,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         return;
       }
 
+      // Important: New users are NOT logged in by default
+      // They need to explicitly log in through the login dialog
+      api.loggedIn = false;
+
       final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
       await GridLoader.loadNewBoard(api, finalScore);
 
