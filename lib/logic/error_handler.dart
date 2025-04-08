@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../config/config.dart';
 import '../logic/logging_handler.dart';
+import '../logic/error_reporting.dart';
 import '../dialogs/enhanced_error_dialog.dart';
 
 /// A centralized error handling system for the application.
@@ -33,11 +34,13 @@ class ErrorHandler {
     // Log locally
     LogService.logError('[$category] $message');
 
-    if (stackTrace != null) {
+    // Only log stack traces if the flag is enabled
+    if (ErrorReporting.logStackTraces && stackTrace != null) {
       LogService.logError('Stack trace: $stackTrace');
     }
 
-    if (additionalData != null) {
+    // Only log additional data if the flag is enabled or it's not a stack trace
+    if (additionalData != null && (ErrorReporting.logStackTraces || !additionalData.containsKey('stackTrace'))) {
       LogService.logError('Additional data: $additionalData');
     }
 

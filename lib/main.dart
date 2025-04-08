@@ -61,6 +61,9 @@ void main() async {
   // Initialize error reporting
   await ErrorReporting.initialize();
 
+  // Disable stack trace logging by default (can be toggled at runtime)
+  ErrorReporting.logStackTraces = false;
+
   // Initialize connectivity monitoring
   ConnectivityMonitor().initialize();
 
@@ -528,6 +531,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
       StateManager.saveState(_gridKey, _wildcardKey);
       StateManager.updatePlayTime();
     }
+  }
+
+  /// Toggle stack trace logging on/off
+  /// This can be called from anywhere in the app to enable/disable stack traces
+  static void toggleStackTraces(bool enable) {
+    ErrorReporting.toggleStackTraceLogging(enable);
+    // Show a message to confirm the change
+    LogService.logInfo('Stack trace logging ${enable ? 'enabled' : 'disabled'}');
   }
 
   @override

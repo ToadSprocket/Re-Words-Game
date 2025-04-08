@@ -90,7 +90,6 @@ class WideScreen extends StatelessWidget {
                       gameLayoutManager: gameLayoutManager,
                     ),
                     const Divider(height: 1.0, thickness: 1.0, color: Color.fromARGB(237, 94, 94, 94)),
-                    const SizedBox(height: 10.0),
                   ],
                 ),
               ),

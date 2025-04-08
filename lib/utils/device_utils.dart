@@ -5,35 +5,10 @@ import 'dart:math';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import '../logic/logging_handler.dart';
+import '../models/layoutModels.dart';
 
 /// Utility class for device-specific operations
 class DeviceUtils {
-  /// Determines if the current device is a tablet based on screen size
-  ///
-  /// Uses a diagonal screen size threshold of approximately 7 inches
-  /// to differentiate between phones and tablets
-  static bool isTablet(BuildContext context) {
-    // Web is never considered a tablet for our purposes
-    if (kIsWeb) return false;
-
-    // Only check for mobile platforms
-    if (!Platform.isAndroid && !Platform.isIOS) return false;
-
-    final MediaQueryData mediaQuery = MediaQuery.of(context);
-    final Size size = mediaQuery.size;
-    final double diagonal = sqrt(size.width * size.width + size.height * size.height);
-
-    // Consider a device with a diagonal > 7 inches (in device pixels) to be a tablet
-    // 7 inches ≈ 7 * devicePixelRatio * 160 (pixels per inch)
-    final bool isTabletSize = diagonal > (7 * mediaQuery.devicePixelRatio * 160);
-
-    LogService.logInfo(
-      "📱 Device diagonal: $diagonal px, devicePixelRatio: ${mediaQuery.devicePixelRatio}, isTablet: $isTabletSize",
-    );
-
-    return isTabletSize;
-  }
-
   /// Sets the appropriate orientation settings based on device type
   ///
   /// For phones: Locks to portrait orientation
@@ -41,23 +16,74 @@ class DeviceUtils {
   static void setOrientationSettings(BuildContext context) {
     // Only apply orientation settings on mobile platforms
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-      final bool isDeviceTablet = isTablet(context);
+      final MediaQueryData mediaQuery = MediaQuery.of(context);
 
-      if (!isDeviceTablet) {
-        // Lock phones to portrait orientation
+      // Check for phone form factor
+      if (mediaQuery.isPhone) {
         LogService.logInfo("📱 Setting phone orientation: portrait only");
         SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-      } else {
-        // Allow all orientations for tablets
-        LogService.logInfo("📱 Setting tablet orientation: all orientations");
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.portraitUp,
-          DeviceOrientation.portraitDown,
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-        ]);
+        return;
+      }
+
+      // Check for tablet form factor
+      if (mediaQuery.isTablet) {
+        if (mediaQuery.isTallAspectRatio) {
+          LogService.logInfo("📱 Tablet portrait detected, setting orientation: portrait only");
+          SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+        } else {
+          LogService.logInfo("📱 Tablet landscape detected, setting orientation: landscape");
+          SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+        }
+        return;
+      }
+
+      // Check for hybrid form factor
+      if (mediaQuery.isHybrid) {
+        if (mediaQuery.isTallAspectRatio) {
+          LogService.logInfo("📱 Hybrid portrait detected, setting orientation: portrait only");
+          SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+        } else {
+          LogService.logInfo("📱 Hybrid landscape detected, setting orientation: landscape");
+          SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+        }
+        return;
       }
     }
+  }
+
+  static DeviceLayout getDeviceInformation(BuildContext context) {
+    final MediaQueryData mediaQuery = MediaQuery.of(context);
+
+    if (!Platform.isAndroid && Platform.isIOS!) {
+      return DeviceLayout(
+        screenWidth: mediaQuery.size.width,
+        screenHeight: mediaQuery.size.height,
+        safeScreenWidth: mediaQuery.size.width,
+        safeScreenHeight: mediaQuery.size.height,
+        isPhone: false,
+        isTablet: false,
+        isHybrid: false,
+        isWide: mediaQuery.isWideAspectRatio,
+        isTall: mediaQuery.isTallAspectRatio,
+        orientation: mediaQuery.orientation,
+      );
+    }
+
+    final safeOffset = MediaQuery.of(context).padding.top + MediaQuery.of(context).padding.bottom;
+    double safeheight = mediaQuery.size.height - safeOffset;
+
+    return DeviceLayout(
+      screenWidth: mediaQuery.size.width,
+      screenHeight: mediaQuery.size.height,
+      safeScreenWidth: mediaQuery.size.width,
+      safeScreenHeight: safeheight,
+      isPhone: mediaQuery.isPhone,
+      isTablet: mediaQuery.isTablet,
+      isHybrid: mediaQuery.isHybrid,
+      isWide: mediaQuery.isWideAspectRatio,
+      isTall: mediaQuery.isTallAspectRatio,
+      orientation: mediaQuery.orientation,
+    );
   }
 
   /// Determines if the app should use narrow layout based on device type and orientation
@@ -72,22 +98,22 @@ class DeviceUtils {
       return forceNarrowLayout!;
     }
 
+    final MediaQueryData mediaQuery = MediaQuery.of(context);
+
     // Web uses width-based detection only
     if (kIsWeb) {
-      return MediaQuery.of(context).size.width < thresholdWidth;
+      return mediaQuery.size.width < thresholdWidth;
     }
 
     // Mobile platforms use device type detection
     if (Platform.isAndroid || Platform.isIOS) {
-      final bool isDeviceTablet = isTablet(context);
-
-      if (!isDeviceTablet) {
-        // Phones always use narrow layout
+      if (mediaQuery.isPhone) {
         return true;
       } else {
-        // Tablets use narrow layout in portrait, wide layout in landscape
-        final Orientation orientation = MediaQuery.of(context).orientation;
-        return orientation == Orientation.portrait;
+        if (mediaQuery.isTallAspectRatio) {
+          return true;
+        }
+        return false;
       }
     }
 
@@ -100,6 +126,32 @@ class DeviceUtils {
 }
 
 // Extension to make it easier to check orientation
+// Extension to make it easier to check orientation and aspect ratio
 extension OrientationExtension on MediaQueryData {
+  // Standard orientation check based on width vs height
   Orientation get orientation => size.width > size.height ? Orientation.landscape : Orientation.portrait;
+
+  // Diagonal ratio
+  double get diagonal => sqrt(size.width * size.width + size.height * size.height);
+
+  // Screen inches
+  double get inches => diagonal / devicePixelRatio / 160;
+
+  // Calculate aspect ratio (width:height)
+  double get aspectRatio => size.width / size.height;
+
+  // landscape phones/tablets/monitors
+  bool get isWideAspectRatio => aspectRatio >= 1.6;
+
+  // portrait phones, tablets
+  bool get isTallAspectRatio => aspectRatio <= 0.75;
+
+  // Phone detection: tall and skinny (aspect ratio <= 0.667, e.g., 16:9 or taller)
+  bool get isPhone => aspectRatio <= 0.667;
+
+  // Tablet detection: squarer (aspect ratio between 1.3 and 1.6, e.g., 4:3 or 16:10)
+  bool get isTablet => aspectRatio >= 1.3 && aspectRatio <= 1.6;
+
+  // Optional: Hybrid check (large phones or small tablets, e.g., 6.5–8" with phone-like aspect ratio)
+  bool get isHybrid => inches > 6.5 && inches <= 8.0 && aspectRatio <= 0.667;
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../logic/logging_handler.dart';
 import '../logic/error_handler.dart';
+import '../logic/error_reporting.dart';
 import '../managers/gameLayoutManager.dart';
 
 /// A widget that catches errors in its child widget tree and displays a fallback UI.
@@ -82,14 +83,19 @@ class ErrorBoundaryState extends State<ErrorBoundary> {
   void _captureError(Object error, StackTrace stackTrace) {
     // Log the error
     LogService.logError('UI Error: $error');
-    LogService.logError('Stack trace: $stackTrace');
+
+    // Only log stack traces if the flag is enabled
+    if (ErrorReporting.logStackTraces) {
+      LogService.logError('Stack trace: $stackTrace');
+    }
 
     // Track the error
     ErrorHandler.trackError(
       ErrorHandler.UNKNOWN_ERROR,
       error.toString(),
       severity: ErrorHandler.SEVERITY_HIGH,
-      stackTrace: stackTrace,
+      // Only pass stack trace if logging is enabled
+      stackTrace: ErrorReporting.logStackTraces ? stackTrace : null,
     );
 
     // Force a rebuild with the error state

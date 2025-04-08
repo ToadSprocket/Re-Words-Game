@@ -11,6 +11,16 @@ import '../config/config.dart';
 class ErrorReporting {
   static bool _initialized = false;
 
+  /// Flag to control whether stack traces are logged
+  /// Set to false by default to suppress stack traces
+  static bool logStackTraces = false;
+
+  /// Toggle stack trace logging on/off
+  static void toggleStackTraceLogging(bool enabled) {
+    logStackTraces = enabled;
+    LogService.logInfo('Stack trace logging ${enabled ? 'enabled' : 'disabled'}');
+  }
+
   /// Initialize error reporting services
   static Future<void> initialize() async {
     if (_initialized) return;
@@ -38,7 +48,8 @@ class ErrorReporting {
   static void _reportError(dynamic error, StackTrace? stackTrace, String source) {
     try {
       LogService.logError('[$source] $error');
-      if (stackTrace != null) {
+      // Only log stack traces if the flag is enabled
+      if (logStackTraces && stackTrace != null) {
         LogService.logError('Stack trace: $stackTrace');
       }
 
@@ -66,7 +77,7 @@ class ErrorReporting {
     _reportError('${contextStr}Caught exception: $exception', stackTrace, 'Manual Report');
 
     // Log additional data if provided
-    if (additionalData != null) {
+    if (additionalData != null && logStackTraces) {
       LogService.logError('Additional data: $additionalData');
     }
   }
@@ -99,7 +110,7 @@ class ErrorReporting {
     _reportError(error, stackTrace, 'User Action: $action');
 
     // Log additional data if provided
-    if (additionalData != null) {
+    if (additionalData != null && logStackTraces) {
       LogService.logError('Additional data: $additionalData');
     }
   }

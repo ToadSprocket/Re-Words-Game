@@ -6,6 +6,7 @@ import 'dart:math';
 import '../constants/layout_constants.dart';
 import '../styles/app_styles.dart';
 import '../logic/logging_handler.dart';
+import '../utils/device_utils.dart';
 
 class GameLayoutManager {
   static final GameLayoutManager _instance = GameLayoutManager._internal();
@@ -199,6 +200,11 @@ class GameLayoutManager {
     screenHeight = MediaQuery.of(context).size.height;
     isWeb = kIsWeb;
 
+    var currentDeviceInfo = DeviceUtils.getDeviceInformation(context);
+    LogService.logInfo(
+      "Width: $screenWidth, Height: $screenHeight, SafeWidth: ${currentDeviceInfo.safeScreenWidth}, SafeHeight: ${currentDeviceInfo.safeScreenWidth}",
+    );
+
     if (oldScreenWidth == 0 && oldScreenHeight == 0) {
       oldScreenWidth = screenWidth;
       oldScreenHeight = screenHeight;
@@ -206,8 +212,8 @@ class GameLayoutManager {
       return;
     }
 
-    // Determine if we should use narrow layout
-    bool isNarrowLayout = screenWidth < NARROW_LAYOUT_THRESHOLD;
+    // Determine if we should use narrow layout using the well-tested DeviceUtils method
+    bool isNarrowLayout = DeviceUtils.shouldUseNarrowLayout(context, NARROW_LAYOUT_THRESHOLD);
 
     // Calculate border properties
     componentBorderThickness = (screenWidth * 0.002).clamp(1.0, 2.0);
@@ -330,7 +336,7 @@ class GameLayoutManager {
     } else {
       // Wide layout - calculate based on both dimensions
       // Title can be taller in wide layout
-      double baseHeight = min(screenHeight * 0.13, screenWidth * 0.08) + 4;
+      double baseHeight = min(screenHeight * 0.13, screenWidth * 0.065);
       gameTitleComponentHeight = baseHeight.clamp(50.0, 120.0);
 
       // Message area scales with both dimensions but stays compact
@@ -352,8 +358,7 @@ class GameLayoutManager {
             : (screenHeight * 0.057).clamp(35.0, 60.0) + 4;
 
     // Calculate available height after fixed components
-    double totalFixedHeight =
-        gameTitleComponentHeight + gameMessageComponentHeight + gameScoresComponentHeight + gameButtonsComponentHeight;
+    double totalFixedHeight = infoBoxHeight + gameMessageComponentHeight + gridHeightSize + gameButtonsComponentHeight;
 
     // Calculate the available height for the main game area
     double availableHeight = screenHeight - infoBoxHeight;
@@ -450,6 +455,10 @@ class GameLayoutManager {
     spelledWordStyle = TextStyle(fontSize: spelledWordsFontSize, fontWeight: FontWeight.normal, color: Colors.white);
 
     var gameLayout = isNarrowLayout ? 'Narrow' : 'Wide';
+
+    LogService.logInfo(
+      "W: $screenWidth, H: $screenHeight, GAMBX: $gameBoxHeight, TOT: $totalFixedHeight, INF: $infoBoxHeight TIT: $gameTitleComponentHeight, SCR: $gameScoresComponentHeight, GRD: $gridHeightSize, MSG: $gameMessageComponentHeight, BUT: $gameButtonsComponentHeight, WLD: $wilcardsContainerHeight, SPL: $spelledWordsContainerHeight",
+    );
   }
 
   bool calculateSpelledWordsLayout(int totalColumns, double totalWidth) {
