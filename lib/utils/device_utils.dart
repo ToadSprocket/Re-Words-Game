@@ -17,6 +17,7 @@ class DeviceUtils {
     // Only apply orientation settings on mobile platforms
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       final MediaQueryData mediaQuery = MediaQuery.of(context);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
       // Check for phone form factor
       if (mediaQuery.isPhone) {
@@ -54,7 +55,7 @@ class DeviceUtils {
   static DeviceLayout getDeviceInformation(BuildContext context) {
     final MediaQueryData mediaQuery = MediaQuery.of(context);
 
-    if (!Platform.isAndroid && Platform.isIOS!) {
+    if (!Platform.isAndroid && !Platform.isIOS) {
       return DeviceLayout(
         screenWidth: mediaQuery.size.width,
         screenHeight: mediaQuery.size.height,

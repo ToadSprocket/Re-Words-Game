@@ -202,13 +202,20 @@ class GameLayoutManager {
 
     var currentDeviceInfo = DeviceUtils.getDeviceInformation(context);
     LogService.logInfo(
-      "Width: $screenWidth, Height: $screenHeight, SafeWidth: ${currentDeviceInfo.safeScreenWidth}, SafeHeight: ${currentDeviceInfo.safeScreenWidth}",
+      "Width: $screenWidth, Height: $screenHeight, SafeWidth: ${currentDeviceInfo.safeScreenWidth}, SafeHeight: ${currentDeviceInfo.safeScreenHeight}, Orientation: ${currentDeviceInfo.orientation}, IsTall: ${currentDeviceInfo.isTall}, IsWide: ${currentDeviceInfo.isWide}",
     );
+
+    // If this is a tablet and it's in landscape, then we need to adjust for the safe areas.
+    if ((currentDeviceInfo.isTablet || currentDeviceInfo.isHybrid) && currentDeviceInfo.isWide) {
+      screenHeight = currentDeviceInfo.safeScreenHeight;
+    }
 
     if (oldScreenWidth == 0 && oldScreenHeight == 0) {
       oldScreenWidth = screenWidth;
       oldScreenHeight = screenHeight;
+      LogService.logInfo("Resetting screen size");
     } else if (oldScreenWidth == screenWidth && oldScreenHeight == screenHeight) {
+      LogService.logInfo("Nothing changes");
       return;
     }
 
@@ -355,7 +362,7 @@ class GameLayoutManager {
     infoBoxHeight =
         isNarrowLayout
             ? (screenHeight * 0.06).clamp(40.0, 60.0) // 6% of screen height for narrow layout
-            : (screenHeight * 0.057).clamp(35.0, 60.0) + 4;
+            : (screenHeight * 0.07).clamp(35.0, 60.0);
 
     // Calculate available height after fixed components
     double totalFixedHeight = infoBoxHeight + gameMessageComponentHeight + gridHeightSize + gameButtonsComponentHeight;

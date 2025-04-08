@@ -67,7 +67,7 @@ class WideScreen extends StatelessWidget {
       child: Container(
         decoration: showBorders ? BoxDecoration(border: Border.all(color: Colors.yellow, width: borderWidth)) : null,
         child: Column(
-          mainAxisSize: MainAxisSize.max,
+          mainAxisSize: MainAxisSize.min,
           children: [
             // Container 1: Top Bar Area
             SizedBox(
@@ -121,7 +121,7 @@ class WideScreen extends StatelessWidget {
                                 )
                                 : null,
                         child: Column(
-                          mainAxisSize: MainAxisSize.max,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             SizedBox(
                               height:
@@ -211,7 +211,7 @@ class WideScreen extends StatelessWidget {
                                 )
                                 : null,
                         child: Column(
-                          mainAxisSize: MainAxisSize.max,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             SizedBox(
                               height:
@@ -219,27 +219,25 @@ class WideScreen extends StatelessWidget {
                                   gameLayoutManager.gameScoresComponentHeight -
                                   2,
                             ), // Matches title + scores, aligns with wildcards
-                            Expanded(
-                              child: ValueListenableBuilder<List<String>>(
-                                valueListenable: spelledWordsNotifier,
-                                builder: (context, words, child) {
-                                  return SpelledWordsColumnComponent(
-                                    words: words,
-                                    columnWidth: gameLayoutManager.spelledWordsContainerWidth,
-                                    columnHeight:
-                                        gameLayoutManager.gridHeightSize +
-                                        gameLayoutManager.gameMessageComponentHeight +
-                                        gameLayoutManager.gameButtonsComponentHeight,
-                                    gridSpacing: gameLayoutManager.spelledWordsGridSpacing,
-                                    showBorders: showBorders,
-                                    wordColumnHeight:
-                                        gameLayoutManager.gridHeightSize +
-                                        gameLayoutManager.gameMessageComponentHeight +
-                                        gameLayoutManager.gameButtonsComponentHeight,
-                                    gameLayoutManager: gameLayoutManager,
-                                  );
-                                },
-                              ),
+                            ValueListenableBuilder<List<String>>(
+                              valueListenable: spelledWordsNotifier,
+                              builder: (context, words, child) {
+                                return SpelledWordsColumnComponent(
+                                  words: words,
+                                  columnWidth: gameLayoutManager.spelledWordsContainerWidth,
+                                  columnHeight:
+                                      gameLayoutManager.gridHeightSize +
+                                      gameLayoutManager.gameMessageComponentHeight +
+                                      gameLayoutManager.gameButtonsComponentHeight,
+                                  gridSpacing: gameLayoutManager.spelledWordsGridSpacing,
+                                  showBorders: showBorders,
+                                  wordColumnHeight:
+                                      gameLayoutManager.gridHeightSize +
+                                      gameLayoutManager.gameMessageComponentHeight +
+                                      gameLayoutManager.gameButtonsComponentHeight,
+                                  gameLayoutManager: gameLayoutManager,
+                                );
+                              },
                             ),
                           ],
                         ),
