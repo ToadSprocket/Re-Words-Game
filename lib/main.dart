@@ -99,82 +99,109 @@ void main() async {
     ),
   );
 
-  // Set minimum window size and initial window size
-  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
-    setWindowTitle('Re-Word Game');
+  // Set minimum window size and initial window size for desktop platforms
+  if (!kIsWeb) {
+    try {
+      // Only run this code on desktop platforms
+      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+        setWindowTitle('Re-Word Game');
 
-    // Set minimum size
-    setWindowMinSize(const Size(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT));
+        // Set minimum size
+        setWindowMinSize(const Size(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT));
 
-    // Set initial window size
-    setWindowFrame(Rect.fromLTWH(0, 0, INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT));
+        // Set initial window size
+        setWindowFrame(Rect.fromLTWH(0, 0, INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT));
 
-    // Center the window
-    getCurrentScreen().then((screen) {
-      if (screen != null) {
-        final screenFrame = screen.visibleFrame;
-        final windowFrame = Rect.fromLTWH(
-          screenFrame.left + (screenFrame.width - INITIAL_WINDOW_WIDTH) / 2,
-          screenFrame.top + (screenFrame.height - INITIAL_WINDOW_HEIGHT) / 2,
-          INITIAL_WINDOW_WIDTH,
-          INITIAL_WINDOW_HEIGHT,
-        );
-        setWindowFrame(windowFrame);
+        // Center the window
+        getCurrentScreen().then((screen) {
+          if (screen != null) {
+            final screenFrame = screen.visibleFrame;
+            final windowFrame = Rect.fromLTWH(
+              screenFrame.left + (screenFrame.width - INITIAL_WINDOW_WIDTH) / 2,
+              screenFrame.top + (screenFrame.height - INITIAL_WINDOW_HEIGHT) / 2,
+              INITIAL_WINDOW_WIDTH,
+              INITIAL_WINDOW_HEIGHT,
+            );
+            setWindowFrame(windowFrame);
+          }
+        });
       }
-    });
+    } catch (e) {
+      // Ignore platform errors on web
+      LogService.logError("Error setting window size: $e");
+    }
   }
 
-  if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
-    await windowManager.ensureInitialized();
-    WindowOptions windowOptions = const WindowOptions(
-      size: Size(INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT),
-      minimumSize: Size(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT),
-      center: true,
-      backgroundColor: Colors.transparent,
-      skipTaskbar: false,
-      titleBarStyle: TitleBarStyle.normal,
-    );
-    await windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    });
+  // Initialize window manager for desktop platforms
+  if (!kIsWeb) {
+    try {
+      // Only run this code on desktop platforms
+      if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+        await windowManager.ensureInitialized();
+        WindowOptions windowOptions = const WindowOptions(
+          size: Size(INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT),
+          minimumSize: Size(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT),
+          center: true,
+          backgroundColor: Colors.transparent,
+          skipTaskbar: false,
+          titleBarStyle: TitleBarStyle.normal,
+        );
+        await windowManager.waitUntilReadyToShow(windowOptions, () async {
+          await windowManager.show();
+          await windowManager.focus();
+        });
+      }
+    } catch (e) {
+      // Ignore platform errors on web
+      LogService.logError("Error initializing window manager: $e");
+    }
   }
 }
 
-class ReWordApp extends StatelessWidget {
+class ReWordApp extends StatefulWidget {
   final GameLayoutManager layoutManager;
   final String? userId;
   final String? authToken;
 
-  ReWordApp({super.key, required this.layoutManager, this.userId, this.authToken});
+  const ReWordApp({super.key, required this.layoutManager, this.userId, this.authToken});
+
+  @override
+  State<ReWordApp> createState() => _ReWordAppState();
+}
+
+class _ReWordAppState extends State<ReWordApp> {
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return OrientationBuilder(
-      builder: (context, orientation) {
-        // Initialize the provider with the current context
-        final orientationProvider = Provider.of<OrientationProvider>(context, listen: false);
-        orientationProvider.initialize(context);
+    return MaterialApp(
+      title: 'Re-Word Game',
+      theme: AppStyles.appTheme,
+      home: ErrorBoundary(
+        child: OrientationBuilder(
+          builder: (context, orientation) {
+            // Initialize the provider outside of build
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                final orientationProvider = Provider.of<OrientationProvider>(context, listen: false);
+                orientationProvider.initialize(context);
+                orientationProvider.changeOrientation(orientation, MediaQuery.of(context).size);
+              }
+            });
 
-        // Update orientation when it changes
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          orientationProvider.changeOrientation(orientation, MediaQuery.of(context).size);
-        });
-
-        return MaterialApp(
-          title: 'Re-Word Game',
-          theme: AppStyles.appTheme,
-          home: ErrorBoundary(
-            child: GameLayoutProvider(
-              gameLayoutManager: layoutManager,
-              child: HomeScreen(userId: userId, authToken: authToken),
-            ),
-          ),
-          builder: (context, child) {
-            // Add error handling at the app level
-            return ErrorBoundary(child: child ?? const SizedBox());
+            return GameLayoutProvider(
+              gameLayoutManager: widget.layoutManager,
+              child: HomeScreen(userId: widget.userId, authToken: widget.authToken),
+            );
           },
-        );
+        ),
+      ),
+      builder: (context, child) {
+        // Add error handling at the app level
+        return ErrorBoundary(child: child ?? const SizedBox());
       },
     );
   }
@@ -210,13 +237,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
       // Set orientation settings based on device type
       DeviceUtils.setOrientationSettings(context);
 
+      // Calculate layout sizes
       gameLayoutManager.calculateLayoutSizes(context);
-      setState(() {}); // ✅ Force rebuild to apply new sizes
+
+      // Force rebuild to apply new sizes
+      if (mounted) {
+        setState(() {});
+      }
     });
 
     // Only add window manager listener for desktop platforms
-    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
-      windowManager.addListener(this);
+    if (!kIsWeb) {
+      try {
+        if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+          windowManager.addListener(this);
+        }
+      } catch (e) {
+        // Ignore platform errors on web
+        LogService.logError("Error adding window manager listener: $e");
+      }
     }
     _loadData();
   }
@@ -225,8 +264,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     // Only remove window manager listener for desktop platforms
-    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
-      windowManager.removeListener(this);
+    if (!kIsWeb) {
+      try {
+        if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+          windowManager.removeListener(this);
+        }
+      } catch (e) {
+        // Ignore platform errors on web
+        LogService.logError("Error removing window manager listener: $e");
+      }
     }
     StateManager.saveState(_gridKey, _wildcardKey);
     StateManager.updatePlayTime();
@@ -236,7 +282,51 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      // Save current state when app is paused
       StateManager.saveState(_gridKey, _wildcardKey);
+      StateManager.savePauseTime();
+      LogService.logInfo("App lifecycle: PAUSED - Game state saved");
+    } else if (state == AppLifecycleState.resumed) {
+      // Handle app resume
+      LogService.logInfo("App lifecycle: RESUMED - Checking game state");
+      _handleAppResume();
+    }
+  }
+
+  Future<void> _handleAppResume() async {
+    try {
+      final api = Provider.of<ApiService>(context, listen: false);
+
+      // Reset activity time to exclude pause duration
+      await StateManager.resetActivityTimeAfterPause();
+
+      // Check if game is loaded
+      bool isGameLoaded = GridLoader.gridTiles.isNotEmpty;
+      LogService.logInfo("App resume check: Game loaded? $isGameLoaded");
+
+      if (isGameLoaded) {
+        // Game is loaded, check if board has expired
+        bool isBoardExpired = await StateManager.isBoardExpired();
+        LogService.logInfo("App resume check: Board expired? $isBoardExpired");
+
+        if (isBoardExpired) {
+          // Board expired while app was paused, load new board
+          LogService.logInfo("Board expired during pause - Loading new board");
+          await _loadBoardForUser(api);
+        } else {
+          // Board still valid, just sync UI
+          LogService.logInfo("Board still valid - Syncing UI");
+          _gridKey.currentState?.reloadTiles();
+          _wildcardKey.currentState?.reloadWildcardTiles();
+          updateScoresRefresh();
+        }
+      } else {
+        // Game not loaded, load board as usual
+        LogService.logInfo("Game not loaded - Loading board");
+        await _loadBoardForUser(api);
+      }
+    } catch (e) {
+      LogService.logError("Error handling app resume: $e");
     }
   }
 
@@ -246,24 +336,36 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     await StateManager.updatePlayTime();
     super.onWindowClose();
     // Only destroy window manager for desktop platforms
-    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
-      await windowManager.destroy();
+    if (!kIsWeb) {
+      try {
+        if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+          await windowManager.destroy();
+        }
+      } catch (e) {
+        // Ignore platform errors on web
+        LogService.logError("Error destroying window manager: $e");
+      }
     }
   }
 
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
-    // Force recalculation and rebuild when screen metrics change
+
+    // Ensure we're not in the build phase by using post-frame callback
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         // Get the current orientation
         final currentOrientation = MediaQuery.of(context).orientation;
         LogService.logInfo("Metrics changed - current orientation: $currentOrientation");
 
-        setState(() {
-          gameLayoutManager.calculateLayoutSizes(context);
-        });
+        // Calculate layout sizes
+        gameLayoutManager.calculateLayoutSizes(context);
+
+        // Force rebuild to apply new sizes
+        if (mounted) {
+          setState(() {});
+        }
       }
     });
   }
@@ -271,9 +373,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Force recalculation when dependencies change
+
+    // Calculate layout sizes directly - this is safe in didChangeDependencies
     gameLayoutManager.calculateLayoutSizes(context);
-    setState(() {});
+
+    // No need to call setState here as it might cause rebuild loops
+    // The next natural rebuild will use the updated layout
   }
 
   Future<void> _loadData() async {
@@ -407,8 +512,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   Future<void> _handleNewUser(ApiService api) async {
     try {
       // Get locale based on platform
-      String locale = kIsWeb ? 'en-US' : Platform.localeName;
-      final response = await api.register(locale, kIsWeb ? 'Web' : 'Windows');
+      String locale = 'en-US'; // Default for web
+      String platform = 'Web'; // Default for web
+
+      if (!kIsWeb) {
+        try {
+          locale = Platform.localeName;
+          platform = 'Windows'; // Default for desktop
+
+          // Set platform name based on actual platform
+          if (Platform.isAndroid)
+            platform = 'Android';
+          else if (Platform.isIOS)
+            platform = 'iOS';
+          else if (Platform.isMacOS)
+            platform = 'macOS';
+          else if (Platform.isLinux)
+            platform = 'Linux';
+        } catch (e) {
+          LogService.logError("Error getting platform info: $e");
+        }
+      }
+
+      final response = await api.register(locale, platform);
       if (response.security == null) {
         LogService.logError('Error: Registration failed - null security');
         return;
@@ -421,10 +547,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
       final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
       await GridLoader.loadNewBoard(api, finalScore);
 
-      // Update UI with new board
-      setState(() {
-        _gridKey.currentState?.reloadTiles();
-        _wildcardKey.currentState?.reloadWildcardTiles();
+      // Update UI with new board - use post-frame callback to ensure we're not in build phase
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _gridKey.currentState?.reloadTiles();
+          _wildcardKey.currentState?.reloadWildcardTiles();
+
+          // Force rebuild to apply new board
+          setState(() {});
+        }
       });
     } catch (e) {
       LogService.logError('Error registering new user: $e');
@@ -582,7 +713,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     gameLayoutManager.spelledWordsNotifier = spelledWordsNotifier;
 
     // Determine if we need to use SafeArea based on platform
-    final bool isMobilePlatform = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+    bool isMobilePlatform = false;
+    if (!kIsWeb) {
+      try {
+        isMobilePlatform = Platform.isAndroid || Platform.isIOS;
+      } catch (e) {
+        // Ignore platform errors on web
+        LogService.logError("Error checking platform: $e");
+      }
+    }
 
     return Scaffold(
       body:

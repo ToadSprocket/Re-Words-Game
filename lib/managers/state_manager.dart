@@ -126,6 +126,46 @@ class StateManager {
     } else {}
   }
 
+  /// Save the current time when app is paused
+  static Future<void> savePauseTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    String now = DateTime.now().toIso8601String();
+    await prefs.setString('appPausedAt', now);
+    LogService.logInfo("App paused at: $now");
+  }
+
+  /// Reset activity time after app resume to exclude pause duration
+  static Future<void> resetActivityTimeAfterPause() async {
+    final prefs = await SharedPreferences.getInstance();
+    final pausedAtStr = prefs.getString('appPausedAt');
+
+    if (pausedAtStr != null) {
+      final pausedAt = DateTime.parse(pausedAtStr);
+      final now = DateTime.now();
+      final pauseDuration = now.difference(pausedAt);
+
+      // Get current session start
+      final sessionStartStr = prefs.getString('sessionStart');
+      if (sessionStartStr != null) {
+        final sessionStart = DateTime.parse(sessionStartStr);
+
+        // Adjust session start by adding pause duration
+        final adjustedSessionStart = sessionStart.add(pauseDuration);
+        await prefs.setString('sessionStart', adjustedSessionStart.toIso8601String());
+
+        LogService.logInfo("Activity time adjusted: Paused for ${pauseDuration.inSeconds} seconds");
+      }
+
+      // Clear the pause timestamp
+      await prefs.remove('appPausedAt');
+    }
+  }
+
+  /// Check if the game is fully loaded
+  static Future<bool> isGameLoaded() async {
+    return GridLoader.gridTiles.isNotEmpty;
+  }
+
   static Future<void> updatePlayTime() async {
     final prefs = await SharedPreferences.getInstance();
 

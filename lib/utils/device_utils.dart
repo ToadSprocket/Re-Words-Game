@@ -55,7 +55,8 @@ class DeviceUtils {
   static DeviceLayout getDeviceInformation(BuildContext context) {
     final MediaQueryData mediaQuery = MediaQuery.of(context);
 
-    if (!Platform.isAndroid && !Platform.isIOS) {
+    // For web or non-mobile platforms
+    if (kIsWeb || !(Platform.isAndroid || Platform.isIOS)) {
       return DeviceLayout(
         screenWidth: mediaQuery.size.width,
         screenHeight: mediaQuery.size.height,
@@ -70,6 +71,7 @@ class DeviceUtils {
       );
     }
 
+    // For mobile platforms
     final safeOffset = MediaQuery.of(context).padding.top + MediaQuery.of(context).padding.bottom;
     double safeheight = mediaQuery.size.height - safeOffset;
 

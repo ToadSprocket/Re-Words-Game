@@ -28,20 +28,33 @@ class GameLayout extends InheritedWidget {
   }
 }
 
-class GameLayoutProvider extends StatelessWidget {
+class GameLayoutProvider extends StatefulWidget {
   final Widget child;
   final GameLayoutManager gameLayoutManager;
 
   const GameLayoutProvider({super.key, required this.child, required this.gameLayoutManager});
 
   @override
+  State<GameLayoutProvider> createState() => _GameLayoutProviderState();
+}
+
+class _GameLayoutProviderState extends State<GameLayoutProvider> {
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Recalculate sizes whenever the layout constraints change
-        gameLayoutManager.calculateLayoutSizes(context);
-        return GameLayout(gameLayoutManager: gameLayoutManager, child: child);
+        // We'll calculate sizes in didChangeDependencies instead of here
+        return GameLayout(gameLayoutManager: widget.gameLayoutManager, child: widget.child);
       },
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Calculate layout sizes here instead of in the build method
+    // This is safe in didChangeDependencies
+    widget.gameLayoutManager.calculateLayoutSizes(context);
   }
 }

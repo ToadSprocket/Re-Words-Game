@@ -118,6 +118,9 @@ class _ErrorCatcher extends StatefulWidget {
 }
 
 class _ErrorCatcherState extends State<_ErrorCatcher> {
+  // Store the previous error handler
+  FlutterExceptionHandler? _previousErrorHandler;
+
   @override
   Widget build(BuildContext context) {
     return widget.child;
@@ -126,16 +129,31 @@ class _ErrorCatcherState extends State<_ErrorCatcher> {
   @override
   void initState() {
     super.initState();
-    FlutterError.onError = _handleFlutterError;
+    // Store the previous error handler and set our custom one
+    // Use a post-frame callback to avoid setting during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _previousErrorHandler = FlutterError.onError;
+      FlutterError.onError = _handleFlutterError;
+    });
   }
 
   @override
   void dispose() {
-    FlutterError.onError = FlutterError.presentError;
+    // Restore the previous error handler if it exists
+    if (_previousErrorHandler != null) {
+      FlutterError.onError = _previousErrorHandler;
+    } else {
+      FlutterError.onError = FlutterError.presentError;
+    }
     super.dispose();
   }
 
   void _handleFlutterError(FlutterErrorDetails details) {
-    widget.onError(details.exception, details.stack ?? StackTrace.current);
+    // Use a post-frame callback to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        widget.onError(details.exception, details.stack ?? StackTrace.current);
+      }
+    });
   }
 }
