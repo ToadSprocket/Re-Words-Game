@@ -35,6 +35,7 @@ import 'utils/web_utils.dart';
 import 'utils/connectivity_monitor.dart';
 import 'utils/offline_mode_handler.dart';
 import 'utils/device_utils.dart';
+import 'providers/orientation_provider.dart';
 
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
@@ -87,8 +88,13 @@ void main() async {
 
   // Non-web platforms will initialize differently
   runApp(
-    ChangeNotifierProvider<ApiService>(
-      create: (context) => apiService, // Use the initialized instance
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<ApiService>(
+          create: (context) => apiService, // Use the initialized instance
+        ),
+        ChangeNotifierProvider<OrientationProvider>(create: (context) => OrientationProvider()),
+      ],
       child: ReWordApp(layoutManager: layoutManager),
     ),
   );
@@ -144,18 +150,31 @@ class ReWordApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Re-Word Game',
-      theme: AppStyles.appTheme,
-      home: ErrorBoundary(
-        child: GameLayoutProvider(
-          gameLayoutManager: layoutManager,
-          child: HomeScreen(userId: userId, authToken: authToken),
-        ),
-      ),
-      builder: (context, child) {
-        // Add error handling at the app level
-        return ErrorBoundary(child: child ?? const SizedBox());
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        // Initialize the provider with the current context
+        final orientationProvider = Provider.of<OrientationProvider>(context, listen: false);
+        orientationProvider.initialize(context);
+
+        // Update orientation when it changes
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          orientationProvider.changeOrientation(orientation, MediaQuery.of(context).size);
+        });
+
+        return MaterialApp(
+          title: 'Re-Word Game',
+          theme: AppStyles.appTheme,
+          home: ErrorBoundary(
+            child: GameLayoutProvider(
+              gameLayoutManager: layoutManager,
+              child: HomeScreen(userId: userId, authToken: authToken),
+            ),
+          ),
+          builder: (context, child) {
+            // Add error handling at the app level
+            return ErrorBoundary(child: child ?? const SizedBox());
+          },
+        );
       },
     );
   }
@@ -238,6 +257,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     // Force recalculation and rebuild when screen metrics change
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        // Get the current orientation
+        final currentOrientation = MediaQuery.of(context).orientation;
+        LogService.logInfo("Metrics changed - current orientation: $currentOrientation");
+
         setState(() {
           gameLayoutManager.calculateLayoutSizes(context);
         });

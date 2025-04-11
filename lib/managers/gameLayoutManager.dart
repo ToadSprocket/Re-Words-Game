@@ -56,6 +56,7 @@ class GameLayoutManager {
   late double screenHeight;
   double oldScreenWidth = 0;
   double oldScreenHeight = 0;
+  Orientation? lastOrientation;
   late bool isWeb;
 
   // Layout properties
@@ -201,8 +202,10 @@ class GameLayoutManager {
     isWeb = kIsWeb;
 
     var currentDeviceInfo = DeviceUtils.getDeviceInformation(context);
+    final currentOrientation = currentDeviceInfo.orientation;
+
     LogService.logInfo(
-      "Width: $screenWidth, Height: $screenHeight, SafeWidth: ${currentDeviceInfo.safeScreenWidth}, SafeHeight: ${currentDeviceInfo.safeScreenHeight}, Orientation: ${currentDeviceInfo.orientation}, IsTall: ${currentDeviceInfo.isTall}, IsWide: ${currentDeviceInfo.isWide}",
+      "Width: $screenWidth, Height: $screenHeight, SafeWidth: ${currentDeviceInfo.safeScreenWidth}, SafeHeight: ${currentDeviceInfo.safeScreenHeight}, Orientation: $currentOrientation, IsTall: ${currentDeviceInfo.isTall}, IsWide: ${currentDeviceInfo.isWide}",
     );
 
     // If this is a tablet and it's in landscape, then we need to adjust for the safe areas.
@@ -210,14 +213,27 @@ class GameLayoutManager {
       screenHeight = currentDeviceInfo.safeScreenHeight;
     }
 
+    // Check if orientation has changed
+    bool orientationChanged = lastOrientation != null && lastOrientation != currentOrientation;
+
+    if (orientationChanged) {
+      LogService.logInfo("Orientation changed from $lastOrientation to $currentOrientation - forcing recalculation");
+      // Force recalculation by resetting old dimensions
+      oldScreenWidth = 0;
+      oldScreenHeight = 0;
+    }
+
     if (oldScreenWidth == 0 && oldScreenHeight == 0) {
       oldScreenWidth = screenWidth;
       oldScreenHeight = screenHeight;
       LogService.logInfo("Resetting screen size");
-    } else if (oldScreenWidth == screenWidth && oldScreenHeight == screenHeight) {
+    } else if (oldScreenWidth == screenWidth && oldScreenHeight == screenHeight && !orientationChanged) {
       LogService.logInfo("Nothing changes");
       return;
     }
+
+    // Update the last orientation
+    lastOrientation = currentOrientation;
 
     // Determine if we should use narrow layout using the well-tested DeviceUtils method
     bool isNarrowLayout = DeviceUtils.shouldUseNarrowLayout(context, NARROW_LAYOUT_THRESHOLD);
