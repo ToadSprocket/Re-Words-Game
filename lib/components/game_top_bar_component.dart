@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '/styles/app_styles.dart';
 import '../services/api_service.dart';
 import '../dialogs/logout_dialog.dart';
+import '../dialogs/delete_account_dialog.dart';
 import '../logic/spelled_words_handler.dart';
 import '../logic/logging_handler.dart';
 import '../managers/gameLayoutManager.dart';
@@ -116,6 +117,19 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
               tooltip: widget.api.loggedIn ? (kIsWeb ? 'Logged In (Alpha)' : 'Logged In') : 'Login',
             ),
             const SizedBox(width: 6.0),
+            // Add delete account icon when logged in
+            if (widget.api.loggedIn && !kIsWeb) ...[
+              IconButton(
+                icon: const Icon(Icons.person_off, size: 20.0, color: Color.fromARGB(148, 255, 17, 0)),
+                padding: const EdgeInsets.all(4.0),
+                constraints: const BoxConstraints(),
+                onPressed: () {
+                  DeleteAccountDialog.show(context, widget.api, widget.gameLayoutManager);
+                },
+                tooltip: 'Delete Account',
+              ),
+              const SizedBox(width: 6.0),
+            ],
           ],
         ),
       ),

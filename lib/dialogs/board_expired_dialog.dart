@@ -37,8 +37,7 @@ class BoardExpiredDialog {
                   const SizedBox(height: 16.0),
                   Text(
                     'Your current board has expired.\n'
-                    'You can keep playing until you have finished this one,\n'
-                    'or load a new board.',
+                    'Would you like to load a new board?\n',
                     style: gameLayoutManager.dialogContentStyle,
                     textAlign: TextAlign.center,
                   ),
@@ -53,7 +52,7 @@ class BoardExpiredDialog {
                             Navigator.of(context).pop(false);
                           }, // Keep Playing
                           style: gameLayoutManager.buttonStyle(context),
-                          child: const Text('Keep Playing'),
+                          child: const Text('No'),
                         ),
                       ),
                       const SizedBox(width: 12.0), // ✅ Spacing between buttons
@@ -64,7 +63,7 @@ class BoardExpiredDialog {
                             Navigator.of(context).pop(true);
                           },
                           style: gameLayoutManager.buttonStyle(context),
-                          child: const Text('Load New Board'),
+                          child: const Text('Yes'),
                         ),
                       ),
                     ],

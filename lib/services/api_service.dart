@@ -463,6 +463,45 @@ class ApiService with ChangeNotifier {
     return false;
   }
 
+  /// **Delete User Account**
+  Future<bool> deleteAccount(String userName, String password) async {
+    await _getTokens(); // Ensure tokens are loaded
+
+    if (userId == null || accessToken == null) {
+      LogService.logError("🚨 Cannot delete account - missing userId or accessToken");
+      return false;
+    }
+
+    final headers = {
+      'X-API-Key': Security.generateApiKeyHash(),
+      'Authorization': 'Bearer $accessToken',
+      'Content-Type': 'application/json',
+    };
+
+    final body = jsonEncode({"userId": userId, "userName": userName, "password": password});
+
+    try {
+      final response = await _makeApiRequest(
+        false, // POST request
+        '${Config.apiUrl}/delete-account',
+        headers,
+        body,
+      );
+
+      if (response.statusCode == 200) {
+        // Account deleted successfully, log the user out
+        await logout();
+        return true;
+      } else {
+        LogService.logError("🚨 Failed to delete account: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      LogService.logError('🚨 Account deletion failed: $e');
+      return false;
+    }
+  }
+
   /// **Submit High Score**
   Future<bool> submitHighScore(SubmitScoreRequest scoreRequest) async {
     await _getTokens(); // Ensure tokens are loaded

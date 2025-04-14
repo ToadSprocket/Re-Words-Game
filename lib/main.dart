@@ -313,6 +313,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
           // Board expired while app was paused, load new board
           LogService.logInfo("Board expired during pause - Loading new board");
           await _loadBoardForUser(api);
+
+          // Explicitly force UI refresh after loading new board
+          LogService.logInfo("Forcing UI refresh after loading new board");
+          if (mounted) {
+            // Ensure grid and wildcard components are properly reloaded
+            _gridKey.currentState?.reloadTiles();
+            _wildcardKey.currentState?.reloadWildcardTiles();
+            updateScoresRefresh();
+
+            // Force rebuild to apply new board
+            setState(() {});
+          }
         } else {
           // Board still valid, just sync UI
           LogService.logInfo("Board still valid - Syncing UI");
@@ -324,6 +336,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         // Game not loaded, load board as usual
         LogService.logInfo("Game not loaded - Loading board");
         await _loadBoardForUser(api);
+
+        // Ensure UI is refreshed after loading board
+        if (mounted) {
+          LogService.logInfo("Refreshing UI after loading board");
+          _gridKey.currentState?.reloadTiles();
+          _wildcardKey.currentState?.reloadWildcardTiles();
+          updateScoresRefresh();
+          setState(() {});
+        }
       }
     } catch (e) {
       LogService.logError("Error handling app resume: $e");

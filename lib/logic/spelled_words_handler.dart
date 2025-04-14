@@ -78,10 +78,18 @@ class SpelledWordsLogic {
       spelledWords.add(word);
       score += wordScore;
 
-      if (doesWordContainWildcard(selectedTiles)) {
+      // Check for wildcards and apply multiplier
+      bool hasWildcard = doesWordContainWildcard(selectedTiles);
+      if (hasWildcard) {
         double multiplier = getWildcardMutlipliersValue(selectedTiles);
-        score += (wordScore * multiplier).toInt();
+        int bonusScore = (wordScore * multiplier).toInt();
+        score += bonusScore;
         wildCardUses++;
+
+        // Log wildcard usage for debugging
+        print("WILDCARD USED: Word: $word, Base Score: $wordScore, Multiplier: $multiplier, Bonus: $bonusScore");
+
+        // Always return the multiplier message when a wildcard is used
         return (true, "Word score multiplied by $multiplier!");
       }
 

@@ -172,6 +172,20 @@ class GameLayoutManager {
     );
   }
 
+  ButtonStyle deleteButtonStyle(BuildContext context) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: Color.fromARGB(83, 250, 0, 0),
+      foregroundColor: const Color.fromARGB(255, 236, 232, 232),
+      padding: EdgeInsets.symmetric(horizontal: buttonHorizontalPadding, vertical: buttonVerticalPadding),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(buttonBorderRadius),
+        side: BorderSide(color: const Color.fromARGB(255, 236, 232, 232), width: buttonBorderThickness),
+      ),
+      textStyle: TextStyle(fontSize: buttonFontSize, fontWeight: FontWeight.bold),
+      alignment: Alignment(0, buttonTextOffset / buttonVerticalPadding),
+    );
+  }
+
   void initializeFontStyles() {
     dialogTitleStyle = TextStyle(
       fontSize: dialogTitleFontSize,

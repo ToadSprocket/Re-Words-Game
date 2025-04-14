@@ -56,7 +56,14 @@ class HighScoresDialog {
       final rawDate = response.highScoreData?.date ?? 'Today';
       date = rawDate == 'Today' ? 'Today' : DateFormat('MMMM d, yyyy').format(DateTime.parse(rawDate).toUtc());
 
-      if (!userHasSubmitted && (highScores.isEmpty || finalScore.score > highScores.last.score)) {
+      // Check if user is already on the board
+      bool userIsOnBoard = highScores.any((score) => score.ranking == userRank);
+
+      // Only allow score submission if:
+      // 1. User hasn't submitted a score today
+      // 2. User is not already on the board
+      // 3. Either there are no high scores yet, or the user's score is higher than the lowest on the board
+      if (!userHasSubmitted && !userIsOnBoard && (highScores.isEmpty || finalScore.score > highScores.last.score)) {
         canSubmitScore = true;
       }
 
@@ -71,9 +78,18 @@ class HighScoresDialog {
       builder: (BuildContext context) {
         return LayoutBuilder(
           builder: (context, constraints) {
-            double maxHeight = constraints.maxHeight * 0.8; // Limit max height to 80% of screen
-            double minHeight = 200.0; // Minimum height
-            double calculatedHeight = (15 + (highScores.length * 50)).clamp(minHeight, maxHeight).toDouble(); // Dynamic
+            // Calculate responsive dimensions
+            double maxHeight = constraints.maxHeight * 0.85; // Increased from 0.8 to 0.85
+            double minHeight = 300.0; // Increased from 200.0 to 300.0
+
+            // More generous height calculation - add more space per score
+            double calculatedHeight = (50 + (highScores.length * 60)).clamp(minHeight, maxHeight).toDouble();
+
+            // Calculate responsive width
+            double dialogWidth =
+                constraints.maxWidth > 600
+                    ? gameLayoutManager.dialogMaxWidth
+                    : constraints.maxWidth * 0.95; // Use 95% of screen width on narrow screens
 
             return Dialog(
               shape: RoundedRectangleBorder(
@@ -82,9 +98,9 @@ class HighScoresDialog {
               ),
               backgroundColor: AppStyles.dialogBackgroundColor,
               child: Container(
-                width: gameLayoutManager.dialogMaxWidth,
-                height: calculatedHeight, // ✅ Dynamic height
-                padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
+                width: dialogWidth,
+                constraints: BoxConstraints(minHeight: minHeight, maxHeight: maxHeight),
+                padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0), // Increased bottom padding
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -92,79 +108,112 @@ class HighScoresDialog {
                       children: [Center(child: Text('High Scores - $date', style: gameLayoutManager.dialogTitleStyle))],
                     ),
                     const SizedBox(height: 16.0),
+                    // Scores list with improved spacing
                     Expanded(
-                      child: SingleChildScrollView(
-                        child: Center(
-                          child: SizedBox(
-                            width: gameLayoutManager.dialogMaxWidth * 0.8,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (highScores.isEmpty)
-                                  Text('No high scores available yet.', style: gameLayoutManager.dialogContentStyle)
-                                else
-                                  ...highScores.map((score) {
-                                    bool isUser = score.ranking == userRank;
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Text(
-                                                '${score.ranking}. ${score.displayName.isNotEmpty ? score.displayName : "Unknown Player"}',
-                                                style:
-                                                    isUser && score.displayName.isNotEmpty
-                                                        ? gameLayoutManager.dialogContentHighLiteStyle
-                                                        : gameLayoutManager.dialogContentStyle,
-                                              ),
-                                              if (score.displayName.isNotEmpty)
-                                                Padding(
-                                                  padding: const EdgeInsets.only(left: 4.0),
-                                                  child: Icon(
-                                                    Icons.person_outline,
-                                                    size: 16.0,
-                                                    color: AppStyles.dialogIconColor,
-                                                  ),
-                                                )
-                                              else
-                                                Padding(
-                                                  padding: const EdgeInsets.only(left: 4.0),
-                                                  child: Icon(
-                                                    Icons
-                                                        .face_retouching_off, // This is similar to a ninja/anonymous face
-                                                    size: 16.0,
-                                                    color: AppStyles.dialogIconColor,
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                          Text(
-                                            '${score.score} (${score.wordCount} words)',
-                                            style: gameLayoutManager.dialogContentStyle.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(vertical: 8.0),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(maxWidth: dialogWidth * 0.9),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (highScores.isEmpty)
+                                    Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: Text(
+                                          'No high scores available yet.',
+                                          style: gameLayoutManager.dialogContentStyle,
+                                          textAlign: TextAlign.center,
+                                        ),
                                       ),
-                                    );
-                                  }),
+                                    )
+                                  else
+                                    ...highScores.map((score) {
+                                      bool isUser = score.ranking == userRank;
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 6.0),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Flexible(
+                                              child: Row(
+                                                children: [
+                                                  Text(
+                                                    '${score.ranking}. ',
+                                                    style:
+                                                        isUser
+                                                            ? gameLayoutManager.dialogContentHighLiteStyle
+                                                            : gameLayoutManager.dialogContentStyle,
+                                                  ),
+                                                  Flexible(
+                                                    child: Text(
+                                                      '${score.displayName.isNotEmpty ? score.displayName : "Unknown Player"}',
+                                                      style:
+                                                          isUser && score.displayName.isNotEmpty
+                                                              ? gameLayoutManager.dialogContentHighLiteStyle
+                                                              : gameLayoutManager.dialogContentStyle,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                  if (score.displayName.isNotEmpty)
+                                                    Padding(
+                                                      padding: const EdgeInsets.only(left: 4.0),
+                                                      child: Icon(
+                                                        Icons.person_outline,
+                                                        size: 16.0,
+                                                        color: AppStyles.dialogIconColor,
+                                                      ),
+                                                    )
+                                                  else
+                                                    Padding(
+                                                      padding: const EdgeInsets.only(left: 4.0),
+                                                      child: Icon(
+                                                        Icons.face_retouching_off,
+                                                        size: 16.0,
+                                                        color: AppStyles.dialogIconColor,
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding: const EdgeInsets.only(left: 8.0),
+                                              child: Text(
+                                                '${score.score} (${score.wordCount})',
+                                                style: gameLayoutManager.dialogContentStyle.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }),
 
-                                // ✅ Show user's ranking if not in top scores
-                                if (userHasSubmitted &&
-                                    userRank != null &&
-                                    !highScores.any((s) => s.ranking == userRank))
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                                    child: Center(
-                                      child: Text(
-                                        'Your Ranking: #$userRank out of $scoresSubmittedToday players',
-                                        style: gameLayoutManager.dialogContentHighLiteStyle,
+                                  // Show user's ranking if not in top scores
+                                  if (userHasSubmitted &&
+                                      userRank != null &&
+                                      !highScores.any((s) => s.ranking == userRank))
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 12.0),
+                                      child: Center(
+                                        child: Text(
+                                          'Your Ranking: #$userRank out of $scoresSubmittedToday players',
+                                          style: gameLayoutManager.dialogContentHighLiteStyle,
+                                          textAlign: TextAlign.center,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -185,68 +234,150 @@ class HighScoresDialog {
                         ),
                       ),
 
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        // If logged in and has good score that can be submitted
-                        if (loggedIn && hasGoodScore && canSubmitScore)
-                          ElevatedButton(
-                            onPressed: () async {
-                              try {
-                                final scoreSubmitted = await api.submitHighScore(finalScore);
-                                if (scoreSubmitted && context.mounted) {
-                                  LogService.logInfo('High score submitted successfully!');
+                    // Add extra space before buttons on small screens
+                    const SizedBox(height: 8.0),
 
-                                  // Close this dialog
-                                  Navigator.of(context).pop();
-
-                                  // Use a short delay to ensure the dialog is fully closed
-                                  await Future.delayed(const Duration(milliseconds: 100));
-
-                                  // Show a new high scores dialog with the updated state
-                                  if (context.mounted) {
-                                    await show(context, api, spelledWordsLogic, gameLayoutManager);
-                                  }
-                                  return;
-                                } else {
-                                  LogService.logError('Failed to submit high score.');
-                                }
-                              } catch (e) {
-                                LogService.logError('Error submitting high score: $e');
-                              }
-                            },
-                            style: gameLayoutManager.buttonStyle(context),
-                            child: const Text('Submit Score'),
-                          ),
-                        // If not logged in but has good score
-                        if (!loggedIn && hasGoodScore)
-                          ElevatedButton(
-                            onPressed: () async {
-                              // Show login dialog without closing the high scores dialog
-                              final loginSuccess = await LoginDialog.show(context, api, gameLayoutManager);
-
-                              if (loginSuccess && context.mounted) {
-                                // If login was successful, close this dialog and show a new one
-                                Navigator.of(context).pop();
-
-                                // Use a short delay to ensure the dialog is fully closed
-                                await Future.delayed(const Duration(milliseconds: 100));
-
-                                // Show a new high scores dialog with the updated login state
-                                if (context.mounted) {
-                                  await show(context, api, spelledWordsLogic, gameLayoutManager);
-                                }
-                              }
-                            },
-                            style: gameLayoutManager.buttonStyle(context),
-                            child: const Text('Login to Submit'),
-                          ),
-                        ElevatedButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          style: gameLayoutManager.buttonStyle(context),
-                          child: const Text('Close'),
-                        ),
-                      ],
+                    // Use a more responsive button layout
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        // For narrow screens, use a column layout for buttons
+                        if (constraints.maxWidth < 400) {
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // If logged in and has good score that can be submitted
+                              if (loggedIn && hasGoodScore && canSubmitScore)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton(
+                                      onPressed: () async {
+                                        try {
+                                          final scoreSubmitted = await api.submitHighScore(finalScore);
+                                          if (scoreSubmitted && context.mounted) {
+                                            LogService.logInfo('High score submitted successfully!');
+                                            Navigator.of(context).pop();
+                                            await Future.delayed(const Duration(milliseconds: 100));
+                                            if (context.mounted) {
+                                              await show(context, api, spelledWordsLogic, gameLayoutManager);
+                                            }
+                                            return;
+                                          } else {
+                                            LogService.logError('Failed to submit high score.');
+                                          }
+                                        } catch (e) {
+                                          LogService.logError('Error submitting high score: $e');
+                                        }
+                                      },
+                                      style: gameLayoutManager.buttonStyle(context),
+                                      child: const Text('Submit Score'),
+                                    ),
+                                  ),
+                                ),
+                              // If not logged in but has good score
+                              if (!loggedIn && hasGoodScore)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton(
+                                      onPressed: () async {
+                                        final loginSuccess = await LoginDialog.show(context, api, gameLayoutManager);
+                                        if (loginSuccess && context.mounted) {
+                                          Navigator.of(context).pop();
+                                          await Future.delayed(const Duration(milliseconds: 100));
+                                          if (context.mounted) {
+                                            await show(context, api, spelledWordsLogic, gameLayoutManager);
+                                          }
+                                        }
+                                      },
+                                      style: gameLayoutManager.buttonStyle(context),
+                                      child: const Text('Login to Submit'),
+                                    ),
+                                  ),
+                                ),
+                              // Close button
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  style: gameLayoutManager.buttonStyle(context),
+                                  child: const Text('Close'),
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          // For wider screens, use a row layout
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              // If logged in and has good score that can be submitted
+                              if (loggedIn && hasGoodScore && canSubmitScore)
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                    child: ElevatedButton(
+                                      onPressed: () async {
+                                        try {
+                                          final scoreSubmitted = await api.submitHighScore(finalScore);
+                                          if (scoreSubmitted && context.mounted) {
+                                            LogService.logInfo('High score submitted successfully!');
+                                            Navigator.of(context).pop();
+                                            await Future.delayed(const Duration(milliseconds: 100));
+                                            if (context.mounted) {
+                                              await show(context, api, spelledWordsLogic, gameLayoutManager);
+                                            }
+                                            return;
+                                          } else {
+                                            LogService.logError('Failed to submit high score.');
+                                          }
+                                        } catch (e) {
+                                          LogService.logError('Error submitting high score: $e');
+                                        }
+                                      },
+                                      style: gameLayoutManager.buttonStyle(context),
+                                      child: const Text('Submit Score'),
+                                    ),
+                                  ),
+                                ),
+                              // If not logged in but has good score
+                              if (!loggedIn && hasGoodScore)
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                    child: ElevatedButton(
+                                      onPressed: () async {
+                                        final loginSuccess = await LoginDialog.show(context, api, gameLayoutManager);
+                                        if (loginSuccess && context.mounted) {
+                                          Navigator.of(context).pop();
+                                          await Future.delayed(const Duration(milliseconds: 100));
+                                          if (context.mounted) {
+                                            await show(context, api, spelledWordsLogic, gameLayoutManager);
+                                          }
+                                        }
+                                      },
+                                      style: gameLayoutManager.buttonStyle(context),
+                                      child: const Text('Login to Submit'),
+                                    ),
+                                  ),
+                                ),
+                              // Close button
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                  child: ElevatedButton(
+                                    onPressed: () => Navigator.of(context).pop(),
+                                    style: gameLayoutManager.buttonStyle(context),
+                                    child: const Text('Close'),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+                      },
                     ),
                     const SizedBox(height: AppStyles.dialogButtonPadding),
                   ],
