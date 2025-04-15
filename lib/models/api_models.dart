@@ -91,6 +91,7 @@ class HighScore {
   final int timePlayedSeconds;
   final int score;
   final String displayName;
+  final String userId;
 
   HighScore({
     required this.ranking,
@@ -98,6 +99,7 @@ class HighScore {
     required this.timePlayedSeconds,
     required this.score,
     required this.displayName,
+    required this.userId,
   });
 
   factory HighScore.fromJson(Map<String, dynamic> json) {
@@ -107,6 +109,7 @@ class HighScore {
       timePlayedSeconds: json['timePlayedSeconds'] as int,
       score: json['score'] as int,
       displayName: json['displayName'] as String,
+      userId: json['userId'],
     );
   }
 }

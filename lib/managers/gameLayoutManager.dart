@@ -2,6 +2,7 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
 import 'dart:math';
 import '../constants/layout_constants.dart';
 import '../styles/app_styles.dart';
@@ -223,7 +224,7 @@ class GameLayoutManager {
     );
 
     // If this is a tablet and it's in landscape, then we need to adjust for the safe areas.
-    if ((currentDeviceInfo.isTablet || currentDeviceInfo.isHybrid) && currentDeviceInfo.isWide) {
+    if (currentDeviceInfo.isTablet || currentDeviceInfo.isHybrid) {
       screenHeight = currentDeviceInfo.safeScreenHeight;
     }
 
@@ -259,7 +260,7 @@ class GameLayoutManager {
     // Calculate grid size first
     if (isNarrowLayout) {
       // Increase grid size by ~6% by reducing divisor from 8.5 to 8.0
-      gridSquareSize = (screenWidth / 8.0).clamp(42.0, 95.0); // Increased min/max values
+      gridSquareSize = (screenWidth / 8.0).clamp(42.0, 55.0); // Increased min/max values
       gridSpacing = 3.0;
     } else {
       // For wide layout, calculate grid size based on both screen dimensions
@@ -462,7 +463,14 @@ class GameLayoutManager {
     buttonHeight = buttonFontSize + (2 * buttonVerticalPadding) + (2 * buttonBorderThickness);
 
     // Calculate dialog dimensions
-    dialogMaxWidth = min(screenWidth * dialogMaxWidthPercentage, dialogMaxWidthLimit);
+    // For narrow layouts, ensure dialogs are wide enough to prevent button text wrapping
+    if (isNarrowLayout) {
+      // Increase minimum dialog width for narrow layouts
+      double minDialogWidth = max(screenWidth * 0.85, 350.0); // Ensure at least 350px width
+      dialogMaxWidth = min(minDialogWidth, dialogMaxWidthLimit);
+    } else {
+      dialogMaxWidth = min(screenWidth * dialogMaxWidthPercentage, dialogMaxWidthLimit);
+    }
     dialogMaxHeight = screenHeight * dialogMaxHeightPercentage;
     dialogMinHeight = dialogMinHeightBase;
 

@@ -47,7 +47,7 @@ class _GameMessageComponentState extends State<GameMessageComponent> {
 
   int _getMessageDuration(String message) {
     // Important messages stay longer
-    return _isImportantMessage(message) ? 5 : 3;
+    return _isImportantMessage(message) ? 3 : 2;
   }
 
   @override
@@ -59,10 +59,12 @@ class _GameMessageComponentState extends State<GameMessageComponent> {
       final newMessageIsImportant = _isImportantMessage(widget.message);
 
       // If there's no current message, or the new message is important,
+      // or the new message is different from the current one,
       // or the current message has been displayed for at least 1.5 seconds
       final shouldUpdateMessage =
           displayMessage == null ||
           newMessageIsImportant ||
+          widget.message != displayMessage || // Check if the message is different
           (messageDisplayTime != null && now.difference(messageDisplayTime!).inMilliseconds > 1500);
 
       if (shouldUpdateMessage) {

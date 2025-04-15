@@ -27,10 +27,13 @@ class OrientationProvider extends ChangeNotifier {
     print("SIZE CHANGE: old: $_currentSize, new: $newSize");
 
     bool hasChanged = _orientation != newOrientation || _currentSize != newSize;
-    _orientation = newOrientation;
-    _currentSize = newSize;
 
-    if (hasChanged) notifyListeners();
+    // Only update values and notify if there's an actual change
+    if (hasChanged) {
+      _orientation = newOrientation;
+      _currentSize = newSize;
+      notifyListeners();
+    }
   }
 
   // Get the correct dimensions based on current orientation

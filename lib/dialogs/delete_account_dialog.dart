@@ -17,6 +17,15 @@ class DeleteAccountDialog {
     void attemptDeleteAccount(StateSetter setState) async {
       if (isLoading) return;
 
+      // Check if user is logged in
+      if (!api.loggedIn) {
+        setState(() {
+          errorMessage = "You need to be logged in to delete your account. Please log in first.";
+          isLoading = false;
+        });
+        return;
+      }
+
       String username = userNameController.text.trim();
       String password = passwordController.text.trim();
 
@@ -80,26 +89,12 @@ class DeleteAccountDialog {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Title & Close Button
-                    Stack(
-                      children: [
-                        Center(
-                          child: Text(
-                            isConfirmationStep ? 'Delete Account' : 'Confirm Deletion',
-                            style: gameLayoutManager.dialogTitleStyle,
-                          ),
-                        ),
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: IconButton(
-                            icon: const Icon(Icons.close, size: 20),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ),
-                      ],
+                    // Title (without close button)
+                    Center(
+                      child: Text(
+                        isConfirmationStep ? 'Delete Account' : 'Confirm Deletion',
+                        style: gameLayoutManager.dialogTitleStyle,
+                      ),
                     ),
                     const SizedBox(height: 16.0),
 
@@ -242,7 +237,7 @@ class DeleteAccountDialog {
                             child: ElevatedButton(
                               onPressed: isLoading ? null : () => attemptDeleteAccount(setState),
                               style: gameLayoutManager.deleteButtonStyle(context),
-                              child: const Text('Delete Account'),
+                              child: const Text('Delete'),
                             ),
                           ),
                         ],

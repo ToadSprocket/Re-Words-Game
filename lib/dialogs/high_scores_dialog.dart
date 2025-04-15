@@ -57,12 +57,12 @@ class HighScoresDialog {
       date = rawDate == 'Today' ? 'Today' : DateFormat('MMMM d, yyyy').format(DateTime.parse(rawDate).toUtc());
 
       // Check if user is already on the board
-      bool userIsOnBoard = highScores.any((score) => score.ranking == userRank);
+      bool userIsOnBoard = highScores.any((score) => score.userId == api.userId);
 
       // Only allow score submission if:
       // 1. User hasn't submitted a score today
       // 2. User is not already on the board
-      // 3. Either there are no high scores yet, or the user's score is higher than the lowest on the board
+      // No need to check score comparison since we're using userId to determine if they're on the board
       if (!userHasSubmitted && !userIsOnBoard && (highScores.isEmpty || finalScore.score > highScores.last.score)) {
         canSubmitScore = true;
       }

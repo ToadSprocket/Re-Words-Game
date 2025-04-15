@@ -3,10 +3,13 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../styles/app_styles.dart';
+import '../services/api_service.dart';
 import '../managers/gameLayoutManager.dart';
+import '../dialogs/delete_account_dialog.dart';
+import '../main.dart' show VERSION_STRING;
 
 class LegalDialog {
-  static void show(BuildContext context, GameLayoutManager gameLayoutManager) {
+  static void show(BuildContext context, ApiService api, GameLayoutManager gameLayoutManager) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -76,6 +79,36 @@ class LegalDialog {
                               ),
                             ),
                             Text('© Digital Relics.', style: gameLayoutManager.dialogContentStyle),
+
+                            // Add account deletion section only for logged-in users
+                            const SizedBox(height: 16.0),
+                            Divider(color: Colors.grey.withOpacity(0.3)),
+                            const SizedBox(height: 16.0),
+                            RichText(
+                              text: TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text:
+                                        'If you wish to permanently delete all your Reword Game data, including scores, stats, and account details, tap ',
+                                    style: gameLayoutManager.dialogContentStyle,
+                                  ),
+                                  WidgetSpan(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        Navigator.pop(context); // Close legal dialog
+                                        DeleteAccountDialog.show(context, api, gameLayoutManager);
+                                      },
+                                      child: Text('account deletion dialog', style: gameLayoutManager.dialogLinkStyle),
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text:
+                                        '. Please note: This action is irreversible and will erase all your progress.',
+                                    style: gameLayoutManager.dialogContentStyle,
+                                  ),
+                                ],
+                              ),
+                            ),
                             const SizedBox(height: 24.0),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -85,7 +118,18 @@ class LegalDialog {
                                 Image.asset('assets/images/DR_TRANSPARENT.png', width: 32),
                               ],
                             ),
-                            Text(' ', style: gameLayoutManager.dialogContentStyle),
+                            const SizedBox(height: 8),
+                            // Display version information
+                            Center(
+                              child: Text(
+                                VERSION_STRING,
+                                style: gameLayoutManager.dialogContentStyle.copyWith(
+                                  fontSize: 12,
+                                  color: const Color.fromARGB(255, 201, 199, 199),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 22),
                           ],
                         ),
                       ),

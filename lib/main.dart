@@ -37,6 +37,14 @@ import 'utils/offline_mode_handler.dart';
 import 'utils/device_utils.dart';
 import 'providers/orientation_provider.dart';
 
+// App version information
+const String MAJOR = "1";
+const String MINOR = "0";
+const String PATCH = "0";
+const String BUILD = "44";
+
+const String VERSION_STRING = "v$MAJOR.$MINOR.$PATCH+$BUILD";
+
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
 const bool debugForceIsNarrow = false;
@@ -192,6 +200,12 @@ class _ReWordAppState extends State<ReWordApp> {
               }
             });
 
+            // Get the orientation provider
+            final orientationProvider = Provider.of<OrientationProvider>(context, listen: false);
+
+            // We'll only update orientation in the post-frame callback during initialization
+            // This avoids creating an infinite loop of orientation changes
+
             return GameLayoutProvider(
               gameLayoutManager: widget.layoutManager,
               child: HomeScreen(userId: widget.userId, authToken: widget.authToken),
@@ -293,6 +307,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     }
   }
 
+  // Flag to prevent loading a new board during orientation changes
+  bool _isHandlingOrientationChange = false;
+
   Future<void> _handleAppResume() async {
     try {
       final api = Provider.of<ApiService>(context, listen: false);
@@ -353,13 +370,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
   @override
   void onWindowClose() async {
-    await StateManager.saveState(_gridKey, _wildcardKey);
-    await StateManager.updatePlayTime();
+    LogService.logInfo("🔄 Window close event detected - Saving state...");
+    try {
+      // Save state before closing
+      await StateManager.saveState(_gridKey, _wildcardKey);
+      await StateManager.updatePlayTime();
+      LogService.logInfo("✅ State saved successfully before window close");
+    } catch (e) {
+      LogService.logError("❌ Error saving state on window close: $e");
+    }
+
     super.onWindowClose();
+
     // Only destroy window manager for desktop platforms
     if (!kIsWeb) {
       try {
         if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+          LogService.logInfo("🔄 Destroying window manager...");
           await windowManager.destroy();
         }
       } catch (e) {
@@ -374,18 +401,73 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     super.didChangeMetrics();
 
     // Ensure we're not in the build phase by using post-frame callback
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
-        // Get the current orientation
+        // Get the current orientation and size
         final currentOrientation = MediaQuery.of(context).orientation;
-        LogService.logInfo("Metrics changed - current orientation: $currentOrientation");
+        final currentSize = MediaQuery.of(context).size;
 
-        // Calculate layout sizes
-        gameLayoutManager.calculateLayoutSizes(context);
+        // Get the orientation provider
+        final orientationProvider = Provider.of<OrientationProvider>(context, listen: false);
 
-        // Force rebuild to apply new sizes
-        if (mounted) {
-          setState(() {});
+        // Check if orientation or size has actually changed
+        bool hasChanged =
+            orientationProvider.orientation != currentOrientation || orientationProvider.currentSize != currentSize;
+
+        if (hasChanged) {
+          LogService.logInfo("Metrics changed - orientation: $currentOrientation, size: $currentSize");
+
+          try {
+            // Set flag to prevent loading a new board during orientation change
+            _isHandlingOrientationChange = true;
+            LogService.logInfo("Setting orientation change flag to prevent board reload");
+
+            // CRITICAL: Save the game state BEFORE any layout changes
+            LogService.logInfo("Saving game state before orientation change");
+            await StateManager.saveState(_gridKey, _wildcardKey);
+
+            // Update the orientation provider
+            orientationProvider.changeOrientation(currentOrientation, currentSize);
+
+            // Calculate layout sizes
+            gameLayoutManager.calculateLayoutSizes(context);
+
+            // Force rebuild to apply new sizes - safe to call setState here since we're in a post-frame callback
+            setState(() {
+              // This will trigger a rebuild with the new layout sizes
+              LogService.logInfo("Rebuilding UI with new layout sizes");
+            });
+
+            // Wait a moment for the UI to stabilize
+            await Future.delayed(Duration(milliseconds: 300));
+
+            // CRITICAL: Restore the game state AFTER layout changes and UI rebuild
+            LogService.logInfo("Restoring game state after orientation change");
+            await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
+
+            // Wait another moment for the state to be fully restored
+            await Future.delayed(Duration(milliseconds: 100));
+
+            // Make sure the grid and wildcard components are properly updated
+            if (_gridKey.currentState != null) {
+              LogService.logInfo("Reloading grid tiles");
+              _gridKey.currentState!.reloadTiles();
+            }
+
+            if (_wildcardKey.currentState != null) {
+              LogService.logInfo("Reloading wildcard tiles");
+              _wildcardKey.currentState!.reloadWildcardTiles();
+            }
+
+            updateScoresRefresh();
+            LogService.logInfo("Game state fully restored after orientation change");
+          } catch (e) {
+            LogService.logError("Error during orientation change: $e");
+          } finally {
+            // Reset flag after orientation change is complete
+            _isHandlingOrientationChange = false;
+            LogService.logInfo("Resetting orientation change flag");
+          }
         }
       }
     });
@@ -395,22 +477,207 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Calculate layout sizes directly - this is safe in didChangeDependencies
-    gameLayoutManager.calculateLayoutSizes(context);
+    // Use post-frame callback to handle orientation changes
+    // This avoids calling setState or markNeedsBuild during build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        // Get the current orientation and size
+        final currentOrientation = MediaQuery.of(context).orientation;
+        final currentSize = MediaQuery.of(context).size;
 
-    // No need to call setState here as it might cause rebuild loops
-    // The next natural rebuild will use the updated layout
+        // Get the orientation provider
+        final orientationProvider = Provider.of<OrientationProvider>(context, listen: false);
+
+        // Check if orientation or size has actually changed
+        bool hasChanged =
+            orientationProvider.orientation != currentOrientation || orientationProvider.currentSize != currentSize;
+
+        if (hasChanged) {
+          LogService.logInfo("Dependencies changed - orientation: $currentOrientation, size: $currentSize");
+
+          try {
+            // Set flag to prevent loading a new board during orientation change
+            _isHandlingOrientationChange = true;
+            LogService.logInfo("Setting orientation change flag to prevent board reload");
+
+            // CRITICAL: Save the game state BEFORE any layout changes
+            LogService.logInfo("Saving game state before dependencies change");
+            await StateManager.saveState(_gridKey, _wildcardKey);
+
+            // Update the orientation provider
+            orientationProvider.changeOrientation(currentOrientation, currentSize);
+
+            // Calculate layout sizes
+            gameLayoutManager.calculateLayoutSizes(context);
+
+            // Force rebuild to apply new sizes - safe to call setState here since we're in a post-frame callback
+            setState(() {
+              // This will trigger a rebuild with the new layout sizes
+              LogService.logInfo("Rebuilding UI with new layout sizes from dependencies");
+            });
+
+            // Wait a moment for the UI to stabilize
+            await Future.delayed(Duration(milliseconds: 300));
+
+            // CRITICAL: Restore the game state AFTER layout changes and UI rebuild
+            LogService.logInfo("Restoring game state after dependencies change");
+            await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
+
+            // Wait another moment for the state to be fully restored
+            await Future.delayed(Duration(milliseconds: 100));
+
+            // Make sure the grid and wildcard components are properly updated
+            if (_gridKey.currentState != null) {
+              LogService.logInfo("Reloading grid tiles after dependencies change");
+              _gridKey.currentState!.reloadTiles();
+            }
+
+            if (_wildcardKey.currentState != null) {
+              LogService.logInfo("Reloading wildcard tiles after dependencies change");
+              _wildcardKey.currentState!.reloadWildcardTiles();
+            }
+
+            updateScoresRefresh();
+            LogService.logInfo("Game state fully restored after dependencies change");
+          } catch (e) {
+            LogService.logError("Error during dependencies change: $e");
+          } finally {
+            // Reset flag after orientation change is complete
+            _isHandlingOrientationChange = false;
+            LogService.logInfo("Resetting orientation change flag");
+          }
+        }
+      }
+    });
   }
 
   Future<void> _loadData() async {
     final api = Provider.of<ApiService>(context, listen: false);
+    final prefs = await SharedPreferences.getInstance();
+
+    // Check if this is a reload due to orientation change or app restart
+    // We use a shared preference to track this across app restarts
+    final bool hasLoadedBefore = prefs.getBool('hasLoadedBefore') ?? false;
+
+    if (hasLoadedBefore) {
+      LogService.logInfo("🔄 Detected app reload");
+
+      // First check if the board is expired
+      final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
+      LogService.logInfo("🔄 Board expired check on app reload: $isExpired");
+
+      if (isExpired) {
+        LogService.logInfo("🔄 Board is expired on app reload - loading new board");
+
+        // Temporarily reset the orientation change flag to allow loading a new board
+        bool wasHandlingOrientationChange = _isHandlingOrientationChange;
+        if (wasHandlingOrientationChange) {
+          _isHandlingOrientationChange = false;
+          LogService.logInfo("🔄 Temporarily disabling orientation change flag to load new board");
+        }
+
+        try {
+          // Load a new board since the current one is expired
+          LoadingDialog.show(context, gameLayoutManager, message: "Loading new board...");
+
+          try {
+            // Get the current score before resetting state
+            final SubmitScoreRequest currentScore = await SpelledWordsLogic.getCurrentScore();
+
+            // Check connectivity before loading new board
+            if (!await ConnectivityMonitor().checkConnection()) {
+              LogService.logError("🚨 Cannot load new board: No network connection");
+              OfflineModeHandler.enterOfflineMode();
+
+              // Show error dialog
+              if (mounted) {
+                ErrorHandler.handleError(
+                  context,
+                  ErrorHandler.NETWORK_ERROR,
+                  "Cannot load new board: No network connection",
+                  onRetry: () => _loadBoardForUser(api),
+                );
+              }
+
+              // Fall back to stored board
+              await GridLoader.loadStoredBoard();
+            } else {
+              // Load the new board with the current score
+              bool success = await GridLoader.loadNewBoard(api, currentScore);
+
+              // Only reset state after successfully loading the new board
+              if (success) {
+                await StateManager.resetState(_gridKey);
+
+                // Ensure UI components are updated
+                if (_gridKey.currentState != null) {
+                  LogService.logInfo("Reloading grid tiles after new board load");
+                  _gridKey.currentState!.reloadTiles();
+                }
+
+                if (_wildcardKey.currentState != null) {
+                  LogService.logInfo("Reloading wildcard tiles after new board load");
+                  _wildcardKey.currentState!.reloadWildcardTiles();
+                }
+
+                // Update score and spelled words
+                scoreNotifier.value = SpelledWordsLogic.score;
+                spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
+
+                LogService.logInfo("✅ New board loaded and UI updated");
+              } else {
+                LogService.logError("❌ Failed to load new board. Falling back to stored board.");
+                await GridLoader.loadStoredBoard();
+              }
+            }
+          } catch (e) {
+            LogService.logError("🚨 Error loading new board: $e");
+            ErrorReporting.reportException(e, StackTrace.current, context: 'Load new board');
+
+            // Fall back to stored board
+            await GridLoader.loadStoredBoard();
+          } finally {
+            if (mounted) LoadingDialog.dismiss(context);
+          }
+        } finally {
+          // Restore the orientation change flag
+          if (wasHandlingOrientationChange) {
+            _isHandlingOrientationChange = true;
+            LogService.logInfo("🔄 Restoring orientation change flag");
+          }
+        }
+
+        return;
+      }
+
+      // Try to restore from stored board data instead of registering as new user
+      bool success = await GridLoader.loadStoredBoard();
+      if (success) {
+        LogService.logInfo("🔄 Successfully restored board from storage");
+
+        // Restore state from preferences
+        await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
+
+        // Just reload the UI components
+        _gridKey.currentState?.reloadTiles();
+        _wildcardKey.currentState?.reloadWildcardTiles();
+
+        // Sync UI state
+        scoreNotifier.value = SpelledWordsLogic.score;
+        spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
+        return;
+      }
+    }
+
+    // Mark that we've loaded the app at least once
+    await prefs.setBool('hasLoadedBefore', true);
 
     await StateManager.setStartTime();
     await _applyDebugControls();
 
     if (kIsWeb) {
       bool loggedIn = await _handleWebLogin(api);
-      LogService.logError("🔄 Web loggedIn: $loggedIn");
+      LogService.logInfo("🔄 Web loggedIn: $loggedIn");
       if (!loggedIn) return; // Exit if login failed
     }
 
@@ -585,6 +852,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
   Future<void> _loadBoardForUser(ApiService api) async {
     try {
+      // Skip loading a new board if we're handling an orientation change
+      if (_isHandlingOrientationChange) {
+        LogService.logInfo("🔄 Skipping board load during orientation change");
+        return;
+      }
+
       // First check if we need a new board
       final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
       LogService.logInfo("🔄 Loading board for user... isExpired: $isExpired");
@@ -592,68 +865,97 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
       final hasBoardData = await StateManager().hasBoardData();
       LogService.logInfo("🔄 Loading board for user... hasBoardData: $hasBoardData");
 
-      if (isExpired || !hasBoardData) {
-        final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
-        var loadNewBoard = false;
-        // If we have board data, ask the user if they want to load a new board
-        if (hasBoardData) {
-          loadNewBoard = await _shouldLoadNewBoard();
-        }
+      // Force load a new board if we don't have board data or if it's expired
+      if (!hasBoardData || isExpired) {
+        LogService.logInfo("🔄 Loading new board...");
+        LoadingDialog.show(context, gameLayoutManager, message: "Loading new board...");
+        try {
+          // Get the current score before resetting state
+          final SubmitScoreRequest currentScore = await SpelledWordsLogic.getCurrentScore();
 
-        if (loadNewBoard || !hasBoardData) {
-          LogService.logInfo("🔄 Loading new board...");
-          LoadingDialog.show(context, gameLayoutManager, message: "Loading new board...");
-          try {
-            // Get the current score before resetting state
-            final SubmitScoreRequest currentScore = await SpelledWordsLogic.getCurrentScore();
+          // Check connectivity before loading new board
+          if (!await ConnectivityMonitor().checkConnection()) {
+            LogService.logError("🚨 Cannot load new board: No network connection");
+            OfflineModeHandler.enterOfflineMode();
 
-            // Check connectivity before loading new board
-            if (!await ConnectivityMonitor().checkConnection()) {
-              LogService.logError("🚨 Cannot load new board: No network connection");
-              OfflineModeHandler.enterOfflineMode();
-
-              // Show error dialog
-              if (mounted) {
-                ErrorHandler.handleError(
-                  context,
-                  ErrorHandler.NETWORK_ERROR,
-                  "Cannot load new board: No network connection",
-                  onRetry: () => _loadBoardForUser(api),
-                );
-              }
-
-              // Fall back to stored board
-              await GridLoader.loadStoredBoard();
-              return;
+            // Show error dialog
+            if (mounted) {
+              ErrorHandler.handleError(
+                context,
+                ErrorHandler.NETWORK_ERROR,
+                "Cannot load new board: No network connection",
+                onRetry: () => _loadBoardForUser(api),
+              );
             }
-
-            // Load the new board with the current score
-            bool success = await GridLoader.loadNewBoard(api, currentScore);
-
-            // Only reset state after successfully loading the new board
-            if (success) {
-              await StateManager.resetState(_gridKey);
-            } else {
-              LogService.logError("❌ Failed to load new board. Falling back to stored board.");
-              await GridLoader.loadStoredBoard();
-            }
-          } catch (e) {
-            LogService.logError("🚨 Error loading new board: $e");
-            ErrorReporting.reportException(e, StackTrace.current, context: 'Load new board');
 
             // Fall back to stored board
             await GridLoader.loadStoredBoard();
-          } finally {
-            if (mounted) LoadingDialog.dismiss(context);
+            return;
           }
-        } else {
-          LogService.logInfo("🔄 Falling back to stored board...");
+
+          // Double-check we're not in orientation change before making API call
+          if (_isHandlingOrientationChange) {
+            LogService.logInfo("🔄 Cancelling new board load - orientation change in progress");
+            return;
+          }
+
+          // Load the new board with the current score
+          bool success = await GridLoader.loadNewBoard(api, currentScore);
+
+          // Only reset state after successfully loading the new board
+          if (success) {
+            await StateManager.resetState(_gridKey);
+
+            // Ensure UI components are updated
+            if (_gridKey.currentState != null) {
+              LogService.logInfo("Reloading grid tiles after new board load");
+              _gridKey.currentState!.reloadTiles();
+            }
+
+            if (_wildcardKey.currentState != null) {
+              LogService.logInfo("Reloading wildcard tiles after new board load");
+              _wildcardKey.currentState!.reloadWildcardTiles();
+            }
+
+            // Update score and spelled words
+            scoreNotifier.value = SpelledWordsLogic.score;
+            spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
+
+            LogService.logInfo("✅ New board loaded and UI updated");
+          } else {
+            LogService.logError("❌ Failed to load new board. Falling back to stored board.");
+            await GridLoader.loadStoredBoard();
+          }
+        } catch (e) {
+          LogService.logError("🚨 Error loading new board: $e");
+          ErrorReporting.reportException(e, StackTrace.current, context: 'Load new board');
+
+          // Fall back to stored board
           await GridLoader.loadStoredBoard();
+        } finally {
+          if (mounted) LoadingDialog.dismiss(context);
         }
       } else {
         // Board is still valid, restore previous state
         LogService.logInfo("🔄 Restoring state...");
         await StateManager.restoreState(_gridKey, _wildcardKey, scoreNotifier, spelledWordsNotifier);
+
+        // Ensure UI components are updated
+        if (_gridKey.currentState != null) {
+          LogService.logInfo("Reloading grid tiles after state restore");
+          _gridKey.currentState!.reloadTiles();
+        }
+
+        if (_wildcardKey.currentState != null) {
+          LogService.logInfo("Reloading wildcard tiles after state restore");
+          _wildcardKey.currentState!.reloadWildcardTiles();
+        }
+
+        // Update score and spelled words
+        scoreNotifier.value = SpelledWordsLogic.score;
+        spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
+
+        LogService.logInfo("✅ State restored and UI updated");
       }
     } catch (e) {
       LogService.logError("🚨 Error in _loadBoardForUser: $e");
@@ -690,7 +992,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   }
 
   void _handleMessage(String message) {
-    messageNotifier.value = message;
+    // Force the message notifier to update even if the message is the same
+    // by temporarily setting it to empty and then to the actual message
+    messageNotifier.value = '';
+    // Use a small delay to ensure the empty message is processed
+    Future.microtask(() {
+      if (mounted) {
+        messageNotifier.value = message;
+      }
+    });
+
     scoreNotifier.value = SpelledWordsLogic.score; // Sync on submit
     spelledWordsNotifier.value = List.from(SpelledWordsLogic.spelledWords);
   }
@@ -765,7 +1076,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                                   SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
                                   gameLayoutManager,
                                 ),
-                            onLegal: () => LegalDialog.show(context, gameLayoutManager),
+                            onLegal: () => LegalDialog.show(context, api, gameLayoutManager),
                             onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
                             api: api,
                             gameLayoutManager: gameLayoutManager,
@@ -791,7 +1102,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                                   SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
                                   gameLayoutManager,
                                 ),
-                            onLegal: () => LegalDialog.show(context, gameLayoutManager),
+                            onLegal: () => LegalDialog.show(context, api, gameLayoutManager),
                             onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
                             api: api,
                             gameLayoutManager: gameLayoutManager,
@@ -825,7 +1136,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                                 SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
                                 gameLayoutManager,
                               ),
-                          onLegal: () => LegalDialog.show(context, gameLayoutManager),
+                          onLegal: () => LegalDialog.show(context, api, gameLayoutManager),
                           onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
                           api: api,
                           gameLayoutManager: gameLayoutManager,
@@ -851,7 +1162,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
                                 SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
                                 gameLayoutManager,
                               ),
-                          onLegal: () => LegalDialog.show(context, gameLayoutManager),
+                          onLegal: () => LegalDialog.show(context, api, gameLayoutManager),
                           onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
                           api: api,
                           gameLayoutManager: gameLayoutManager,

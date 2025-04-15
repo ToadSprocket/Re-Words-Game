@@ -35,6 +35,10 @@ class StateManager {
       final wildcardState = wildcardKey.currentState!;
       await prefs.setString('wildcardTiles', jsonEncode(wildcardState.getTiles().map((t) => t.toJson()).toList()));
     }
+
+    // Save a special flag to indicate that we have saved state for orientation change
+    await prefs.setBool('hasOrientationState', true);
+    LogService.logInfo("Game state saved with orientation flag");
   }
 
   static Future<void> restoreState(
@@ -44,6 +48,12 @@ class StateManager {
     ValueNotifier<List<String>> spelledWordsNotifier,
   ) async {
     final prefs = await SharedPreferences.getInstance();
+
+    // Check if we have orientation state
+    final hasOrientationState = prefs.getBool('hasOrientationState') ?? false;
+    if (hasOrientationState) {
+      LogService.logInfo("Restoring state after orientation change");
+    }
 
     // Restore SpelledWordsLogic
     SpelledWordsLogic.score = prefs.getInt('score') ?? 0;
@@ -62,13 +72,17 @@ class StateManager {
       GridLoader.gridTiles = restoredTiles.map((tile) => {'letter': tile.letter, 'value': tile.value}).toList();
 
       // Set tiles in grid component
-      gridKey?.currentState?.setTiles(restoredTiles);
+      if (gridKey?.currentState != null) {
+        LogService.logInfo("Setting grid tiles in component");
+        gridKey!.currentState!.setTiles(restoredTiles);
+      }
     }
 
-    if (selectedIndicesJson != null) {
-      gridKey?.currentState?.setSelectedIndices((jsonDecode(selectedIndicesJson) as List).cast<int>());
+    if (selectedIndicesJson != null && gridKey?.currentState != null) {
+      LogService.logInfo("Setting selected indices in grid component");
+      gridKey!.currentState!.setSelectedIndices((jsonDecode(selectedIndicesJson) as List).cast<int>());
+      gridKey.currentState!.setState(() {}); // Trigger UI update
     }
-    gridKey?.currentState?.setState(() {}); // Trigger UI update
 
     // Restore wildcard state
     final wildcardTilesJson = prefs.getString('wildcardTiles');
@@ -80,8 +94,16 @@ class StateManager {
       GridLoader.wildcardTiles = restoredTiles.map((tile) => {'letter': tile.letter, 'value': tile.value}).toList();
 
       // Set tiles in wildcard component
-      wildcardKey?.currentState?.tiles = restoredTiles;
-      wildcardKey?.currentState?.setState(() {}); // Trigger UI update
+      if (wildcardKey?.currentState != null) {
+        LogService.logInfo("Setting wildcard tiles in component");
+        wildcardKey!.currentState!.tiles = restoredTiles;
+        wildcardKey.currentState!.setState(() {}); // Trigger UI update
+      }
+    }
+
+    // Clear the orientation state flag
+    if (hasOrientationState) {
+      await prefs.setBool('hasOrientationState', false);
     }
 
     LogService.logInfo('Game state restored successfully');
