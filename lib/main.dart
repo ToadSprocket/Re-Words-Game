@@ -54,6 +54,7 @@ const bool debugForceExpiredBoard = false; // Force expired board
 const bool debugForceValidBoard = false; // Force valid board
 const bool debugClearPrefs = false; // Clear all prefs for new user
 const bool debugForceIntroAnimation = false; // Force intro animation to play
+const bool debugDisableSecretReset = false; // Disable the secret title reset feature
 
 // Window size constants
 const double MIN_WINDOW_WIDTH = 1000.0;

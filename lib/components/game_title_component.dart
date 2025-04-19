@@ -5,6 +5,7 @@ import 'package:reword_game/managers/gameLayoutManager.dart';
 import '../styles/app_styles.dart';
 import 'dart:math' as math;
 import 'dart:async';
+import '../main.dart'; // Import for debug flags
 
 class GameTitleComponent extends StatefulWidget {
   final double width;
@@ -63,11 +64,16 @@ class _GameTitleComponentState extends State<GameTitleComponent> {
   }
 
   void _handleTitleTap() {
+    // If secret reset is disabled, don't count clicks
+    if (debugDisableSecretReset) {
+      return;
+    }
+
     _clickCount++;
 
     // Reset click count after 2 seconds of inactivity
     _clickTimer?.cancel();
-    _clickTimer = Timer(const Duration(seconds: 2), () {
+    _clickTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() {
           _clickCount = 0;
