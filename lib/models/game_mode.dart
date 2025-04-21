@@ -1,5 +1,6 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
+import '../styles/app_styles.dart';
 
 enum GameMode { classic, scribe, wordsmith, master }
 
@@ -48,13 +49,26 @@ extension GameModeExtension on GameMode {
   Color get color {
     switch (this) {
       case GameMode.classic:
-        return Colors.green;
+        return AppStyles.classicGameModeColor;
       case GameMode.scribe:
-        return Colors.yellow;
+        return AppStyles.scribeGameModeColor;
       case GameMode.wordsmith:
-        return Colors.orange;
+        return AppStyles.wordSmithGameModeColor;
       case GameMode.master:
-        return Colors.red;
+        return AppStyles.masterGameModeColor;
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case GameMode.classic:
+        return Icons.hourglass_disabled;
+      case GameMode.scribe:
+        return Icons.hourglass_full;
+      case GameMode.wordsmith:
+        return Icons.hourglass_top;
+      case GameMode.master:
+        return Icons.hourglass_bottom;
     }
   }
 }
