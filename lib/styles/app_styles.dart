@@ -30,6 +30,12 @@ class AppStyles {
   static const Color spelledWordsOuterBorderColor = Colors.green;
   static const Color spelledWordsColumnBorderColor = Colors.cyan;
 
+  // Game Mode Colors
+  static const Color classicGameModeColor = Color.fromARGB(230, 4, 190, 29);
+  static const Color scribeGameModeColor = Color.fromARGB(255, 243, 198, 50);
+  static const Color wordSmithGameModeColor = Color.fromARGB(255, 233, 133, 3);
+  static const Color masterGameModeColor = Color.fromARGB(212, 236, 4, 4);
+
   // Ticker Styles
   static const double tickerWidthFactor = 1.0;
   static const double tickerHeight = 43.0;

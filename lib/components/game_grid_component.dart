@@ -71,14 +71,44 @@ class GameGridComponentState extends State<GameGridComponent> {
     });
 
     // Only load from GridLoader if we don't have tiles
-    if (gridTiles.isEmpty && GridLoader.gridTiles.isNotEmpty) {
-      setState(() {
-        gridTiles =
-            GridLoader.gridTiles.map((tileData) {
-              return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: false, isRemoved: false);
-            }).toList();
-        isLoading = false;
-      });
+    if (gridTiles.isEmpty) {
+      if (GridLoader.gridTiles.isNotEmpty) {
+        setState(() {
+          gridTiles =
+              GridLoader.gridTiles.map((tileData) {
+                return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: false, isRemoved: false);
+              }).toList();
+          isLoading = false;
+        });
+      } else {
+        // Create default grid tiles as a fallback
+        print('GameGridComponent: No grid tiles available in GridLoader, using default tiles');
+        setState(() {
+          // Create a 4x4 grid of default tiles
+          gridTiles = [
+            Tile(letter: 'R', value: 1, isExtra: false, isRemoved: false),
+            Tile(letter: 'E', value: 1, isExtra: false, isRemoved: false),
+            Tile(letter: 'W', value: 4, isExtra: false, isRemoved: false),
+            Tile(letter: 'O', value: 1, isExtra: false, isRemoved: false),
+
+            Tile(letter: 'R', value: 1, isExtra: false, isRemoved: false),
+            Tile(letter: 'D', value: 2, isExtra: false, isRemoved: false),
+            Tile(letter: 'G', value: 2, isExtra: false, isRemoved: false),
+            Tile(letter: 'A', value: 1, isExtra: false, isRemoved: false),
+
+            Tile(letter: 'M', value: 3, isExtra: false, isRemoved: false),
+            Tile(letter: 'E', value: 1, isExtra: false, isRemoved: false),
+            Tile(letter: 'F', value: 4, isExtra: false, isRemoved: false),
+            Tile(letter: 'U', value: 1, isExtra: false, isRemoved: false),
+
+            Tile(letter: 'N', value: 1, isExtra: false, isRemoved: false),
+            Tile(letter: 'T', value: 1, isExtra: false, isRemoved: false),
+            Tile(letter: 'I', value: 1, isExtra: false, isRemoved: false),
+            Tile(letter: 'L', value: 1, isExtra: false, isRemoved: false),
+          ];
+          isLoading = false;
+        });
+      }
     } else {
       setState(() {
         isLoading = false;
@@ -89,10 +119,12 @@ class GameGridComponentState extends State<GameGridComponent> {
   Future<void> reloadTiles() async {
     setState(() {
       isLoading = true;
-      // Only reload if we don't have tiles
-      if (gridTiles.isEmpty) {
-        _loadTiles();
-      }
+    });
+
+    // Always call _loadTiles to ensure we have tiles
+    await _loadTiles();
+
+    setState(() {
       selectedTiles.clear();
       isLoading = false;
     });

@@ -37,12 +37,14 @@ import 'utils/connectivity_monitor.dart';
 import 'utils/offline_mode_handler.dart';
 import 'utils/device_utils.dart';
 import 'providers/orientation_provider.dart';
+import 'providers/game_state_provider.dart';
+import 'models/game_mode.dart';
 
 // App version information
 const String MAJOR = "1";
 const String MINOR = "0";
 const String PATCH = "0";
-const String BUILD = "45";
+const String BUILD = "46";
 
 const String VERSION_STRING = "v$MAJOR.$MINOR.$PATCH+$BUILD";
 
@@ -50,7 +52,7 @@ const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
 const bool debugForceIsNarrow = false;
 const bool disableSpellCheck = false;
-const bool debugForceExpiredBoard = true; // Force expired board
+const bool debugForceExpiredBoard = false; // Force expired board
 const bool debugForceValidBoard = false; // Force valid board
 const bool debugClearPrefs = false; // Clear all prefs for new user
 const bool debugForceIntroAnimation = false; // Force intro animation to play
@@ -104,6 +106,14 @@ void main() async {
           create: (context) => apiService, // Use the initialized instance
         ),
         ChangeNotifierProvider<OrientationProvider>(create: (context) => OrientationProvider()),
+        ChangeNotifierProvider<GameStateProvider>(create: (context) => GameStateProvider()),
+        Provider<BoardManager>.value(
+          value: BoardManager(
+            gameLayoutManager: layoutManager,
+            debugForceExpiredBoard: debugForceExpiredBoard,
+            disableSpellCheck: disableSpellCheck,
+          ),
+        ),
       ],
       child: ReWordApp(layoutManager: layoutManager),
     ),
@@ -234,23 +244,17 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, WindowListener {
-  // Use BoardManager to handle all board-related functionality
-  late BoardManager boardManager;
+  // Use providers for state management
   final GameLayoutManager gameLayoutManager = GameLayoutManager();
   Map<String, dynamic>? sizes;
   int loginAttempts = 0;
+  late BoardManager boardManager;
+  late GameStateProvider gameStateProvider;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-
-    // Initialize BoardManager
-    boardManager = BoardManager(
-      gameLayoutManager: gameLayoutManager,
-      debugForceExpiredBoard: debugForceExpiredBoard,
-      disableSpellCheck: disableSpellCheck,
-    );
 
     // Ensure this runs only after the first frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -282,8 +286,53 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     }
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Get providers
+    boardManager = Provider.of<BoardManager>(context, listen: false);
+    gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
+
+    // Use post-frame callback to handle orientation changes
+    // This avoids calling setState or markNeedsBuild during build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        // Get the current orientation and size
+        final currentOrientation = MediaQuery.of(context).orientation;
+        final currentSize = MediaQuery.of(context).size;
+
+        // Get the orientation provider
+        final orientationProvider = Provider.of<OrientationProvider>(context, listen: false);
+
+        // Check if orientation or size has actually changed
+        bool hasChanged =
+            orientationProvider.orientation != currentOrientation || orientationProvider.currentSize != currentSize;
+
+        if (hasChanged) {
+          LogService.logInfo("Dependencies changed - orientation: $currentOrientation, size: $currentSize");
+
+          // Update the orientation provider
+          orientationProvider.changeOrientation(currentOrientation, currentSize);
+
+          // Let the board manager handle orientation change
+          await boardManager.handleOrientationChange(context);
+
+          // Force rebuild to apply new sizes - safe to call setState here since we're in a post-frame callback
+          setState(() {
+            LogService.logInfo("Rebuilding UI with new layout sizes from dependencies");
+          });
+        }
+      }
+    });
+  }
+
   Future<void> _initializeGame() async {
     await boardManager.initialize(context);
+
+    // Initialize game state provider with default values
+    gameStateProvider.syncWithSpelledWordsLogic();
+
     await _loadData();
   }
 
@@ -376,43 +425,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
           // Force rebuild to apply new sizes - safe to call setState here since we're in a post-frame callback
           setState(() {
             LogService.logInfo("Rebuilding UI with new layout sizes");
-          });
-        }
-      }
-    });
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    // Use post-frame callback to handle orientation changes
-    // This avoids calling setState or markNeedsBuild during build phase
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (mounted) {
-        // Get the current orientation and size
-        final currentOrientation = MediaQuery.of(context).orientation;
-        final currentSize = MediaQuery.of(context).size;
-
-        // Get the orientation provider
-        final orientationProvider = Provider.of<OrientationProvider>(context, listen: false);
-
-        // Check if orientation or size has actually changed
-        bool hasChanged =
-            orientationProvider.orientation != currentOrientation || orientationProvider.currentSize != currentSize;
-
-        if (hasChanged) {
-          LogService.logInfo("Dependencies changed - orientation: $currentOrientation, size: $currentSize");
-
-          // Update the orientation provider
-          orientationProvider.changeOrientation(currentOrientation, currentSize);
-
-          // Let the board manager handle orientation change
-          await boardManager.handleOrientationChange(context);
-
-          // Force rebuild to apply new sizes - safe to call setState here since we're in a post-frame callback
-          setState(() {
-            LogService.logInfo("Rebuilding UI with new layout sizes from dependencies");
           });
         }
       }

@@ -15,6 +15,7 @@ import '../logic/logging_handler.dart';
 import '../logic/spelled_words_handler.dart';
 import '../managers/state_manager.dart';
 import '../models/api_models.dart';
+import '../providers/game_state_provider.dart';
 import '../services/api_service.dart';
 import '../utils/connectivity_monitor.dart';
 import '../utils/offline_mode_handler.dart';
@@ -112,8 +113,18 @@ class BoardManager {
 
     // Check if we have tiles loaded
     if (GridLoader.gridTiles.isEmpty) {
-      LogService.logError("❌ No tiles loaded! Showing failure dialog...");
-      await FailureDialog.show(context, gameLayoutManager);
+      LogService.logError("❌ No grid tiles loaded in GridLoader");
+
+      // Check if we have UI components with tiles before showing failure dialog
+      bool hasGridTiles = gridKey.currentState?.getTiles().isNotEmpty ?? false;
+      bool hasWildcardTiles = wildcardKey.currentState?.getTiles().isNotEmpty ?? false;
+
+      if (!hasGridTiles && !hasWildcardTiles) {
+        LogService.logError("❌ No tiles available in UI components! Showing failure dialog...");
+        await FailureDialog.show(context, gameLayoutManager);
+      } else {
+        LogService.logInfo("✅ Using default tiles in UI components");
+      }
     } else {
       LogService.logInfo("✅ Board successfully loaded! Syncing UI...");
     }
@@ -376,37 +387,55 @@ class BoardManager {
   /// Handle orientation change
   Future<void> handleOrientationChange(BuildContext context) async {
     try {
-      // Set flag to prevent loading a new board during orientation change
+      // Get the game state provider
+      final gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
+
+      // Set flags to prevent loading a new board during orientation change
       _isHandlingOrientationChange = true;
-      LogService.logInfo("Setting orientation change flag to prevent board reload");
+      gameStateProvider.setOrientationChanging(true);
+      LogService.logInfo("Setting orientation change flags to prevent board reload");
 
       // CRITICAL: Save the game state BEFORE any layout changes
       LogService.logInfo("Saving game state before orientation change");
-      await saveState();
+      await gameStateProvider.saveState();
 
       // Calculate layout sizes
       gameLayoutManager.calculateLayoutSizes(context);
 
-      // Wait a moment for the UI to stabilize
-      await Future.delayed(Duration(milliseconds: 300));
+      // Wait longer for the UI to stabilize
+      await Future.delayed(Duration(milliseconds: 500));
+
+      // Check if context is still valid
+      if (!context.mounted) {
+        LogService.logError("Context is no longer mounted during orientation change");
+        return;
+      }
 
       // CRITICAL: Restore the game state AFTER layout changes and UI rebuild
       LogService.logInfo("Restoring game state after orientation change");
-      await StateManager.restoreState(gridKey, wildcardKey, scoreNotifier, spelledWordsNotifier);
+      await gameStateProvider.restoreState();
 
-      // Wait another moment for the state to be fully restored
-      await Future.delayed(Duration(milliseconds: 100));
+      // Wait longer for the state to be fully restored
+      await Future.delayed(Duration(milliseconds: 300));
 
       // Make sure the grid and wildcard components are properly updated
-      _syncUIComponents();
-
-      LogService.logInfo("Game state fully restored after orientation change");
+      if (context.mounted) {
+        _syncUIComponents();
+        LogService.logInfo("Game state fully restored after orientation change");
+      }
     } catch (e) {
       LogService.logError("Error during orientation change: $e");
     } finally {
-      // Reset flag after orientation change is complete
+      // Reset flags after orientation change is complete
       _isHandlingOrientationChange = false;
-      LogService.logInfo("Resetting orientation change flag");
+
+      // Reset the game state provider flag if context is still valid
+      if (context.mounted) {
+        final gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
+        gameStateProvider.setOrientationChanging(false);
+      }
+
+      LogService.logInfo("Resetting orientation change flags");
     }
   }
 

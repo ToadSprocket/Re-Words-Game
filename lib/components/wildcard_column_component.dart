@@ -40,7 +40,7 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
   void initState() {
     super.initState();
     // Only load from GridLoader if we don't have tiles yet
-    if (tiles.isNotEmpty) {
+    if (tiles.isEmpty) {
       _loadWildcardTiles();
     }
   }
@@ -49,9 +49,18 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
     if (tiles.isNotEmpty) return; // Skip if we already have tiles
 
     if (GridLoader.wildcardTiles.isEmpty) {
-      LogService.logError('WildcardColumnComponent: No wildcard tiles available in GridLoader');
+      LogService.logError('WildcardColumnComponent: No wildcard tiles available in GridLoader, using default tiles');
+      // Create default wildcard tiles as a fallback
+      setState(() {
+        tiles = [
+          Tile(letter: 'A', value: 2, isExtra: true, isRemoved: false),
+          Tile(letter: 'E', value: 2, isExtra: true, isRemoved: false),
+          Tile(letter: 'I', value: 2, isExtra: true, isRemoved: false),
+        ];
+      });
       return;
     }
+
     setState(() {
       tiles =
           GridLoader.wildcardTiles.map((tileData) {
