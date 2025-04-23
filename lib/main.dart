@@ -45,7 +45,7 @@ import 'models/game_mode.dart';
 const String MAJOR = "1";
 const String MINOR = "0";
 const String PATCH = "0";
-const String BUILD = "48";
+const String BUILD = "49";
 
 const String VERSION_STRING = "v$MAJOR.$MINOR.$PATCH+$BUILD";
 

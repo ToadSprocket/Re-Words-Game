@@ -28,7 +28,26 @@ class StateManager {
     await prefs.setInt('wildcardUses', prefs.getInt('wildcardUses') ?? 0);
     if (gridKey.currentState != null) {
       final gridState = gridKey.currentState!;
-      await prefs.setString('gridTiles', jsonEncode(gridState.getTiles().map((t) => t.toJson()).toList()));
+
+      // Get the original tiles
+      List<Tile> originalTiles = gridState.getTiles();
+
+      List<Tile> cleanedTiles =
+          originalTiles.map((tile) {
+            // Create a copy of the tile
+            Map<String, dynamic> tileJson = tile.toJson();
+            Tile tileCopy = Tile.fromJson(tileJson);
+
+            // If the tile is in 'selected' state, revert it to its previous state
+            if (tileCopy.state == 'selected') {
+              tileCopy.state = tileCopy.previousState ?? (tileCopy.useCount > 0 ? 'used' : 'unused');
+              tileCopy.previousState = null;
+            }
+
+            return tileCopy;
+          }).toList();
+
+      await prefs.setString('gridTiles', jsonEncode(cleanedTiles.map((t) => t.toJson()).toList()));
       await prefs.setString('selectedIndices', jsonEncode(gridState.getSelectedIndices()));
     }
     if (wildcardKey.currentState != null) {

@@ -43,6 +43,12 @@ class GridLoader {
 
   static Future<bool> loadStoredBoard() async {
     try {
+      // Clear existing data first
+      gridTiles.clear();
+      wildcardTiles.clear();
+      _gridData.clear();
+
+      // Get board data from StateManager
       _gridData = await StateManager.getBoardData();
       if (_gridData.isEmpty) {
         LogService.logError("No stored board data available");
@@ -68,34 +74,8 @@ class GridLoader {
         return false;
       }
 
-      // Try to load the board data from SharedPreferences directly if GridLoader is empty
-      final prefs = await SharedPreferences.getInstance();
-      final gridTilesJson = prefs.getString('gridTiles');
-      final wildcardTilesJson = prefs.getString('wildcardTiles');
-
-      if (gridTilesJson != null && wildcardTilesJson != null) {
-        LogService.logInfo("Loading tiles directly from SharedPreferences");
-
-        // Load grid tiles
-        final List<dynamic> gridTileData = jsonDecode(gridTilesJson);
-        final List<Tile> restoredGridTiles = gridTileData.map((data) => Tile.fromJson(data)).toList();
-        gridTiles = restoredGridTiles.map((tile) => {'letter': tile.letter, 'value': tile.value}).toList();
-
-        // Load wildcard tiles
-        final List<dynamic> wildcardTileData = jsonDecode(wildcardTilesJson);
-        final List<Tile> restoredWildcardTiles = wildcardTileData.map((data) => Tile.fromJson(data)).toList();
-        wildcardTiles =
-            restoredWildcardTiles
-                .map((tile) => {'letter': tile.letter, 'value': tile.value, 'isRemoved': tile.isRemoved})
-                .toList();
-
-        LogService.logInfo(
-          "Loaded tiles directly from SharedPreferences: gridTiles=${gridTiles.length}, wildcardTiles=${wildcardTiles.length}",
-        );
-      } else {
-        // If direct loading failed, try to set board values from _gridData
-        _setBoardValues();
-      }
+      // Set board values directly from the grid data - this is now the only way to load tiles
+      _setBoardValues();
 
       // Verify that tiles were actually loaded
       if (gridTiles.isEmpty || wildcardTiles.isEmpty) {
@@ -105,6 +85,10 @@ class GridLoader {
         return false;
       }
 
+      LogService.logInfo(
+        "Successfully loaded board from stored data: " +
+            "gridTiles=${gridTiles.length}, wildcardTiles=${wildcardTiles.length}",
+      );
       return true;
     } catch (e) {
       LogService.logError("Error loading stored board: $e");

@@ -507,36 +507,4 @@ class GameLayoutManager {
       "W: $screenWidth, H: $screenHeight, GAMBX: $gameBoxHeight, TOT: $totalFixedHeight, INF: $infoBoxHeight TIT: $gameTitleComponentHeight, SCR: $gameScoresComponentHeight, GRD: $gridHeightSize, MSG: $gameMessageComponentHeight, BUT: $gameButtonsComponentHeight, WLD: $wilcardsContainerHeight, SPL: $spelledWordsContainerHeight",
     );
   }
-
-  bool calculateSpelledWordsLayout(int totalColumns, double totalWidth) {
-    var changed = false;
-
-    // Calculate minimum widths
-    double minWildcardWidth = gridSquareSize + 4; // Minimum width for wildcard container
-    double minSpelledWordsWidth =
-        spelledWordsFontSize * 7 * 0.65 + (spelledWordsGridSpacing * 2); // Minimum width for spelled words
-
-    // Calculate average column width
-    double averageColumnWidth = totalWidth / totalColumns;
-    double actualWidth = totalWidth + (spelledWordsColumnSpacing * (totalColumns));
-    double neededSpace = minSpelledWordsWidth + 10;
-
-    // If we don't have desired widths, set them to the current widths
-    if (desiredSpelledWordsWidth == null) {
-      desiredSpelledWordsWidth = spelledWordsContainerWidth;
-      desiredWildcardWidth = wildcardContainerWidth;
-    }
-
-    if (actualWidth + 10 > desiredSpelledWordsWidth! && (desiredWildcardWidth! - neededSpace) > minWildcardWidth) {
-      desiredSpelledWordsWidth = desiredSpelledWordsWidth! + neededSpace;
-      desiredWildcardWidth = desiredWildcardWidth! - neededSpace;
-      changed = true;
-    } else if (actualWidth < desiredSpelledWordsWidth! && (desiredWildcardWidth! + neededSpace) < minWildcardWidth) {
-      desiredSpelledWordsWidth = desiredSpelledWordsWidth! - neededSpace;
-      desiredWildcardWidth = desiredWildcardWidth! + neededSpace;
-      changed = true;
-    }
-
-    return changed;
-  }
 }

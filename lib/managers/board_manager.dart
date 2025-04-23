@@ -151,23 +151,17 @@ class BoardManager {
         // Force load a new board
         bool success = await _loadNewBoard(context, api);
 
-        // If loading the new board failed, try again with a more aggressive approach
-        if (!success && GridLoader.gridTiles.isEmpty) {
-          LogService.logInfo("🔄 First attempt to load new board failed, trying again with direct API call");
+        if (!success) {
+          LogService.logError("❌ Failed to load new board on app reload");
 
-          // Get the current score
-          final currentScore = await SpelledWordsLogic.getCurrentScore();
-
-          // Make a direct call to load a new board
-          success = await GridLoader.loadNewBoard(api, currentScore);
-
-          if (success) {
-            // Reset state and update UI
-            await StateManager.resetState(gridKey);
-            _syncUIComponents();
-            LogService.logInfo("✅ New board loaded successfully on second attempt");
-          } else {
-            LogService.logError("❌ Failed to load new board even on second attempt");
+          // Show error dialog
+          if (context.mounted) {
+            ErrorHandler.handleError(
+              context,
+              ErrorHandler.DATA_ERROR,
+              "Failed to load new game board",
+              onRetry: () => loadBoardForUser(context, api),
+            );
           }
         }
       } finally {
@@ -191,6 +185,14 @@ class BoardManager {
 
       // Reload the UI components
       _syncUIComponents();
+    } else {
+      LogService.logError("❌ Failed to restore board from storage");
+
+      // If we can't restore from storage, try to load a new board
+      if (context.mounted) {
+        LogService.logInfo("🔄 Attempting to load a new board instead");
+        await _loadNewBoard(context, api);
+      }
     }
   }
 
@@ -298,9 +300,8 @@ class BoardManager {
           );
         }
 
-        // Fall back to stored board
-        bool fallbackSuccess = await GridLoader.loadStoredBoard();
-        return fallbackSuccess;
+        // No fallback - we need network to get a new board
+        return false;
       }
 
       // Check if we're in orientation change before making API call
@@ -318,80 +319,103 @@ class BoardManager {
       // Load the new board with the current score
       bool success = await GridLoader.loadNewBoard(api, currentScore);
 
-      // Only reset state after successfully loading the new board
-      if (success) {
-        // First, reset the state to clear old data
-        await StateManager.resetState(gridKey);
+      // Only proceed if we successfully loaded a new board
+      if (!success) {
+        LogService.logError("❌ Failed to load new board from API");
 
-        LogService.logInfo("✅ New board loaded, updating UI components");
-
-        // CRITICAL: Explicitly create new Tile objects from GridLoader data
-        if (GridLoader.gridTiles.isNotEmpty) {
-          LogService.logInfo("Creating ${GridLoader.gridTiles.length} new grid tiles from GridLoader");
-
-          // Create new Tile objects from GridLoader data
-          List<Tile> newGridTiles =
-              GridLoader.gridTiles.map((tileData) {
-                return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: false, isRemoved: false);
-              }).toList();
-
-          // Set the new tiles in the grid component
-          if (gridKey.currentState != null) {
-            gridKey.currentState!.setTiles(newGridTiles);
-            LogService.logInfo("Set ${newGridTiles.length} new tiles in grid component");
-          } else {
-            LogService.logError("❌ gridKey.currentState is null, cannot set new tiles");
-          }
-        } else {
-          LogService.logError("❌ GridLoader.gridTiles is empty after loading new board");
+        // Show error dialog
+        if (context.mounted) {
+          ErrorHandler.handleError(
+            context,
+            ErrorHandler.DATA_ERROR,
+            "Failed to load new game board from server",
+            onRetry: () => loadBoardForUser(context, api),
+          );
         }
 
-        // Update wildcard tiles
-        if (GridLoader.wildcardTiles.isNotEmpty && wildcardKey.currentState != null) {
-          LogService.logInfo("Creating ${GridLoader.wildcardTiles.length} new wildcard tiles from GridLoader");
-
-          // Create new Tile objects from GridLoader data
-          List<Tile> newWildcardTiles =
-              GridLoader.wildcardTiles.map((tileData) {
-                return Tile(
-                  letter: tileData['letter'],
-                  value: tileData['value'],
-                  isExtra: true,
-                  isRemoved: tileData['isRemoved'] ?? false,
-                );
-              }).toList();
-
-          // Set the new tiles in the wildcard component
-          wildcardKey.currentState!.tiles = newWildcardTiles;
-          wildcardKey.currentState!.setState(() {});
-          LogService.logInfo("Set ${newWildcardTiles.length} new tiles in wildcard component");
-        }
-
-        // Update UI components
-        _syncUIComponents();
-
-        LogService.logInfo("✅ New board loaded and UI updated");
-        return true;
-      } else {
-        LogService.logError("❌ Failed to load new board. Falling back to stored board.");
-        bool fallbackSuccess = await GridLoader.loadStoredBoard();
-        return fallbackSuccess;
+        return false;
       }
+
+      // Reset state to clear old data
+      await StateManager.resetState(gridKey);
+
+      LogService.logInfo("✅ New board loaded, updating UI components");
+
+      // CRITICAL: Explicitly create new Tile objects from GridLoader data
+      if (GridLoader.gridTiles.isEmpty) {
+        LogService.logError("❌ GridLoader.gridTiles is empty after loading new board");
+        return false;
+      }
+
+      // Create new grid tiles
+      LogService.logInfo("Creating ${GridLoader.gridTiles.length} new grid tiles from GridLoader");
+      List<Tile> newGridTiles =
+          GridLoader.gridTiles.map((tileData) {
+            return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: false, isRemoved: false);
+          }).toList();
+
+      // Set the new tiles in the grid component
+      if (gridKey.currentState == null) {
+        LogService.logError("❌ gridKey.currentState is null, cannot set new tiles");
+        return false;
+      }
+
+      gridKey.currentState!.setTiles(newGridTiles);
+      LogService.logInfo("Set ${newGridTiles.length} new tiles in grid component");
+
+      // Update wildcard tiles
+      if (GridLoader.wildcardTiles.isEmpty) {
+        LogService.logError("❌ GridLoader.wildcardTiles is empty after loading new board");
+        return false;
+      }
+
+      if (wildcardKey.currentState == null) {
+        LogService.logError("❌ wildcardKey.currentState is null, cannot set new wildcard tiles");
+        return false;
+      }
+
+      // Create new wildcard tiles
+      LogService.logInfo("Creating ${GridLoader.wildcardTiles.length} new wildcard tiles from GridLoader");
+      List<Tile> newWildcardTiles =
+          GridLoader.wildcardTiles.map((tileData) {
+            return Tile(
+              letter: tileData['letter'],
+              value: tileData['value'],
+              isExtra: true,
+              isRemoved: tileData['isRemoved'] ?? false,
+            );
+          }).toList();
+
+      // Set the new tiles in the wildcard component
+      wildcardKey.currentState!.tiles = newWildcardTiles;
+      wildcardKey.currentState!.setState(() {});
+      LogService.logInfo("Set ${newWildcardTiles.length} new tiles in wildcard component");
+
+      // Update UI components
+      _syncUIComponents();
+
+      LogService.logInfo("✅ New board loaded and UI updated");
+      return true;
     } catch (e) {
       LogService.logError("🚨 Error loading new board: $e");
       ErrorReporting.reportException(e, StackTrace.current, context: 'Load new board');
 
-      // Fall back to stored board
-      bool fallbackSuccess = await GridLoader.loadStoredBoard();
-      return fallbackSuccess;
+      // Show error dialog
+      if (context.mounted) {
+        ErrorHandler.handleError(
+          context,
+          ErrorHandler.UNKNOWN_ERROR,
+          "An unexpected error occurred while loading the game board",
+          onRetry: () => loadBoardForUser(context, api),
+        );
+      }
+
+      return false;
     } finally {
       if (context.mounted) {
         LoadingDialog.dismiss(context);
       }
     }
-
-    // Default return value if we somehow get here
-    return false;
   }
 
   /// Reset the board during gameplay

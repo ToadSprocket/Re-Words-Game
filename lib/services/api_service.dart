@@ -340,14 +340,28 @@ class ApiService with ChangeNotifier {
   }
 
   /// **Login User & Refresh Tokens**
+  ///
+  /// This method intentionally does NOT use the retry mechanism to ensure
+  /// that each login attempt is counted exactly once by the security system.
   Future<ApiResponse?> login(String username, String password) async {
     final headers = {'X-API-Key': Security.generateApiKeyHash(), 'Content-Type': 'application/json'};
     final body = jsonEncode({'userName': username, 'password': password});
+    final url = Uri.parse('${Config.apiUrl}/users/login');
 
     try {
-      final response = await _makeApiRequest(false, '${Config.apiUrl}/users/login', headers, body);
+      // Check connectivity first
+      if (!await ConnectivityMonitor().checkConnection()) {
+        LogService.logError("🚨 Cannot login: No network connection");
+        OfflineModeHandler.enterOfflineMode();
+        throw ApiException(statusCode: 0, detail: 'No network connection');
+      }
+
+      // Make a direct HTTP request without retries
+      LogService.logInfo("🔑 Attempting login for user: $username");
+      final response = await http.post(url, headers: headers, body: body);
 
       if (response.statusCode == 200) {
+        LogService.logInfo("✅ Login successful");
         final apiResponse = _parseResponse(response);
 
         // 🔄 Store new tokens on successful login
@@ -367,7 +381,14 @@ class ApiService with ChangeNotifier {
         return null; // Login failed, return null to UI
       }
 
-      // Handle other errors (e.g., 500, 400)
+      // Handle server errors
+      if (response.statusCode >= 500) {
+        final errorMessage = ErrorMessages.getMessageForStatusCode(response.statusCode);
+        LogService.logError("🚨 Server error during login: $errorMessage");
+        return null;
+      }
+
+      // Handle other errors (e.g., 400)
       LogService.logError("🚨 Unexpected login failure: ${response.body}");
       return null;
     } catch (e) {
@@ -380,6 +401,24 @@ class ApiService with ChangeNotifier {
   Future<ApiResponse> getGameToday(SubmitScoreRequest scoreRequest) async {
     await _getTokens(); // Ensure tokens are loaded
 
+    // Check if user is logged in - if not, we need to register first
+    if (userId == null || accessToken == null) {
+      LogService.logInfo("🔄 No user credentials found for getGameToday - registering anonymous user");
+
+      // Register an anonymous user
+      String locale = 'en-US'; // Default
+      String platform = 'Windows'; // Default
+
+      try {
+        final registerResponse = await register(locale, platform);
+        // Registration successful, now we have tokens
+        LogService.logInfo("✅ Anonymous registration successful, proceeding with getGameToday");
+      } catch (e) {
+        LogService.logError("🚨 Failed to register anonymous user: $e");
+        throw ApiException(statusCode: 401, detail: "Authentication required to load game board");
+      }
+    }
+
     // ✅ Get the player's timezone
     String localTimeZone = await FlutterTimezone.getLocalTimezone();
     tz.initializeTimeZones();
@@ -389,24 +428,39 @@ class ApiService with ChangeNotifier {
       'X-API-Key': Security.generateApiKeyHash(),
       'Content-Type': 'application/json',
       'Time-Zone': location.toString(), // ✅ Send player's timezone to API
+      'Authorization': 'Bearer $accessToken', // Always include Authorization header
     };
 
-    // Add Authorization header only if we have an access token
-    if (accessToken != null) {
-      headers['Authorization'] = 'Bearer $accessToken';
-    }
-
-    // Set userId in request if available, otherwise use empty string
-    // The API will handle anonymous requests appropriately
-    if (userId != null) {
-      scoreRequest.userId = userId!;
-    }
+    // Set userId in request
+    scoreRequest.userId = userId!;
 
     final body = jsonEncode(scoreRequest.toJson());
 
-    final response = await _makeApiRequest(false, '${Config.apiUrl}/game/today', headers, body);
+    try {
+      final response = await _makeApiRequest(false, '${Config.apiUrl}/game/today', headers, body);
+      return _parseResponse(response);
+    } catch (e) {
+      LogService.logError("🚨 Error in getGameToday: $e");
 
-    return _parseResponse(response);
+      // If we get an authentication error, try to refresh the token and retry
+      if (e is ApiException && (e.statusCode == 401 || e.statusCode == 422)) {
+        LogService.logInfo("🔄 Authentication error, attempting to refresh token and retry");
+
+        // Try to refresh the token
+        bool refreshed = await _refreshTokenIfNeeded();
+        if (refreshed && accessToken != null) {
+          // Update the Authorization header with the new token
+          headers['Authorization'] = 'Bearer $accessToken';
+
+          // Retry the request
+          final response = await _makeApiRequest(false, '${Config.apiUrl}/game/today', headers, body);
+          return _parseResponse(response);
+        }
+      }
+
+      // Re-throw the exception if we couldn't handle it
+      rethrow;
+    }
   }
 
   /// **Get Today's High Scores**

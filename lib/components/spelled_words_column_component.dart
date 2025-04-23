@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../managers/gameLayoutManager.dart';
-import '../logic/logging_handler.dart';
 
 class SpelledWordsColumnComponent extends StatelessWidget {
   final List<String> words;
@@ -94,9 +93,6 @@ class SpelledWordsColumnComponent extends StatelessWidget {
 
     // Update GameLayoutManager with the final values
     columnsTotal = columns.length;
-
-    // Call calculateSpelledWordsLayout with the calculated values
-    gameLayoutManager.calculateSpelledWordsLayout(columnsTotal, totalColumnsWidth);
 
     return columns;
   }
