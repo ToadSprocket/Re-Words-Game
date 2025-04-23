@@ -51,26 +51,20 @@ class LogoutDialog {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // 🔹 Cancel Button
-                      SizedBox(
-                        width: gameLayoutManager.dialogMaxWidth * 0.35, // ✅ Matching width
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.of(context).pop(), // Close dialog
-                          style: gameLayoutManager.buttonStyle(context),
-                          child: const Text('Cancel'),
-                        ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(), // Close dialog
+                        style: gameLayoutManager.buttonStyle(context),
+                        child: const Text('Cancel'),
                       ),
                       const SizedBox(width: 12.0), // ✅ Adjusted spacing
                       // 🔹 Logout Button
-                      SizedBox(
-                        width: gameLayoutManager.dialogMaxWidth * 0.35, // ✅ Matching width
-                        child: ElevatedButton(
-                          onPressed: () {
-                            api.loggedIn = false; // ✅ Log the user out
-                            Navigator.of(context).pop(); // Close dialog
-                          },
-                          style: gameLayoutManager.buttonStyle(context),
-                          child: const Text('Logout'),
-                        ),
+                      ElevatedButton(
+                        onPressed: () {
+                          api.loggedIn = false; // ✅ Log the user out
+                          Navigator.of(context).pop(); // Close dialog
+                        },
+                        style: gameLayoutManager.buttonStyle(context),
+                        child: const Text('Logout'),
                       ),
                     ],
                   ),

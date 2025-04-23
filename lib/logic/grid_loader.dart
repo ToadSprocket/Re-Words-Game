@@ -1,9 +1,11 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
+import 'dart:convert';
 import 'package:reword_game/models/api_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../managers/state_manager.dart';
 import '../services/api_service.dart';
 import '../logic/logging_handler.dart';
+import '../models/tile.dart';
 
 class GridLoader {
   static List<Map<String, dynamic>> gridTiles = [];
@@ -40,13 +42,74 @@ class GridLoader {
   };
 
   static Future<bool> loadStoredBoard() async {
-    _gridData = await StateManager.getBoardData();
-    if (_gridData.isEmpty) {
-      LogService.logError('No stored board data available');
+    try {
+      _gridData = await StateManager.getBoardData();
+      if (_gridData.isEmpty) {
+        LogService.logError("No stored board data available");
+        return false;
+      }
+
+      // Check if the required fields are present
+      if (!_gridData.containsKey('grid') || !_gridData.containsKey('wildcards')) {
+        LogService.logError(
+          "Stored board data is missing required fields: grid=${_gridData.containsKey('grid')}, wildcards=${_gridData.containsKey('wildcards')}",
+        );
+        return false;
+      }
+
+      // Check if the grid and wildcards are non-empty strings
+      final grid = _gridData['grid'] as String?;
+      final wildcards = _gridData['wildcards'] as String?;
+
+      if (grid == null || grid.isEmpty || wildcards == null || wildcards.isEmpty) {
+        LogService.logError(
+          "Stored board data has empty grid or wildcards: grid=${grid?.length ?? 0}, wildcards=${wildcards?.length ?? 0}",
+        );
+        return false;
+      }
+
+      // Try to load the board data from SharedPreferences directly if GridLoader is empty
+      final prefs = await SharedPreferences.getInstance();
+      final gridTilesJson = prefs.getString('gridTiles');
+      final wildcardTilesJson = prefs.getString('wildcardTiles');
+
+      if (gridTilesJson != null && wildcardTilesJson != null) {
+        LogService.logInfo("Loading tiles directly from SharedPreferences");
+
+        // Load grid tiles
+        final List<dynamic> gridTileData = jsonDecode(gridTilesJson);
+        final List<Tile> restoredGridTiles = gridTileData.map((data) => Tile.fromJson(data)).toList();
+        gridTiles = restoredGridTiles.map((tile) => {'letter': tile.letter, 'value': tile.value}).toList();
+
+        // Load wildcard tiles
+        final List<dynamic> wildcardTileData = jsonDecode(wildcardTilesJson);
+        final List<Tile> restoredWildcardTiles = wildcardTileData.map((data) => Tile.fromJson(data)).toList();
+        wildcardTiles =
+            restoredWildcardTiles
+                .map((tile) => {'letter': tile.letter, 'value': tile.value, 'isRemoved': tile.isRemoved})
+                .toList();
+
+        LogService.logInfo(
+          "Loaded tiles directly from SharedPreferences: gridTiles=${gridTiles.length}, wildcardTiles=${wildcardTiles.length}",
+        );
+      } else {
+        // If direct loading failed, try to set board values from _gridData
+        _setBoardValues();
+      }
+
+      // Verify that tiles were actually loaded
+      if (gridTiles.isEmpty || wildcardTiles.isEmpty) {
+        LogService.logError(
+          "Failed to load tiles from stored board data: gridTiles=${gridTiles.length}, wildcardTiles=${wildcardTiles.length}",
+        );
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      LogService.logError("Error loading stored board: $e");
       return false;
     }
-    _setBoardValues();
-    return true;
   }
 
   static Future<bool> loadNewBoard(ApiService apiService, SubmitScoreRequest scoreData) async {
@@ -98,7 +161,7 @@ class GridLoader {
         (_gridData['wildcards'] as String).split('').map((letter) {
           final baseValue = _letterValues[letter.toLowerCase()] ?? 0;
           final value = baseValue == 1 ? 2 : baseValue;
-          return {'letter': letter, 'value': value};
+          return {'letter': letter, 'value': value, 'isRemoved': false};
         }).toList();
   }
 

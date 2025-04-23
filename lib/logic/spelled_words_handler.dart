@@ -86,9 +86,6 @@ class SpelledWordsLogic {
         score += bonusScore;
         wildCardUses++;
 
-        // Log wildcard usage for debugging
-        print("WILDCARD USED: Word: $word, Base Score: $wordScore, Multiplier: $multiplier, Bonus: $bonusScore");
-
         // Always return the multiplier message when a wildcard is used
         return (true, "Word score multiplied by $multiplier!");
       }
@@ -133,6 +130,9 @@ class SpelledWordsLogic {
     final boardData = await StateManager.getBoardData();
     int totalWordsInBoard = boardData['wordCount'] ?? 0;
 
+    // Get the gameId from the board data or use a default value
+    String gameId = boardData['gameId'] as String? ?? "default_game_id";
+
     int completionRate = totalWordsInBoard > 0 ? ((spelledWords.length / totalWordsInBoard) * 100).ceil() : 0;
 
     int longestWordLength = getLongestWord().length;
@@ -141,6 +141,7 @@ class SpelledWordsLogic {
     // 🔥 Construct and return the SubmitScoreRequest object
     return SubmitScoreRequest(
       userId: "", // ✅ This will be filled in the API service
+      gameId: gameId, // ✅ Add the gameId from the board data
       platform: kIsWeb ? "Web" : "Windows",
       locale: kIsWeb ? 'en-US' : Platform.localeName,
       timePlayedSeconds: timePlayed,

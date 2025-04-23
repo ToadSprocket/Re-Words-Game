@@ -31,6 +31,7 @@ import '../managers/board_manager.dart';
 import 'package:window_size/window_size.dart';
 import 'dialogs/welcome_dialog.dart';
 import 'dialogs/loading_dialog.dart';
+import 'dialogs/androidTabletDialog.dart';
 import 'services/word_service.dart';
 import 'utils/web_utils.dart';
 import 'utils/connectivity_monitor.dart';
@@ -44,7 +45,7 @@ import 'models/game_mode.dart';
 const String MAJOR = "1";
 const String MINOR = "0";
 const String PATCH = "0";
-const String BUILD = "46";
+const String BUILD = "48";
 
 const String VERSION_STRING = "v$MAJOR.$MINOR.$PATCH+$BUILD";
 
@@ -333,6 +334,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     // Initialize game state provider with default values
     gameStateProvider.syncWithSpelledWordsLogic();
 
+    // Restore saved state (including board state)
+    await gameStateProvider.restoreState();
+
     await _loadData();
   }
 
@@ -444,6 +448,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
     // Handle welcome animation first
     if (debugForceIntroAnimation || !hasShownWelcome) {
+      if (gameLayoutManager.isTablet && Platform.isAndroid) {
+        await AndroidTabletDialog.show(context, gameLayoutManager);
+      }
       await WelcomeDialog.show(context, gameLayoutManager);
       await StateManager.markWelcomeAnimationShown();
     }

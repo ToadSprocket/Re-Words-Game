@@ -6,6 +6,7 @@ import '../managers/gameLayoutManager.dart';
 import '../managers/state_manager.dart'; // Add StateManager import
 import '../logic/spelled_words_handler.dart';
 import '../logic/grid_loader.dart'; // Add GridLoader import
+import '../providers/game_state_provider.dart'; // Import GameStateProvider
 import '../components/game_top_bar_component.dart';
 import '../components/game_title_component.dart';
 import '../components/game_scores_component.dart';
@@ -106,6 +107,11 @@ class NarrowScreen extends StatelessWidget {
                     // Update scores and spelled words notifiers
                     scoreNotifier.value = 0;
                     spelledWordsNotifier.value = [];
+
+                    // Reset the board state to newBoard using GameStateProvider
+                    final gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
+                    gameStateProvider.resetState();
+                    await gameStateProvider.saveState();
 
                     // Then load a new board
                     final api = Provider.of<ApiService>(context, listen: false);

@@ -181,28 +181,22 @@ class LoginDialog {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        SizedBox(
-                          width: gameLayoutManager.dialogMaxWidth * 0.3,
-                          child: ElevatedButton(
-                            onPressed:
-                                isLoading
-                                    ? null
-                                    : () {
-                                      loginSuccess = false;
-                                      Navigator.pop(context);
-                                    },
-                            style: gameLayoutManager.buttonStyle(context),
-                            child: const Text('Cancel'),
-                          ),
+                        ElevatedButton(
+                          onPressed:
+                              isLoading
+                                  ? null
+                                  : () {
+                                    loginSuccess = false;
+                                    Navigator.pop(context);
+                                  },
+                          style: gameLayoutManager.buttonStyle(context),
+                          child: const Text('Cancel'),
                         ),
                         const SizedBox(width: 16.0),
-                        SizedBox(
-                          width: gameLayoutManager.dialogMaxWidth * 0.3,
-                          child: ElevatedButton(
-                            onPressed: isLoading ? null : () => attemptLogin(setState),
-                            style: gameLayoutManager.buttonStyle(context),
-                            child: const Text('Login'),
-                          ),
+                        ElevatedButton(
+                          onPressed: isLoading ? null : () => attemptLogin(setState),
+                          style: gameLayoutManager.buttonStyle(context),
+                          child: const Text('Login'),
                         ),
                       ],
                     ),

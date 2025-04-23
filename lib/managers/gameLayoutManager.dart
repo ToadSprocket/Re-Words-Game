@@ -59,6 +59,7 @@ class GameLayoutManager {
   double oldScreenHeight = 0;
   Orientation? lastOrientation;
   late bool isWeb;
+  bool isTablet = false;
 
   // Layout properties
   late double infoBoxHeight;
@@ -225,6 +226,7 @@ class GameLayoutManager {
 
     // If this is a tablet and it's in landscape, then we need to adjust for the safe areas.
     if (currentDeviceInfo.isTablet || currentDeviceInfo.isHybrid) {
+      isTablet = true;
       screenHeight = currentDeviceInfo.safeScreenHeight;
     }
 

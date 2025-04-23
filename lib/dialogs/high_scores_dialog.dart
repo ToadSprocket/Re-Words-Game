@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../styles/app_styles.dart';
 import '../services/api_service.dart';
 import '../models/api_models.dart';
 import '../logic/spelled_words_handler.dart';
 import '../logic/logging_handler.dart';
 import '../managers/gameLayoutManager.dart';
+import '../providers/game_state_provider.dart';
 import 'login_dialog.dart';
 
 class HighScoresDialog {
@@ -13,9 +15,12 @@ class HighScoresDialog {
     BuildContext context,
     ApiService api,
     SpelledWordsLogic spelledWordsLogic,
-    GameLayoutManager gameLayoutManager,
-  ) async {
-    await _loadAndShowDialog(context, api, spelledWordsLogic, gameLayoutManager);
+    GameLayoutManager gameLayoutManager, {
+    GameStateProvider? gameStateProvider,
+  }) async {
+    // If gameStateProvider is not provided, try to get it from the context
+    final provider = gameStateProvider ?? Provider.of<GameStateProvider>(context, listen: false);
+    await _loadAndShowDialog(context, api, spelledWordsLogic, gameLayoutManager, provider);
   }
 
   static Future<void> _loadAndShowDialog(
@@ -23,6 +28,7 @@ class HighScoresDialog {
     ApiService api,
     SpelledWordsLogic spelledWordsLogic,
     GameLayoutManager gameLayoutManager,
+    GameStateProvider gameStateProvider,
   ) async {
     List<HighScore> highScores = [];
     String? date = 'Today';
@@ -35,6 +41,7 @@ class HighScoresDialog {
 
     SubmitScoreRequest finalScore = SubmitScoreRequest(
       userId: '',
+      gameId: '',
       platform: '',
       locale: '',
       timePlayedSeconds: 0,
@@ -47,7 +54,9 @@ class HighScoresDialog {
 
     try {
       finalScore = await SpelledWordsLogic.getCurrentScore();
-      final response = await api.getTodayHighScores();
+
+      // Use the gameId from finalScore to get game-specific high scores
+      final response = await api.getGameHighScores(finalScore.gameId);
       highScores = response.highScoreData?.highScores ?? [];
       scoresSubmittedToday = response.highScoreData?.totalScoresToday ?? 0;
       userHasSubmitted = response.highScoreData?.userHasSubmitted ?? false;
@@ -244,134 +253,154 @@ class HighScoresDialog {
                         if (constraints.maxWidth < 400) {
                           return Column(
                             mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               // If logged in and has good score that can be submitted
                               if (loggedIn && hasGoodScore && canSubmitScore)
                                 Padding(
                                   padding: const EdgeInsets.only(bottom: 8.0),
-                                  child: SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton(
-                                      onPressed: () async {
-                                        try {
-                                          final scoreSubmitted = await api.submitHighScore(finalScore);
-                                          if (scoreSubmitted && context.mounted) {
-                                            LogService.logInfo('High score submitted successfully!');
-                                            Navigator.of(context).pop();
-                                            await Future.delayed(const Duration(milliseconds: 100));
-                                            if (context.mounted) {
-                                              await show(context, api, spelledWordsLogic, gameLayoutManager);
-                                            }
-                                            return;
-                                          } else {
-                                            LogService.logError('Failed to submit high score.');
+                                  child: ElevatedButton(
+                                    onPressed: () async {
+                                      try {
+                                        final scoreSubmitted = await api.submitHighScore(finalScore);
+                                        if (scoreSubmitted && context.mounted) {
+                                          LogService.logInfo('High score submitted successfully!');
+
+                                          // Mark the game as finished
+                                          await gameStateProvider.finishGame();
+                                          LogService.logInfo('Game marked as finished after high score submission');
+
+                                          Navigator.of(context).pop();
+                                          await Future.delayed(const Duration(milliseconds: 100));
+                                          if (context.mounted) {
+                                            await show(
+                                              context,
+                                              api,
+                                              spelledWordsLogic,
+                                              gameLayoutManager,
+                                              gameStateProvider: gameStateProvider,
+                                            );
                                           }
-                                        } catch (e) {
-                                          LogService.logError('Error submitting high score: $e');
+                                          return;
+                                        } else {
+                                          LogService.logError('Failed to submit high score.');
                                         }
-                                      },
-                                      style: gameLayoutManager.buttonStyle(context),
-                                      child: const Text('Submit Score'),
-                                    ),
+                                      } catch (e) {
+                                        LogService.logError('Error submitting high score: $e');
+                                      }
+                                    },
+                                    style: gameLayoutManager.buttonStyle(context),
+                                    child: const Text('Submit Score'),
                                   ),
                                 ),
                               // If not logged in but has good score
                               if (!loggedIn && hasGoodScore)
                                 Padding(
                                   padding: const EdgeInsets.only(bottom: 8.0),
-                                  child: SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton(
-                                      onPressed: () async {
-                                        final loginSuccess = await LoginDialog.show(context, api, gameLayoutManager);
-                                        if (loginSuccess && context.mounted) {
-                                          Navigator.of(context).pop();
-                                          await Future.delayed(const Duration(milliseconds: 100));
-                                          if (context.mounted) {
-                                            await show(context, api, spelledWordsLogic, gameLayoutManager);
-                                          }
+                                  child: ElevatedButton(
+                                    onPressed: () async {
+                                      final loginSuccess = await LoginDialog.show(context, api, gameLayoutManager);
+                                      if (loginSuccess && context.mounted) {
+                                        Navigator.of(context).pop();
+                                        await Future.delayed(const Duration(milliseconds: 100));
+                                        if (context.mounted) {
+                                          await show(
+                                            context,
+                                            api,
+                                            spelledWordsLogic,
+                                            gameLayoutManager,
+                                            gameStateProvider: gameStateProvider,
+                                          );
                                         }
-                                      },
-                                      style: gameLayoutManager.buttonStyle(context),
-                                      child: const Text('Login to Submit'),
-                                    ),
+                                      }
+                                    },
+                                    style: gameLayoutManager.buttonStyle(context),
+                                    child: const Text('Login to Submit'),
                                   ),
                                 ),
                               // Close button
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  style: gameLayoutManager.buttonStyle(context),
-                                  child: const Text('Close'),
-                                ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                style: gameLayoutManager.buttonStyle(context),
+                                child: const Text('Close'),
                               ),
                             ],
                           );
                         } else {
                           // For wider screens, use a row layout
                           return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               // If logged in and has good score that can be submitted
                               if (loggedIn && hasGoodScore && canSubmitScore)
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                                    child: ElevatedButton(
-                                      onPressed: () async {
-                                        try {
-                                          final scoreSubmitted = await api.submitHighScore(finalScore);
-                                          if (scoreSubmitted && context.mounted) {
-                                            LogService.logInfo('High score submitted successfully!');
-                                            Navigator.of(context).pop();
-                                            await Future.delayed(const Duration(milliseconds: 100));
-                                            if (context.mounted) {
-                                              await show(context, api, spelledWordsLogic, gameLayoutManager);
-                                            }
-                                            return;
-                                          } else {
-                                            LogService.logError('Failed to submit high score.');
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                  child: ElevatedButton(
+                                    onPressed: () async {
+                                      try {
+                                        final scoreSubmitted = await api.submitHighScore(finalScore);
+                                        if (scoreSubmitted && context.mounted) {
+                                          LogService.logInfo('High score submitted successfully!');
+
+                                          // Mark the game as finished
+                                          await gameStateProvider.finishGame();
+                                          LogService.logInfo('Game marked as finished after high score submission');
+
+                                          Navigator.of(context).pop();
+                                          await Future.delayed(const Duration(milliseconds: 100));
+                                          if (context.mounted) {
+                                            await show(
+                                              context,
+                                              api,
+                                              spelledWordsLogic,
+                                              gameLayoutManager,
+                                              gameStateProvider: gameStateProvider,
+                                            );
                                           }
-                                        } catch (e) {
-                                          LogService.logError('Error submitting high score: $e');
+                                          return;
+                                        } else {
+                                          LogService.logError('Failed to submit high score.');
                                         }
-                                      },
-                                      style: gameLayoutManager.buttonStyle(context),
-                                      child: const Text('Submit Score'),
-                                    ),
+                                      } catch (e) {
+                                        LogService.logError('Error submitting high score: $e');
+                                      }
+                                    },
+                                    style: gameLayoutManager.buttonStyle(context),
+                                    child: const Text('Submit Score'),
                                   ),
                                 ),
                               // If not logged in but has good score
                               if (!loggedIn && hasGoodScore)
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                                    child: ElevatedButton(
-                                      onPressed: () async {
-                                        final loginSuccess = await LoginDialog.show(context, api, gameLayoutManager);
-                                        if (loginSuccess && context.mounted) {
-                                          Navigator.of(context).pop();
-                                          await Future.delayed(const Duration(milliseconds: 100));
-                                          if (context.mounted) {
-                                            await show(context, api, spelledWordsLogic, gameLayoutManager);
-                                          }
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                  child: ElevatedButton(
+                                    onPressed: () async {
+                                      final loginSuccess = await LoginDialog.show(context, api, gameLayoutManager);
+                                      if (loginSuccess && context.mounted) {
+                                        Navigator.of(context).pop();
+                                        await Future.delayed(const Duration(milliseconds: 100));
+                                        if (context.mounted) {
+                                          await show(
+                                            context,
+                                            api,
+                                            spelledWordsLogic,
+                                            gameLayoutManager,
+                                            gameStateProvider: gameStateProvider,
+                                          );
                                         }
-                                      },
-                                      style: gameLayoutManager.buttonStyle(context),
-                                      child: const Text('Login to Submit'),
-                                    ),
+                                      }
+                                    },
+                                    style: gameLayoutManager.buttonStyle(context),
+                                    child: const Text('Login to Submit'),
                                   ),
                                 ),
                               // Close button
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                                  child: ElevatedButton(
-                                    onPressed: () => Navigator.of(context).pop(),
-                                    style: gameLayoutManager.buttonStyle(context),
-                                    child: const Text('Close'),
-                                  ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                child: ElevatedButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  style: gameLayoutManager.buttonStyle(context),
+                                  child: const Text('Close'),
                                 ),
                               ),
                             ],

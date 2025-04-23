@@ -46,27 +46,28 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
   }
 
   Future<void> _loadWildcardTiles() async {
-    if (tiles.isNotEmpty) return; // Skip if we already have tiles
-
+    // Check if GridLoader has wildcard tiles
     if (GridLoader.wildcardTiles.isEmpty) {
-      LogService.logError('WildcardColumnComponent: No wildcard tiles available in GridLoader, using default tiles');
-      // Create default wildcard tiles as a fallback
-      setState(() {
-        tiles = [
-          Tile(letter: 'A', value: 2, isExtra: true, isRemoved: false),
-          Tile(letter: 'E', value: 2, isExtra: true, isRemoved: false),
-          Tile(letter: 'I', value: 2, isExtra: true, isRemoved: false),
-        ];
-      });
+      LogService.logError('WildcardColumnComponent: No wildcard tiles available in GridLoader');
+      // Don't create default tiles, just leave the tiles array empty
+      // This will show a loading indicator until the real wildcards are loaded
       return;
     }
 
+    // Load tiles from GridLoader
     setState(() {
       tiles =
           GridLoader.wildcardTiles.map((tileData) {
-            return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: true, isRemoved: false);
+            return Tile(
+              letter: tileData['letter'],
+              value: tileData['value'],
+              isExtra: true,
+              isRemoved: tileData['isRemoved'] ?? false,
+            );
           }).toList();
     });
+
+    LogService.logInfo('Loaded ${tiles.length} wildcard tiles: ${tiles.map((t) => t.letter).join(', ')}');
   }
 
   void _onWildcardTapped(int index) {
@@ -92,6 +93,10 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
   }
 
   Future<void> reloadWildcardTiles() async {
+    // Clear existing tiles to force reload from GridLoader
+    setState(() {
+      tiles = [];
+    });
     await _loadWildcardTiles();
   }
 

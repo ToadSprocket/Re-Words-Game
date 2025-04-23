@@ -10,6 +10,9 @@ class AppStyles {
   // Title Styles
   static const Color headerTextColor = Color.fromARGB(255, 79, 185, 69);
 
+  static const Color iconTabletColor = Color.fromARGB(255, 233, 133, 3);
+  static const Color iconTrophyColor = Color.fromARGB(255, 243, 198, 50);
+
   // Square Styles
   static const Color normalSquareColor = Color(0xFF1F1F21);
   static const Color squareBorderColor = Color.fromARGB(83, 188, 210, 186);

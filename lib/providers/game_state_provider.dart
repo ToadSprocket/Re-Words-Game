@@ -6,6 +6,7 @@ import '../models/board_state.dart';
 import '../models/game_mode.dart';
 import '../logic/spelled_words_handler.dart';
 import '../logic/logging_handler.dart';
+import '../logic/grid_loader.dart';
 
 /// GameStateProvider centralizes all game state management in one place.
 /// This provider serves as the single source of truth for game state,
@@ -72,11 +73,21 @@ class GameStateProvider extends ChangeNotifier {
 
   void setGridTiles(List<Map<String, dynamic>> tiles) {
     _gridTiles = List.from(tiles);
+    // Update GridLoader with the new tiles
+    if (_gridTiles.isNotEmpty) {
+      LogService.logInfo("Updating GridLoader.gridTiles from setGridTiles (${_gridTiles.length} tiles)");
+      GridLoader.gridTiles = List.from(_gridTiles);
+    }
     notifyListeners();
   }
 
   void setWildcardTiles(List<Map<String, dynamic>> tiles) {
     _wildcardTiles = List.from(tiles);
+    // Update GridLoader with the new tiles
+    if (_wildcardTiles.isNotEmpty) {
+      LogService.logInfo("Updating GridLoader.wildcardTiles from setWildcardTiles (${_wildcardTiles.length} tiles)");
+      GridLoader.wildcardTiles = List.from(_wildcardTiles);
+    }
     notifyListeners();
   }
 
@@ -90,6 +101,21 @@ class GameStateProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
 
+      // CRITICAL: If our tiles are empty but GridLoader has tiles, use those instead
+      if (_gridTiles.isEmpty && GridLoader.gridTiles.isNotEmpty) {
+        LogService.logInfo(
+          "Using GridLoader.gridTiles because _gridTiles is empty (${GridLoader.gridTiles.length} tiles)",
+        );
+        _gridTiles = List.from(GridLoader.gridTiles);
+      }
+
+      if (_wildcardTiles.isEmpty && GridLoader.wildcardTiles.isNotEmpty) {
+        LogService.logInfo(
+          "Using GridLoader.wildcardTiles because _wildcardTiles is empty (${GridLoader.wildcardTiles.length} tiles)",
+        );
+        _wildcardTiles = List.from(GridLoader.wildcardTiles);
+      }
+
       // Save board state
       await prefs.setInt('boardState', _boardState.index);
 
@@ -101,8 +127,34 @@ class GameStateProvider extends ChangeNotifier {
       await prefs.setInt('score', _score);
 
       // Save grid and wildcard tiles
-      await prefs.setString('gridTiles', jsonEncode(_gridTiles));
-      await prefs.setString('wildcardTiles', jsonEncode(_wildcardTiles));
+      if (_gridTiles.isNotEmpty) {
+        await prefs.setString('gridTiles', jsonEncode(_gridTiles));
+        LogService.logInfo("Saved ${_gridTiles.length} grid tiles to SharedPreferences");
+      } else {
+        LogService.logError("No grid tiles to save to SharedPreferences");
+      }
+
+      if (_wildcardTiles.isNotEmpty) {
+        await prefs.setString('wildcardTiles', jsonEncode(_wildcardTiles));
+        LogService.logInfo("Saved ${_wildcardTiles.length} wildcard tiles to SharedPreferences");
+      } else {
+        LogService.logError("No wildcard tiles to save to SharedPreferences");
+      }
+
+      // CRITICAL: Update GridLoader with the current state
+      // This ensures GridLoader is always in sync with GameStateProvider
+      if (_gridTiles.isNotEmpty) {
+        LogService.logInfo("Updating GridLoader.gridTiles with current state (${_gridTiles.length} tiles)");
+        GridLoader.gridTiles = List.from(_gridTiles);
+      }
+
+      if (_wildcardTiles.isNotEmpty) {
+        LogService.logInfo("Updating GridLoader.wildcardTiles with current state (${_wildcardTiles.length} tiles)");
+        GridLoader.wildcardTiles = List.from(_wildcardTiles);
+      }
+
+      // Save a flag to indicate we have saved state
+      await prefs.setBool('hasGameState', true);
 
       LogService.logInfo("Game state saved successfully");
     } catch (e) {
@@ -114,6 +166,29 @@ class GameStateProvider extends ChangeNotifier {
   Future<void> restoreState() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+
+      // Check if we have saved game state
+      final hasGameState = prefs.getBool('hasGameState') ?? false;
+      if (!hasGameState) {
+        LogService.logInfo("No saved game state found, attempting to load from GridLoader");
+
+        // If we don't have saved state but GridLoader has tiles, use those
+        if (GridLoader.gridTiles.isNotEmpty) {
+          _gridTiles = List.from(GridLoader.gridTiles);
+          LogService.logInfo("Using ${_gridTiles.length} tiles from GridLoader for grid tiles");
+        }
+
+        if (GridLoader.wildcardTiles.isNotEmpty) {
+          _wildcardTiles = List.from(GridLoader.wildcardTiles);
+          LogService.logInfo("Using ${_wildcardTiles.length} tiles from GridLoader for wildcard tiles");
+        }
+
+        // If we still don't have tiles, try to load from cachedGrid
+        if (_gridTiles.isEmpty || _wildcardTiles.isEmpty) {
+          LogService.logInfo("Attempting to load tiles from cachedGrid");
+          await _loadTilesFromCachedGrid(prefs);
+        }
+      }
 
       // Restore board state
       final boardStateIndex = prefs.getInt('boardState');
@@ -137,18 +212,54 @@ class GameStateProvider extends ChangeNotifier {
       // Restore grid and wildcard tiles
       final gridTilesJson = prefs.getString('gridTiles');
       if (gridTilesJson != null) {
-        _gridTiles = List<Map<String, dynamic>>.from(
-          (jsonDecode(gridTilesJson) as List).map((item) => Map<String, dynamic>.from(item)),
-        );
-        LogService.logInfo("Restored grid tiles: ${_gridTiles.length}");
+        try {
+          _gridTiles = List<Map<String, dynamic>>.from(
+            (jsonDecode(gridTilesJson) as List).map((item) => Map<String, dynamic>.from(item)),
+          );
+          LogService.logInfo("Restored grid tiles: ${_gridTiles.length}");
+        } catch (e) {
+          LogService.logError("Error parsing grid tiles JSON: $e");
+        }
       }
 
       final wildcardTilesJson = prefs.getString('wildcardTiles');
       if (wildcardTilesJson != null) {
-        _wildcardTiles = List<Map<String, dynamic>>.from(
-          (jsonDecode(wildcardTilesJson) as List).map((item) => Map<String, dynamic>.from(item)),
-        );
-        LogService.logInfo("Restored wildcard tiles: ${_wildcardTiles.length}");
+        try {
+          _wildcardTiles = List<Map<String, dynamic>>.from(
+            (jsonDecode(wildcardTilesJson) as List).map((item) => Map<String, dynamic>.from(item)),
+          );
+          LogService.logInfo("Restored wildcard tiles: ${_wildcardTiles.length}");
+        } catch (e) {
+          LogService.logError("Error parsing wildcard tiles JSON: $e");
+        }
+      }
+
+      // If we still don't have tiles after trying to restore from SharedPreferences,
+      // try to load from GridLoader as a last resort
+      if (_gridTiles.isEmpty && GridLoader.gridTiles.isNotEmpty) {
+        _gridTiles = List.from(GridLoader.gridTiles);
+        LogService.logInfo("Using ${_gridTiles.length} tiles from GridLoader as fallback for grid tiles");
+      }
+
+      if (_wildcardTiles.isEmpty && GridLoader.wildcardTiles.isNotEmpty) {
+        _wildcardTiles = List.from(GridLoader.wildcardTiles);
+        LogService.logInfo("Using ${_wildcardTiles.length} tiles from GridLoader as fallback for wildcard tiles");
+      }
+
+      // CRITICAL: Update GridLoader with the restored data
+      // This ensures UI components that load from GridLoader get the correct data
+      if (_gridTiles.isNotEmpty) {
+        LogService.logInfo("Updating GridLoader.gridTiles with restored data (${_gridTiles.length} tiles)");
+        GridLoader.gridTiles = List.from(_gridTiles);
+      } else {
+        LogService.logError("No grid tiles to update GridLoader with");
+      }
+
+      if (_wildcardTiles.isNotEmpty) {
+        LogService.logInfo("Updating GridLoader.wildcardTiles with restored data (${_wildcardTiles.length} tiles)");
+        GridLoader.wildcardTiles = List.from(_wildcardTiles);
+      } else {
+        LogService.logError("No wildcard tiles to update GridLoader with");
       }
 
       notifyListeners();
@@ -156,6 +267,79 @@ class GameStateProvider extends ChangeNotifier {
     } catch (e) {
       LogService.logError("Error restoring game state: $e");
     }
+  }
+
+  /// Load tiles from cachedGrid as a fallback
+  Future<void> _loadTilesFromCachedGrid(SharedPreferences prefs) async {
+    try {
+      final cachedGrid = prefs.getString('cachedGrid');
+      if (cachedGrid != null) {
+        final Map<String, dynamic> gridData = jsonDecode(cachedGrid);
+
+        // Check if the required fields are present
+        if (gridData.containsKey('grid') && gridData.containsKey('wildcards')) {
+          final grid = gridData['grid'] as String?;
+          final wildcards = gridData['wildcards'] as String?;
+
+          if (grid != null && grid.isNotEmpty) {
+            // Create grid tiles from the grid string
+            _gridTiles =
+                grid.split('').map((letter) {
+                  final value = _getLetterValue(letter);
+                  return {'letter': letter, 'value': value};
+                }).toList();
+            LogService.logInfo("Created ${_gridTiles.length} grid tiles from cachedGrid");
+          }
+
+          if (wildcards != null && wildcards.isNotEmpty) {
+            // Create wildcard tiles from the wildcards string
+            _wildcardTiles =
+                wildcards.split('').map((letter) {
+                  final baseValue = _getLetterValue(letter);
+                  final value = baseValue == 1 ? 2 : baseValue;
+                  return {'letter': letter, 'value': value, 'isRemoved': false};
+                }).toList();
+            LogService.logInfo("Created ${_wildcardTiles.length} wildcard tiles from cachedGrid");
+          }
+        }
+      }
+    } catch (e) {
+      LogService.logError("Error loading tiles from cachedGrid: $e");
+    }
+  }
+
+  /// Get the value of a letter
+  int _getLetterValue(String letter) {
+    const Map<String, int> letterValues = {
+      'a': 1,
+      'e': 1,
+      'i': 1,
+      'o': 1,
+      'u': 1,
+      'l': 1,
+      'n': 1,
+      's': 1,
+      't': 1,
+      'r': 1,
+      'd': 2,
+      'g': 2,
+      'b': 3,
+      'c': 3,
+      'm': 3,
+      'p': 3,
+      'f': 4,
+      'h': 4,
+      'v': 4,
+      'w': 4,
+      'y': 4,
+      'k': 5,
+      'j': 8,
+      'x': 8,
+      'q': 10,
+      'z': 10,
+    };
+
+    return letterValues[letter.toLowerCase()] ?? 0;
   }
 
   /// Sync with SpelledWordsLogic to ensure consistency
@@ -178,7 +362,30 @@ class GameStateProvider extends ChangeNotifier {
     _boardState = BoardState.newBoard;
     _spelledWords = [];
     _score = 0;
+
+    // Don't clear the tiles here, as we want to keep the current board
+    // But we do need to make sure GridLoader is in sync
+    if (_gridTiles.isNotEmpty) {
+      LogService.logInfo("Updating GridLoader.gridTiles after reset (${_gridTiles.length} tiles)");
+      GridLoader.gridTiles = List.from(_gridTiles);
+    }
+
+    if (_wildcardTiles.isNotEmpty) {
+      LogService.logInfo("Updating GridLoader.wildcardTiles after reset (${_wildcardTiles.length} tiles)");
+      GridLoader.wildcardTiles = List.from(_wildcardTiles);
+    }
+
     notifyListeners();
     LogService.logInfo("Game state reset");
+  }
+
+  /// Mark the game as finished
+  Future<void> finishGame() async {
+    if (_boardState == BoardState.inProgress) {
+      updateBoardState(BoardState.finished);
+      // Save state immediately
+      await saveState();
+      LogService.logInfo("Game marked as finished");
+    }
   }
 }

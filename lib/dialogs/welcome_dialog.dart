@@ -11,10 +11,11 @@ class WelcomeDialog {
     await showDialog(
       context: context,
       barrierDismissible: false,
+      barrierColor: Colors.black,
+      useSafeArea: false, // This allows the dialog to extend into the safe area
       builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
+        return Material(
+          type: MaterialType.transparency,
           child: IntroAnimation(
             gameLayoutManager: gameLayoutManager,
             onComplete: () {
@@ -45,7 +46,7 @@ class WelcomeDialog {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.emoji_events, size: 64, color: Colors.amber),
+                const Icon(Icons.emoji_events, size: 64, color: AppStyles.iconTrophyColor),
                 const SizedBox(height: 24),
                 Text(
                   'Welcome to Re-Word Game!',

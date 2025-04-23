@@ -6,7 +6,6 @@ import 'package:dio/dio.dart';
 import '../logic/security.dart';
 import '../config/config.dart';
 import '../models/api_models.dart';
-import 'package:flutter/foundation.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -414,16 +413,46 @@ class ApiService with ChangeNotifier {
   Future<ApiResponse> getTodayHighScores({int limit = 10}) async {
     await _getTokens(); // Ensure tokens are loaded
 
+    // ✅ Get the player's timezone
+    String localTimeZone = await FlutterTimezone.getLocalTimezone();
+    tz.initializeTimeZones();
+    final location = tz.getLocation(localTimeZone);
+
     final headers = {
       'X-API-Key': Security.generateApiKeyHash(),
       'Authorization': 'Bearer $accessToken',
       'Content-Type': 'application/json',
+      'Time-Zone': location.toString(),
     };
 
     final body = jsonEncode({"userId": userId}); // Send userId in body
 
     // ✅ Add `limit` as a query parameter
     final response = await _makeApiRequest(false, '${Config.apiUrl}/scores/today?limit=$limit', headers, body);
+
+    return _parseResponse(response);
+  }
+
+  /// **Get High Scores for a specific game**
+  Future<ApiResponse> getGameHighScores(String gameId) async {
+    await _getTokens(); // Ensure tokens are loaded
+
+    // ✅ Get the player's timezone
+    String localTimeZone = await FlutterTimezone.getLocalTimezone();
+    tz.initializeTimeZones();
+    final location = tz.getLocation(localTimeZone);
+
+    final headers = {
+      'X-API-Key': Security.generateApiKeyHash(),
+      'Authorization': 'Bearer $accessToken',
+      'Content-Type': 'application/json',
+      'Time-Zone': location.toString(),
+    };
+
+    final body = jsonEncode({"gameId": gameId, "userId": userId}); // Send userId in body
+
+    // ✅ Use the game-specific endpoint with gameId
+    final response = await _makeApiRequest(false, '${Config.apiUrl}/scores/gamescores', headers, body);
 
     return _parseResponse(response);
   }
@@ -510,10 +539,16 @@ class ApiService with ChangeNotifier {
       return false;
     }
 
+    // ✅ Get the player's timezone
+    String localTimeZone = await FlutterTimezone.getLocalTimezone();
+    tz.initializeTimeZones();
+    final location = tz.getLocation(localTimeZone); // e.g., "America/Los_Angeles"
+
     final headers = {
       'X-API-Key': Security.generateApiKeyHash(),
       'Authorization': 'Bearer $accessToken',
       'Content-Type': 'application/json',
+      'Time-Zone': location.toString(), // ✅ Send player's timezone to API
     };
 
     scoreRequest.userId = userId!; // Set userId in request

@@ -1,11 +1,14 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 // file: lib/components/game_grid_component.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:reword_game/managers/gameLayoutManager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../logic/grid_loader.dart';
 import '../logic/spelled_words_handler.dart';
 import '../models/tile.dart';
+import '../models/board_state.dart';
+import '../providers/game_state_provider.dart';
 import 'letter_square_component.dart';
 
 class GameGridComponent extends StatefulWidget {
@@ -174,9 +177,35 @@ class GameGridComponentState extends State<GameGridComponent> {
   void submitWord() async {
     if (selectedTiles.isEmpty) return;
 
+    // Get the GameStateProvider
+    final gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
+
+    // Check if the board is in finished state
+    if (gameStateProvider.boardState == BoardState.finished) {
+      // Clear selected tiles
+      for (var tile in selectedTiles) {
+        final index = gridTiles.indexOf(tile);
+        if (index != -1) {
+          gridTiles[index].revert();
+        }
+      }
+      selectedTiles.clear();
+
+      // Show message that board is complete
+      widget.onMessage("Board complete! There will be a new board tomorrow");
+      return;
+    }
+
     final (success, message) = await spelledWordsLogic.addWord(selectedTiles);
     setState(() {
       if (success) {
+        // If we're in newBoard state and have words, transition to inProgress
+        if (gameStateProvider.boardState == BoardState.newBoard && SpelledWordsLogic.spelledWords.isNotEmpty) {
+          gameStateProvider.updateBoardState(BoardState.inProgress);
+          // Save the updated state
+          gameStateProvider.saveState();
+        }
+
         // Mark tiles as used
         for (var tile in selectedTiles) {
           final index = gridTiles.indexOf(tile);
@@ -240,8 +269,20 @@ class GameGridComponentState extends State<GameGridComponent> {
                 children: List.generate(gridTiles.length, (index) {
                   return DragTarget<Tile>(
                     onWillAcceptWithDetails: (details) {
+                      // Get the GameStateProvider
+                      final gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
+
+                      // Check if the board is in finished state
+                      if (gameStateProvider.boardState == BoardState.finished) {
+                        widget.onMessage("Board complete! There will be a new board tomorrow");
+                        return false;
+                      }
+
                       // ✅ Only allow drops on UNUSED tiles
-                      bool canAccept = details.data != null && gridTiles[index].state == 'unused';
+                      bool canAccept =
+                          details.data != null &&
+                          gridTiles[index].state == 'unused' &&
+                          gridTiles[index].isHybrid == false;
                       if (!canAccept) {
                         widget.onMessage('Can only drop on unused tiles');
                       }

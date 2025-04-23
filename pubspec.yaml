@@ -84,8 +84,8 @@ flutter:
     - assets/icon/icon.png
 
 flutter_launcher_icons:
-  android: true
-  ios: false  # Set to true if you also want iOS icons
+  android: true  # Use legacy icon
+  ios: true
   image_path: "assets/icon/icon.png"
 
   # An image asset can refer to one or more resolution-specific "variants", see

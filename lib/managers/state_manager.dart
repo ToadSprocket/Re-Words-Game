@@ -90,8 +90,11 @@ class StateManager {
       final List<dynamic> tileData = jsonDecode(wildcardTilesJson);
       final List<Tile> restoredTiles = tileData.map((data) => Tile.fromJson(data)).toList();
 
-      // Convert restored tiles to GridLoader format
-      GridLoader.wildcardTiles = restoredTiles.map((tile) => {'letter': tile.letter, 'value': tile.value}).toList();
+      // Convert restored tiles to GridLoader format, preserving isRemoved property
+      GridLoader.wildcardTiles =
+          restoredTiles
+              .map((tile) => {'letter': tile.letter, 'value': tile.value, 'isRemoved': tile.isRemoved})
+              .toList();
 
       // Set tiles in wildcard component
       if (wildcardKey?.currentState != null) {
@@ -125,7 +128,7 @@ class StateManager {
     LogService.logInfo('Game state reset successfully');
   }
 
-  Future<bool> hasBoardData() async {
+  static Future<bool> hasBoardData() async {
     final prefs = await SharedPreferences.getInstance();
 
     // Check all required components
@@ -387,6 +390,7 @@ class StateManager {
     LogService.logInfo("🌍 Next Midnight UTC: $nextMidnightUtc");
 
     final boardData = {
+      'gameId': gameData.gameId,
       'grid': gameData.grid,
       'wildcards': gameData.wildcards,
       'dateStart': gameData.dateStart,

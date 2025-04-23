@@ -17,6 +17,7 @@ import '../managers/state_manager.dart'; // Add StateManager import
 import '../services/api_service.dart';
 import '../models/tile.dart'; // Add Tile import
 import '../main.dart'; // Import HomeScreen from main.dart
+import '../providers/game_state_provider.dart'; // Import GameStateProvider
 
 class WideScreen extends StatelessWidget {
   final bool showBorders;
@@ -183,6 +184,11 @@ class WideScreen extends StatelessWidget {
                                   // Update scores and spelled words notifiers
                                   scoreNotifier.value = 0;
                                   spelledWordsNotifier.value = [];
+
+                                  // Reset the board state to newBoard using GameStateProvider
+                                  final gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
+                                  gameStateProvider.resetState();
+                                  await gameStateProvider.saveState();
 
                                   // Then load a new board
                                   final api = Provider.of<ApiService>(context, listen: false);

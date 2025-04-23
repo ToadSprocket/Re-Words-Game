@@ -20,6 +20,7 @@ class SecurityData {
 }
 
 class GameData {
+  final String gameId;
   final String grid;
   final String wildcards;
   final String dateStart;
@@ -28,6 +29,7 @@ class GameData {
   final int estimatedHighScore;
 
   GameData({
+    required this.gameId,
     required this.grid,
     required this.wildcards,
     required this.dateStart,
@@ -37,6 +39,7 @@ class GameData {
   });
 
   factory GameData.fromJson(Map<String, dynamic> json) => GameData(
+    gameId: json['gameId'] ?? '',
     grid: json['grid'] ?? '',
     wildcards: json['wildcards'] ?? '',
     dateStart: json['dateStart'] ?? '',
@@ -116,6 +119,7 @@ class HighScore {
 
 class SubmitScoreRequest {
   String userId;
+  String gameId;
   String platform;
   String locale;
   int timePlayedSeconds;
@@ -127,6 +131,7 @@ class SubmitScoreRequest {
 
   SubmitScoreRequest({
     required this.userId,
+    required this.gameId,
     required this.platform,
     required this.locale,
     required this.timePlayedSeconds,
@@ -140,6 +145,7 @@ class SubmitScoreRequest {
   Map<String, dynamic> toJson() {
     return {
       "userId": userId,
+      "gameId": gameId,
       "platform": platform,
       "locale": locale,
       "timePlayedSeconds": timePlayedSeconds,

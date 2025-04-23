@@ -15,6 +15,7 @@ import '../logic/logging_handler.dart';
 import '../logic/spelled_words_handler.dart';
 import '../managers/state_manager.dart';
 import '../models/api_models.dart';
+import '../models/tile.dart';
 import '../providers/game_state_provider.dart';
 import '../services/api_service.dart';
 import '../utils/connectivity_monitor.dart';
@@ -147,7 +148,28 @@ class BoardManager {
       }
 
       try {
-        await _loadNewBoard(context, api);
+        // Force load a new board
+        bool success = await _loadNewBoard(context, api);
+
+        // If loading the new board failed, try again with a more aggressive approach
+        if (!success && GridLoader.gridTiles.isEmpty) {
+          LogService.logInfo("🔄 First attempt to load new board failed, trying again with direct API call");
+
+          // Get the current score
+          final currentScore = await SpelledWordsLogic.getCurrentScore();
+
+          // Make a direct call to load a new board
+          success = await GridLoader.loadNewBoard(api, currentScore);
+
+          if (success) {
+            // Reset state and update UI
+            await StateManager.resetState(gridKey);
+            _syncUIComponents();
+            LogService.logInfo("✅ New board loaded successfully on second attempt");
+          } else {
+            LogService.logError("❌ Failed to load new board even on second attempt");
+          }
+        }
       } finally {
         // Restore the orientation change flag
         if (wasHandlingOrientationChange) {
@@ -215,7 +237,7 @@ class BoardManager {
 
       // First check if we need a new board
       final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
-      final hasBoardData = await StateManager().hasBoardData();
+      final hasBoardData = await StateManager.hasBoardData();
 
       LogService.logInfo("🔄 Loading board for user... isExpired: $isExpired, hasBoardData: $hasBoardData");
 
@@ -249,7 +271,8 @@ class BoardManager {
   }
 
   /// Load a new board
-  Future<void> _loadNewBoard(BuildContext context, ApiService api) async {
+  /// Returns true if the board was loaded successfully, false otherwise
+  Future<bool> _loadNewBoard(BuildContext context, ApiService api) async {
     LogService.logInfo("🔄 Loading new board...");
 
     if (context.mounted) {
@@ -276,14 +299,20 @@ class BoardManager {
         }
 
         // Fall back to stored board
-        await GridLoader.loadStoredBoard();
-        return;
+        bool fallbackSuccess = await GridLoader.loadStoredBoard();
+        return fallbackSuccess;
       }
 
-      // Double-check we're not in orientation change before making API call
+      // Check if we're in orientation change before making API call
       if (_isHandlingOrientationChange) {
-        LogService.logInfo("🔄 Cancelling new board load - orientation change in progress");
-        return;
+        // Check if the board is expired - if so, we need to load a new board even during orientation change
+        final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
+        if (isExpired) {
+          LogService.logInfo("🔄 Board is expired - proceeding with new board load despite orientation change");
+        } else {
+          LogService.logInfo("🔄 Cancelling new board load - orientation change in progress");
+          return false;
+        }
       }
 
       // Load the new board with the current score
@@ -291,27 +320,78 @@ class BoardManager {
 
       // Only reset state after successfully loading the new board
       if (success) {
+        // First, reset the state to clear old data
         await StateManager.resetState(gridKey);
+
+        LogService.logInfo("✅ New board loaded, updating UI components");
+
+        // CRITICAL: Explicitly create new Tile objects from GridLoader data
+        if (GridLoader.gridTiles.isNotEmpty) {
+          LogService.logInfo("Creating ${GridLoader.gridTiles.length} new grid tiles from GridLoader");
+
+          // Create new Tile objects from GridLoader data
+          List<Tile> newGridTiles =
+              GridLoader.gridTiles.map((tileData) {
+                return Tile(letter: tileData['letter'], value: tileData['value'], isExtra: false, isRemoved: false);
+              }).toList();
+
+          // Set the new tiles in the grid component
+          if (gridKey.currentState != null) {
+            gridKey.currentState!.setTiles(newGridTiles);
+            LogService.logInfo("Set ${newGridTiles.length} new tiles in grid component");
+          } else {
+            LogService.logError("❌ gridKey.currentState is null, cannot set new tiles");
+          }
+        } else {
+          LogService.logError("❌ GridLoader.gridTiles is empty after loading new board");
+        }
+
+        // Update wildcard tiles
+        if (GridLoader.wildcardTiles.isNotEmpty && wildcardKey.currentState != null) {
+          LogService.logInfo("Creating ${GridLoader.wildcardTiles.length} new wildcard tiles from GridLoader");
+
+          // Create new Tile objects from GridLoader data
+          List<Tile> newWildcardTiles =
+              GridLoader.wildcardTiles.map((tileData) {
+                return Tile(
+                  letter: tileData['letter'],
+                  value: tileData['value'],
+                  isExtra: true,
+                  isRemoved: tileData['isRemoved'] ?? false,
+                );
+              }).toList();
+
+          // Set the new tiles in the wildcard component
+          wildcardKey.currentState!.tiles = newWildcardTiles;
+          wildcardKey.currentState!.setState(() {});
+          LogService.logInfo("Set ${newWildcardTiles.length} new tiles in wildcard component");
+        }
 
         // Update UI components
         _syncUIComponents();
 
         LogService.logInfo("✅ New board loaded and UI updated");
+        return true;
       } else {
         LogService.logError("❌ Failed to load new board. Falling back to stored board.");
-        await GridLoader.loadStoredBoard();
+        bool fallbackSuccess = await GridLoader.loadStoredBoard();
+        return fallbackSuccess;
       }
     } catch (e) {
       LogService.logError("🚨 Error loading new board: $e");
       ErrorReporting.reportException(e, StackTrace.current, context: 'Load new board');
 
       // Fall back to stored board
-      await GridLoader.loadStoredBoard();
+      bool fallbackSuccess = await GridLoader.loadStoredBoard();
+      return fallbackSuccess;
     } finally {
       if (context.mounted) {
         LoadingDialog.dismiss(context);
       }
     }
+
+    // Default return value if we somehow get here
+    return false;
   }
 
   /// Reset the board during gameplay
@@ -370,8 +450,9 @@ class BoardManager {
           LogService.logInfo("Board expired during pause - Loading new board");
           await loadBoardForUser(context, api);
         } else {
-          // Board still valid, just sync UI
-          LogService.logInfo("Board still valid - Syncing UI");
+          // Board still valid, restore state from preferences
+          LogService.logInfo("Board still valid - Restoring state from preferences");
+          await StateManager.restoreState(gridKey, wildcardKey, scoreNotifier, spelledWordsNotifier);
           _syncUIComponents();
         }
       } else {
@@ -395,9 +476,36 @@ class BoardManager {
       gameStateProvider.setOrientationChanging(true);
       LogService.logInfo("Setting orientation change flags to prevent board reload");
 
+      // CRITICAL: Ensure we have tiles to save
+      if (GridLoader.gridTiles.isEmpty) {
+        LogService.logError("GridLoader.gridTiles is empty before saving state during orientation change");
+      }
+
+      if (GridLoader.wildcardTiles.isEmpty) {
+        LogService.logError("GridLoader.wildcardTiles is empty before saving state during orientation change");
+      }
+
       // CRITICAL: Save the game state BEFORE any layout changes
       LogService.logInfo("Saving game state before orientation change");
+
+      // First, ensure GameStateProvider has the latest tiles from GridLoader
+      if (gameStateProvider.gridTiles.isEmpty && GridLoader.gridTiles.isNotEmpty) {
+        gameStateProvider.setGridTiles(List.from(GridLoader.gridTiles));
+        LogService.logInfo("Updated GameStateProvider with ${GridLoader.gridTiles.length} grid tiles from GridLoader");
+      }
+
+      if (gameStateProvider.wildcardTiles.isEmpty && GridLoader.wildcardTiles.isNotEmpty) {
+        gameStateProvider.setWildcardTiles(List.from(GridLoader.wildcardTiles));
+        LogService.logInfo(
+          "Updated GameStateProvider with ${GridLoader.wildcardTiles.length} wildcard tiles from GridLoader",
+        );
+      }
+
+      // Now save the state
       await gameStateProvider.saveState();
+
+      // Also save state using StateManager as a backup
+      await StateManager.saveState(gridKey, wildcardKey);
 
       // Calculate layout sizes
       gameLayoutManager.calculateLayoutSizes(context);
@@ -418,6 +526,28 @@ class BoardManager {
       // Wait longer for the state to be fully restored
       await Future.delayed(Duration(milliseconds: 300));
 
+      // CRITICAL: Ensure GridLoader has the correct data
+      if (gameStateProvider.gridTiles.isNotEmpty) {
+        LogService.logInfo(
+          "Ensuring GridLoader.gridTiles is updated during orientation change (${gameStateProvider.gridTiles.length} tiles)",
+        );
+        GridLoader.gridTiles = List.from(gameStateProvider.gridTiles);
+      } else {
+        LogService.logError("GameStateProvider has no grid tiles after restore during orientation change");
+
+        // Try to restore from StateManager as a fallback
+        await StateManager.restoreState(gridKey, wildcardKey, scoreNotifier, spelledWordsNotifier);
+      }
+
+      if (gameStateProvider.wildcardTiles.isNotEmpty) {
+        LogService.logInfo(
+          "Ensuring GridLoader.wildcardTiles is updated during orientation change (${gameStateProvider.wildcardTiles.length} tiles)",
+        );
+        GridLoader.wildcardTiles = List.from(gameStateProvider.wildcardTiles);
+      } else {
+        LogService.logError("GameStateProvider has no wildcard tiles after restore during orientation change");
+      }
+
       // Make sure the grid and wildcard components are properly updated
       if (context.mounted) {
         _syncUIComponents();
@@ -425,6 +555,17 @@ class BoardManager {
       }
     } catch (e) {
       LogService.logError("Error during orientation change: $e");
+
+      // Try to recover from error by restoring from StateManager
+      if (context.mounted) {
+        try {
+          await StateManager.restoreState(gridKey, wildcardKey, scoreNotifier, spelledWordsNotifier);
+          _syncUIComponents();
+          LogService.logInfo("Recovered from orientation change error using StateManager");
+        } catch (fallbackError) {
+          LogService.logError("Failed to recover from orientation change error: $fallbackError");
+        }
+      }
     } finally {
       // Reset flags after orientation change is complete
       _isHandlingOrientationChange = false;
@@ -490,14 +631,28 @@ class BoardManager {
 
   /// Sync UI components with current state
   void _syncUIComponents() {
+    // First, ensure GridLoader has tiles to load
+    if (GridLoader.gridTiles.isEmpty) {
+      LogService.logError("GridLoader.gridTiles is empty during _syncUIComponents");
+    }
+
+    if (GridLoader.wildcardTiles.isEmpty) {
+      LogService.logError("GridLoader.wildcardTiles is empty during _syncUIComponents");
+    }
+
+    // Then update the UI components
     if (gridKey.currentState != null) {
-      LogService.logInfo("Reloading grid tiles");
+      LogService.logInfo("Reloading grid tiles (${GridLoader.gridTiles.length} tiles)");
       gridKey.currentState!.reloadTiles();
+    } else {
+      LogService.logError("gridKey.currentState is null during _syncUIComponents");
     }
 
     if (wildcardKey.currentState != null) {
-      LogService.logInfo("Reloading wildcard tiles");
+      LogService.logInfo("Reloading wildcard tiles (${GridLoader.wildcardTiles.length} tiles)");
       wildcardKey.currentState!.reloadWildcardTiles();
+    } else {
+      LogService.logError("wildcardKey.currentState is null during _syncUIComponents");
     }
 
     // Update score and spelled words
