@@ -3,34 +3,26 @@ import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:window_manager/window_manager.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'styles/app_styles.dart';
-import 'logic/grid_loader.dart';
 import 'logic/game_layout.dart';
 import 'screens/wide_screen.dart';
 import 'screens/narrow_screen.dart';
 import 'dialogs/how_to_play_dialog.dart';
 import 'dialogs/high_scores_dialog.dart';
 import 'dialogs/legal_dialog.dart';
-import 'dialogs/board_expired_dialog.dart';
 import 'dialogs/failure_dialog.dart';
 import 'dialogs/login_dialog.dart';
-import 'components/game_grid_component.dart';
-import 'components/wildcard_column_component.dart';
 import 'components/error_boundary.dart';
 import 'managers/state_manager.dart';
 import 'services/api_service.dart';
 import 'logic/spelled_words_handler.dart';
-import 'logic/error_handler.dart';
 import 'logic/error_reporting.dart';
 import 'package:provider/provider.dart';
-import 'models/api_models.dart';
 import '../logic/logging_handler.dart';
 import '../managers/gameLayoutManager.dart';
 import '../managers/board_manager.dart';
 import 'package:window_size/window_size.dart';
 import 'dialogs/welcome_dialog.dart';
-import 'dialogs/loading_dialog.dart';
 import 'dialogs/androidTabletDialog.dart';
 import 'services/word_service.dart';
 import 'utils/web_utils.dart';
@@ -39,13 +31,12 @@ import 'utils/offline_mode_handler.dart';
 import 'utils/device_utils.dart';
 import 'providers/orientation_provider.dart';
 import 'providers/game_state_provider.dart';
-import 'models/game_mode.dart';
 
 // App version information
 const String MAJOR = "1";
 const String MINOR = "0";
 const String PATCH = "0";
-const String BUILD = "49";
+const String BUILD = "52";
 
 const String VERSION_STRING = "v$MAJOR.$MINOR.$PATCH+$BUILD";
 
@@ -336,6 +327,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
     // Restore saved state (including board state)
     await gameStateProvider.restoreState();
+
+    // Check if board is expired at startup
+    final api = Provider.of<ApiService>(context, listen: false);
+    final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
+    if (isExpired) {
+      LogService.logInfo("🔄 Board is expired at startup - loading new board");
+      await boardManager.loadBoardForUser(context, api);
+    }
 
     await _loadData();
   }

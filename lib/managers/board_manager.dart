@@ -15,6 +15,7 @@ import '../logic/logging_handler.dart';
 import '../logic/spelled_words_handler.dart';
 import '../managers/state_manager.dart';
 import '../models/api_models.dart';
+import '../models/board_state.dart';
 import '../models/tile.dart';
 import '../providers/game_state_provider.dart';
 import '../services/api_service.dart';
@@ -151,7 +152,12 @@ class BoardManager {
         // Force load a new board
         bool success = await _loadNewBoard(context, api);
 
-        if (!success) {
+        if (success) {
+          // Ensure board state is set to newBoard
+          final gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
+          gameStateProvider.updateBoardState(BoardState.newBoard);
+          LogService.logInfo("✅ Board state explicitly set to newBoard during app reload");
+        } else {
           LogService.logError("❌ Failed to load new board on app reload");
 
           // Show error dialog
@@ -217,7 +223,14 @@ class BoardManager {
 
       // Load a new board for the user
       final SubmitScoreRequest finalScore = await SpelledWordsLogic.getCurrentScore();
-      await GridLoader.loadNewBoard(api, finalScore);
+      bool success = await GridLoader.loadNewBoard(api, finalScore);
+
+      if (success) {
+        // Explicitly set board state to newBoard for new users
+        final gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
+        gameStateProvider.updateBoardState(BoardState.newBoard);
+        LogService.logInfo("✅ Board state explicitly set to newBoard for new user");
+      }
 
       // Update UI components
       _syncUIComponents();
@@ -339,6 +352,11 @@ class BoardManager {
       // Reset state to clear old data
       await StateManager.resetState(gridKey);
 
+      // Explicitly set board state to newBoard when loading a new board
+      final gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
+      gameStateProvider.updateBoardState(BoardState.newBoard);
+      LogService.logInfo("✅ Board state explicitly set to newBoard");
+
       LogService.logInfo("✅ New board loaded, updating UI components");
 
       // CRITICAL: Explicitly create new Tile objects from GridLoader data
@@ -435,6 +453,11 @@ class BoardManager {
       bool success = await GridLoader.loadNewBoard(api, currentScore);
 
       if (success) {
+        // Explicitly set board state to newBoard when resetting
+        final gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
+        gameStateProvider.updateBoardState(BoardState.newBoard);
+        LogService.logInfo("✅ Board state explicitly set to newBoard during reset");
+
         // Update UI components
         _syncUIComponents();
 

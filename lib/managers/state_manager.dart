@@ -1,15 +1,18 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
+import '../providers/game_state_provider.dart';
 import '../logic/spelled_words_handler.dart';
 import '../components/game_grid_component.dart';
 import '../components/wildcard_column_component.dart';
 import '../models/tile.dart';
 import '../models/api_models.dart';
+import '../models/board_state.dart';
 import '../logic/logging_handler.dart';
 import '../logic/grid_loader.dart';
 
@@ -128,6 +131,23 @@ class StateManager {
       await prefs.setBool('hasOrientationState', false);
     }
 
+    // Ensure the GameStateProvider is updated with the board state
+    try {
+      final boardStateIndex = prefs.getInt('boardState');
+      if (boardStateIndex != null) {
+        // Find the GameStateProvider and update it
+        final context = gridKey?.currentContext;
+        if (context != null) {
+          final gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
+          final boardState = BoardState.values[boardStateIndex];
+          gameStateProvider.updateBoardState(boardState);
+          LogService.logInfo("Updated GameStateProvider with board state: $boardState");
+        }
+      }
+    } catch (e) {
+      LogService.logError("Error updating GameStateProvider with board state: $e");
+    }
+
     LogService.logInfo('Game state restored successfully');
   }
 
@@ -139,12 +159,14 @@ class StateManager {
     await prefs.remove('selectedIndices');
     await prefs.remove('wildcardTiles');
     await prefs.remove('timePlayedSeconds');
+    await prefs.remove('boardState'); // Clear the stored board state
+    await prefs.setInt('boardState', BoardState.newBoard.index); // Explicitly set to newBoard
     SpelledWordsLogic.spelledWords = [];
     SpelledWordsLogic.score = 0;
     if (gridKey?.currentState != null) {
       gridKey!.currentState!.setSelectedIndices([]);
     }
-    LogService.logInfo('Game state reset successfully');
+    LogService.logInfo('Game state reset successfully with board state set to newBoard');
   }
 
   static Future<bool> hasBoardData() async {
@@ -421,5 +443,9 @@ class StateManager {
     await prefs.setString('cachedGrid', jsonEncode(boardData));
     await prefs.setString('boardExpireDate', nextMidnightUtc.toIso8601String());
     await prefs.setString('boardLoadedDate', DateTime.now().toUtc().toIso8601String());
+
+    // Always set board state to newBoard when saving new board data
+    await prefs.setInt('boardState', BoardState.newBoard.index);
+    LogService.logInfo("Board state explicitly set to newBoard during saveBoardData");
   }
 }

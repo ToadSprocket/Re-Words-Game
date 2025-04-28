@@ -224,10 +224,15 @@ class GameLayoutManager {
       "Width: $screenWidth, Height: $screenHeight, SafeWidth: ${currentDeviceInfo.safeScreenWidth}, SafeHeight: ${currentDeviceInfo.safeScreenHeight}, Orientation: $currentOrientation, IsTall: ${currentDeviceInfo.isTall}, IsWide: ${currentDeviceInfo.isWide}",
     );
 
-    // If this is a tablet and it's in landscape, then we need to adjust for the safe areas.
+    // If this is a tablet we need to adjust for the safe areas.
     if (currentDeviceInfo.isTablet || currentDeviceInfo.isHybrid) {
       isTablet = true;
       screenHeight = currentDeviceInfo.safeScreenHeight;
+    }
+
+    if (currentDeviceInfo.isPhone) {
+      screenHeight = currentDeviceInfo.safeScreenHeight;
+      screenWidth = currentDeviceInfo.safeScreenWidth;
     }
 
     // Check if orientation has changed

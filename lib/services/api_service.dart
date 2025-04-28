@@ -26,6 +26,7 @@ class ApiService with ChangeNotifier {
 
   ApiService._internal();
   String? userId;
+  String? displayName;
   String? accessToken;
   String? refreshToken;
   int? tokenExpiration;
@@ -51,6 +52,7 @@ class ApiService with ChangeNotifier {
 
   void setUserInformation(Map<String, String?> userData) {
     userId = userData['userId'];
+    displayName = userData['displayName'];
     accessToken = userData['accessToken'];
     refreshToken = userData['refreshToken'];
   }
@@ -63,6 +65,7 @@ class ApiService with ChangeNotifier {
 
     // Clear in-memory values
     userId = null;
+    displayName = null;
     accessToken = null;
     refreshToken = null;
     tokenExpiration = null;
@@ -93,6 +96,7 @@ class ApiService with ChangeNotifier {
 
     // Store tokens securely
     await secureStorage.setUserId(security.userId);
+    await secureStorage.setDisplayName(security.displayName ?? '');
     if (security.accessToken != null) {
       await secureStorage.setAccessToken(security.accessToken!);
     }
@@ -121,6 +125,7 @@ class ApiService with ChangeNotifier {
 
     final secureStorage = SecureStorage();
     userId = await secureStorage.getUserId();
+    displayName = await secureStorage.getDisplayName();
     accessToken = await secureStorage.getAccessToken();
     refreshToken = await secureStorage.getRefreshToken();
     tokenExpiration = await secureStorage.getTokenExpiration();
@@ -371,6 +376,7 @@ class ApiService with ChangeNotifier {
           userId = apiResponse.security!.userId;
           accessToken = apiResponse.security!.accessToken;
           refreshToken = apiResponse.security!.refreshToken;
+          displayName = apiResponse.security!.displayName;
           return apiResponse;
         }
       }
@@ -662,6 +668,7 @@ class ApiService with ChangeNotifier {
                   accessToken: data['access_token'],
                   refreshToken: data['refresh_token'],
                   expirationSeconds: data['expires_in']?.toString(),
+                  displayName: data['displayName'],
                 )
                 : null,
         gameData: data.containsKey('grid') ? GameData.fromJson(data) : null,
@@ -684,6 +691,7 @@ class ApiService with ChangeNotifier {
                   accessToken: data['access_token'],
                   refreshToken: data['refresh_token'],
                   expirationSeconds: data['expires_in']?.toString(),
+                  displayName: data['displayName'],
                 )
                 : null,
         gameData: data.containsKey('grid') ? GameData.fromJson(data) : null,

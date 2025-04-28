@@ -16,6 +16,7 @@ class SecureStorage {
 
   // Key constants
   static const String _keyUserId = 'secure_userId';
+  static const String _keyDisplayName = 'secure_displayName';
   static const String _keyAccessToken = 'secure_accessToken';
   static const String _keyRefreshToken = 'secure_refreshToken';
   static const String _keyTokenExpiration = 'secure_tokenExpiration';
@@ -40,6 +41,26 @@ class SecureStorage {
       return prefs.getString(_keyUserId);
     } else {
       return await _secureStorage.read(key: _keyUserId);
+    }
+  }
+
+  /// Store user ID securely
+  Future<void> setDisplayName(String displayName) async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyDisplayName, displayName);
+    } else {
+      await _secureStorage.write(key: _keyDisplayName, value: displayName);
+    }
+  }
+
+  /// Retrieve user ID
+  Future<String?> getDisplayName() async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_keyDisplayName);
+    } else {
+      return await _secureStorage.read(key: _keyDisplayName);
     }
   }
 

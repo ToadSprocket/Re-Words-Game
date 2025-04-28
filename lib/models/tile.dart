@@ -99,7 +99,7 @@ class Tile {
   factory Tile.fromJson(Map<String, dynamic> json) => Tile(
     letter: json['letter'] as String,
     value: json['value'] as int,
-    isExtra: json['isExtra'] as bool,
+    isExtra: json['isExtra'] as bool? ?? false,
     isHybrid: json['isHybrid'] as bool? ?? false,
     originalLetter: json['originalLetter'] as String?,
     originalValue: json['originalValue'] as int?,
