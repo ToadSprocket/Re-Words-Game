@@ -67,16 +67,17 @@ class AppStyles {
 
   // ThemeData
   static ThemeData get appTheme => ThemeData(
+    fontFamily: 'Roboto',
     scaffoldBackgroundColor: const Color.fromARGB(255, 18, 18, 18),
     appBarTheme: const AppBarTheme(
       backgroundColor: Color.fromARGB(255, 26, 26, 26),
-      titleTextStyle: TextStyle(color: Color.fromARGB(236, 255, 255, 255), fontSize: 20, fontWeight: FontWeight.bold),
+      titleTextStyle: TextStyle(color: Color.fromARGB(236, 255, 255, 255), fontSize: 20, fontWeight: FontWeight.normal),
     ),
     textTheme: const TextTheme(
       bodyMedium: TextStyle(color: Color.fromARGB(222, 244, 242, 242), fontSize: 16),
       bodyLarge: TextStyle(color: Color.fromARGB(222, 244, 242, 242), fontSize: 20),
-      labelLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: normalLetterTextColor),
-      labelSmall: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: normalValueTextColor),
+      labelLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.normal, color: normalLetterTextColor),
+      labelSmall: TextStyle(fontSize: 12, fontWeight: FontWeight.normal, color: normalValueTextColor),
     ),
     primaryColor: CupertinoColors.activeGreen,
     textSelectionTheme: const TextSelectionThemeData(

@@ -61,7 +61,8 @@ class LetterSquareComponent extends StatelessWidget {
               tile.value.toString(),
               style: TextStyle(
                 fontSize:
-                    helpDialog ? GameLayoutManager.helpDialogSquareValueSize : gameLayoutManager.squareValueFontSize,
+                    helpDialog ? gameLayoutManager.helpDialogSquareValueSize : gameLayoutManager.squareValueFontSize,
+                fontWeight: gameLayoutManager.defaultFontWeight,
                 color: valueColor, // Directly use the color
               ),
             ),
@@ -71,7 +72,8 @@ class LetterSquareComponent extends StatelessWidget {
               tile.letter.toUpperCase(),
               style: TextStyle(
                 fontSize:
-                    helpDialog ? GameLayoutManager.helpDialogSquareLetterSize : gameLayoutManager.squareLetterFontSize,
+                    helpDialog ? gameLayoutManager.helpDialogSquareLetterSize : gameLayoutManager.squareLetterFontSize,
+                fontWeight: gameLayoutManager.defaultFontWeight,
                 color: AppStyles.normalLetterTextColor, // Directly use the color
               ),
             ),

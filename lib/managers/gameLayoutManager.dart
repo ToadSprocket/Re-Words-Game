@@ -42,8 +42,7 @@ class GameLayoutManager {
 
   // Help dialog constants
   static const double helpDialogSquareSize = 44.0;
-  static const double helpDialogSquareLetterSize = 20.5; // Reduced by ~7% from 22.0
-  static const double helpDialogSquareValueSize = 14.0; // Reduced from 18.0
+  // Help dialog font sizes moved to instance properties for iOS scaling
 
   // Dialog constants
   static const double dialogMaxWidthPercentage = 0.90;
@@ -112,6 +111,10 @@ class GameLayoutManager {
   late double gameMessageFontSize;
   late double spelledWordsVerticalPadding;
 
+  // Help dialog font sizes (converted from static constants to instance properties for iOS scaling)
+  late double helpDialogSquareLetterSize;
+  late double helpDialogSquareValueSize;
+
   // Button properties
   late double buttonVerticalPadding;
   late double buttonHorizontalPadding;
@@ -154,6 +157,9 @@ class GameLayoutManager {
   late double componentBorderThickness;
   late double componentBorderRadius;
 
+  // Font properties
+  late FontWeight defaultFontWeight;
+
   late int spelledWordsColumnCount = 0;
   late double spelledWordsColumnWidth = 0;
   // Add new values to track desired widths
@@ -169,7 +175,7 @@ class GameLayoutManager {
         borderRadius: BorderRadius.circular(buttonBorderRadius),
         side: BorderSide(color: const Color.fromARGB(255, 236, 232, 232), width: buttonBorderThickness),
       ),
-      textStyle: TextStyle(fontSize: buttonFontSize, fontWeight: FontWeight.bold),
+      textStyle: TextStyle(fontSize: buttonFontSize, fontWeight: defaultFontWeight),
       alignment: Alignment(0, buttonTextOffset / buttonVerticalPadding),
     );
   }
@@ -183,7 +189,7 @@ class GameLayoutManager {
         borderRadius: BorderRadius.circular(buttonBorderRadius),
         side: BorderSide(color: const Color.fromARGB(255, 236, 232, 232), width: buttonBorderThickness),
       ),
-      textStyle: TextStyle(fontSize: buttonFontSize, fontWeight: FontWeight.bold),
+      textStyle: TextStyle(fontSize: buttonFontSize, fontWeight: defaultFontWeight),
       alignment: Alignment(0, buttonTextOffset / buttonVerticalPadding),
     );
   }
@@ -191,7 +197,7 @@ class GameLayoutManager {
   void initializeFontStyles() {
     dialogTitleStyle = TextStyle(
       fontSize: dialogTitleFontSize,
-      fontWeight: FontWeight.bold,
+      fontWeight: defaultFontWeight,
       color: Color.fromARGB(255, 255, 255, 255),
     );
 
@@ -204,11 +210,11 @@ class GameLayoutManager {
       color: Color.fromARGB(255, 93, 174, 240),
       decoration: TextDecoration.underline,
     );
-    dialogErrorStyle = TextStyle(fontSize: dialogBodyFontSize, color: Colors.red, fontWeight: FontWeight.bold);
+    dialogErrorStyle = TextStyle(fontSize: dialogBodyFontSize, color: Colors.red, fontWeight: defaultFontWeight);
     dialogSuccessStyle = TextStyle(
       fontSize: dialogBodyFontSize,
       color: Color.fromARGB(255, 54, 244, 54),
-      fontWeight: FontWeight.bold,
+      fontWeight: defaultFontWeight,
     );
   }
 
@@ -371,6 +377,10 @@ class GameLayoutManager {
       isNarrowLayout ? 20.0 : 16.0,
     );
 
+    // Initialize help dialog font sizes
+    helpDialogSquareLetterSize = 20.5; // Reduced by ~7% from 22.0
+    helpDialogSquareValueSize = 14.0; // Reduced from 18.0
+
     // Calculate component heights based on layout mode
     if (isNarrowLayout) {
       // Narrow layout - more conservative heights
@@ -488,6 +498,39 @@ class GameLayoutManager {
     tickerFontSize = (screenWidth * (isNarrowLayout ? 0.024 : 0.016)).clamp(14.0, 20.0);
     tickerTitleFontSize = tickerFontSize;
 
+    // Set platform-specific font weight and apply iOS-specific font size adjustment
+    if (!kIsWeb && Platform.isIOS) {
+      // Use normal font weight for iOS (bold looks bad on iOS)
+      defaultFontWeight = FontWeight.normal;
+
+      // Scale factor to reduce font sizes on iOS (reducing by ~12%)
+      const double iosFontScaleFactor = 0.88;
+
+      // Apply scaling to all font sizes
+      titleFontSize *= iosFontScaleFactor;
+      sloganFontSize *= iosFontScaleFactor;
+      scoreFontSize *= iosFontScaleFactor;
+      gameMessageFontSize *= iosFontScaleFactor;
+      spelledWordsFontSize *= iosFontScaleFactor;
+      buttonFontSize *= iosFontScaleFactor;
+      dialogTitleFontSize *= iosFontScaleFactor;
+      dialogBodyFontSize *= iosFontScaleFactor;
+      dialogInputFontSize *= iosFontScaleFactor;
+      dialogInputTitleSize *= iosFontScaleFactor;
+      squareLetterFontSize *= iosFontScaleFactor;
+      squareValueFontSize *= iosFontScaleFactor;
+      spelledWordsTitleFontSize *= iosFontScaleFactor;
+      tickerFontSize *= iosFontScaleFactor;
+      tickerTitleFontSize *= iosFontScaleFactor;
+      helpDialogSquareLetterSize *= iosFontScaleFactor;
+      helpDialogSquareValueSize *= iosFontScaleFactor;
+
+      LogService.logInfo("Applied iOS font scaling: $iosFontScaleFactor and normal font weight");
+    } else {
+      // Use bold font weight for non-iOS platforms
+      defaultFontWeight = FontWeight.bold;
+    }
+
     // Popup dimensions
     tickerPopupWidth = (screenWidth * 0.8).clamp(400.0, 600.0);
     tickerPopupHeight = (screenHeight * 0.8).clamp(600.0, 800.0);
@@ -498,11 +541,11 @@ class GameLayoutManager {
     initializeFontStyles();
 
     // Update component text styles
-    titleStyle = TextStyle(fontSize: titleFontSize, fontWeight: FontWeight.bold, color: Colors.white);
+    titleStyle = TextStyle(fontSize: titleFontSize, fontWeight: defaultFontWeight, color: Colors.white);
 
     messageStyle = TextStyle(fontSize: sloganFontSize, fontWeight: FontWeight.normal, color: Colors.white);
 
-    scoreStyle = TextStyle(fontSize: scoreFontSize, fontWeight: FontWeight.bold, color: Colors.white);
+    scoreStyle = TextStyle(fontSize: scoreFontSize, fontWeight: defaultFontWeight, color: Colors.white);
 
     spelledWordStyle = TextStyle(fontSize: spelledWordsFontSize, fontWeight: FontWeight.normal, color: Colors.white);
 

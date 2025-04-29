@@ -26,6 +26,7 @@ class HowToPlayDialog {
             constraints: BoxConstraints(
               maxHeight: gameLayoutManager.dialogMaxHeight,
               minHeight: gameLayoutManager.dialogMinHeight,
+              minWidth: 280.0, // Add minimum width constraint
             ),
             padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
             child: Column(
@@ -46,6 +47,8 @@ class HowToPlayDialog {
                             Text(
                               'Find words in the 7x7 grid and maximize your score by strategically reusing letters.',
                               style: gameLayoutManager.dialogContentStyle,
+                              softWrap: true,
+                              overflow: TextOverflow.visible,
                             ),
                             const SizedBox(height: 12.0),
                             Text(
@@ -54,6 +57,8 @@ class HowToPlayDialog {
                               'You can use a letter up to 8 times, after that it\'s value is capped. You cannot use the same word twice.\n\n'
                               'Five Wildcards can be placed on unused tiles to multiply the total word score.',
                               style: gameLayoutManager.dialogContentStyle,
+                              softWrap: true,
+                              overflow: TextOverflow.visible,
                             ),
                             const SizedBox(height: 12.0),
                             Row(
@@ -64,9 +69,13 @@ class HowToPlayDialog {
                                   helpDialog: true,
                                 ),
                                 const SizedBox(width: 8.0),
-                                Text(
-                                  'Basic: Letter tile with a base score.',
-                                  style: gameLayoutManager.dialogContentStyle,
+                                Expanded(
+                                  child: Text(
+                                    'Basic: Letter tile with a base score.',
+                                    style: gameLayoutManager.dialogContentStyle,
+                                    softWrap: true,
+                                    overflow: TextOverflow.visible,
+                                  ),
                                 ),
                               ],
                             ),
@@ -79,9 +88,13 @@ class HowToPlayDialog {
                                   helpDialog: true,
                                 ),
                                 const SizedBox(width: 8.0),
-                                Text(
-                                  'Used: Each re-use doubles its value.',
-                                  style: gameLayoutManager.dialogContentStyle,
+                                Expanded(
+                                  child: Text(
+                                    'Used: Each re-use doubles its value.',
+                                    style: gameLayoutManager.dialogContentStyle,
+                                    softWrap: true,
+                                    overflow: TextOverflow.visible,
+                                  ),
                                 ),
                               ],
                             ),
@@ -98,6 +111,8 @@ class HowToPlayDialog {
                                   child: Text(
                                     'Wildcard: Multiplies word value.',
                                     style: gameLayoutManager.dialogContentStyle,
+                                    softWrap: true,
+                                    overflow: TextOverflow.visible,
                                   ),
                                 ),
                               ],
@@ -109,12 +124,18 @@ class HowToPlayDialog {
                               'Longer words = higher points!\n'
                               'Can you maximize the board and achieve the highest possible score?',
                               style: gameLayoutManager.dialogContentStyle,
+                              softWrap: true,
+                              overflow: TextOverflow.visible,
                             ),
                             const SizedBox(height: 12.0),
                             Center(
                               child: Text(
                                 'Re-Think. Strategize. Re-Word!\n',
-                                style: gameLayoutManager.dialogContentStyle.copyWith(fontWeight: FontWeight.bold),
+                                style: gameLayoutManager.dialogContentStyle.copyWith(
+                                  fontWeight: gameLayoutManager.defaultFontWeight,
+                                ),
+                                softWrap: true,
+                                overflow: TextOverflow.visible,
                               ),
                             ),
                           ],
