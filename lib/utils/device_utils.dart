@@ -28,6 +28,16 @@ class DeviceUtils {
 
       // Check for tablet form factor
       if (mediaQuery.isTablet) {
+        if (Platform.isIOS) {
+          SystemChrome.setPreferredOrientations([
+            DeviceOrientation.landscapeLeft,
+            DeviceOrientation.landscapeRight,
+            DeviceOrientation.portraitUp,
+            DeviceOrientation.portraitDown,
+          ]);
+          return;
+        }
+
         if (mediaQuery.isTallAspectRatio) {
           LogService.logInfo("📱 Tablet portrait detected, setting orientation: portrait only");
           SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -60,8 +70,9 @@ class DeviceUtils {
       return DeviceLayout(
         screenWidth: mediaQuery.size.width,
         screenHeight: mediaQuery.size.height,
-        safeScreenWidth: mediaQuery.size.width,
-        safeScreenHeight: mediaQuery.size.height,
+        // Correct way to get the proper height and size.
+        safeScreenWidth: mediaQuery.size.width - mediaQuery.padding.left - mediaQuery.padding.right,
+        safeScreenHeight: mediaQuery.size.height - mediaQuery.padding.top - mediaQuery.padding.bottom,
         isPhone: false,
         isTablet: false,
         isHybrid: false,
@@ -71,15 +82,11 @@ class DeviceUtils {
       );
     }
 
-    // For mobile platforms
-    final safeOffset = MediaQuery.of(context).padding.top + MediaQuery.of(context).padding.bottom;
-    double safeheight = mediaQuery.size.height - safeOffset;
-
     return DeviceLayout(
       screenWidth: mediaQuery.size.width,
       screenHeight: mediaQuery.size.height,
-      safeScreenWidth: mediaQuery.size.width,
-      safeScreenHeight: safeheight,
+      safeScreenWidth: mediaQuery.size.width - mediaQuery.padding.left - mediaQuery.padding.right,
+      safeScreenHeight: mediaQuery.size.height - mediaQuery.padding.top - mediaQuery.padding.bottom,
       isPhone: mediaQuery.isPhone,
       isTablet: mediaQuery.isTablet,
       isHybrid: mediaQuery.isHybrid,

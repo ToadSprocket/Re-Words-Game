@@ -36,7 +36,7 @@ import 'providers/game_state_provider.dart';
 const String MAJOR = "1";
 const String MINOR = "0";
 const String PATCH = "0";
-const String BUILD = "52";
+const String BUILD = "55";
 
 const String VERSION_STRING = "v$MAJOR.$MINOR.$PATCH+$BUILD";
 
@@ -201,6 +201,7 @@ class _ReWordAppState extends State<ReWordApp> {
                 final orientationProvider = Provider.of<OrientationProvider>(context, listen: false);
                 orientationProvider.initialize(context);
                 orientationProvider.changeOrientation(orientation, MediaQuery.of(context).size);
+                orientationProvider.updateSafeSize(context);
               }
             });
 
@@ -304,8 +305,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         if (hasChanged) {
           LogService.logInfo("Dependencies changed - orientation: $currentOrientation, size: $currentSize");
 
-          // Update the orientation provider
+          // Update the orientation provider with raw dimensions
           orientationProvider.changeOrientation(currentOrientation, currentSize);
+
+          // Update the safe screen dimensions
+          orientationProvider.updateSafeSize(context);
 
           // Let the board manager handle orientation change
           await boardManager.handleOrientationChange(context);
@@ -419,8 +423,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         if (hasChanged) {
           LogService.logInfo("Metrics changed - orientation: $currentOrientation, size: $currentSize");
 
-          // Update the orientation provider
+          // Update the orientation provider with raw dimensions
           orientationProvider.changeOrientation(currentOrientation, currentSize);
+
+          // Update the safe screen dimensions
+          orientationProvider.updateSafeSize(context);
 
           // Let the board manager handle orientation change
           await boardManager.handleOrientationChange(context);

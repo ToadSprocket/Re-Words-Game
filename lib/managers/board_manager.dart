@@ -134,12 +134,17 @@ class BoardManager {
 
   /// Handle app reload (after orientation change or app restart)
   Future<void> _handleAppReload(BuildContext context, ApiService api) async {
-    // First check if the board is expired
+    // Check if the board is expired or not current
     final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
-    LogService.logInfo("🔄 Board expired check on app reload: $isExpired");
+    final isBoardCurrent = await StateManager.isBoardCurrent();
+    LogService.logInfo("🔄 Board expired check on app reload: $isExpired, Board current? $isBoardCurrent");
 
-    if (isExpired) {
-      LogService.logInfo("🔄 Board is expired on app reload - loading new board");
+    if (isExpired || !isBoardCurrent) {
+      if (isExpired) {
+        LogService.logInfo("🔄 Board is expired on app reload - loading new board");
+      } else {
+        LogService.logInfo("🔄 Board is not current (not loaded today) on app reload - loading new board");
+      }
 
       // Temporarily reset the orientation change flag to allow loading a new board
       bool wasHandlingOrientationChange = _isHandlingOrientationChange;
@@ -252,16 +257,26 @@ class BoardManager {
 
       // First check if we need a new board
       final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
+      final isBoardCurrent = await StateManager.isBoardCurrent();
       final hasBoardData = await StateManager.hasBoardData();
 
-      LogService.logInfo("🔄 Loading board for user... isExpired: $isExpired, hasBoardData: $hasBoardData");
+      LogService.logInfo(
+        "🔄 Loading board for user... isExpired: $isExpired, isBoardCurrent: $isBoardCurrent, hasBoardData: $hasBoardData",
+      );
 
-      // Force load a new board if we don't have board data or if it's expired
-      if (!hasBoardData || isExpired) {
+      // Force load a new board if we don't have board data, if it's expired, or if it's not current
+      if (!hasBoardData || isExpired || !isBoardCurrent) {
+        if (isExpired) {
+          LogService.logInfo("🔄 Board is expired - Loading new board");
+        } else if (!isBoardCurrent) {
+          LogService.logInfo("🔄 Board is not current (not loaded today) - Loading new board");
+        } else {
+          LogService.logInfo("🔄 No board data available - Loading new board");
+        }
         await _loadNewBoard(context, api);
       } else {
-        // Board is still valid, restore previous state
-        LogService.logInfo("🔄 Restoring state...");
+        // Board is still valid and current, restore previous state
+        LogService.logInfo("🔄 Board is valid and current - Restoring state...");
         await StateManager.restoreState(gridKey, wildcardKey, scoreNotifier, spelledWordsNotifier);
 
         // Ensure UI components are updated
@@ -488,17 +503,22 @@ class BoardManager {
       LogService.logInfo("App resume check: Game loaded? $isGameLoaded");
 
       if (isGameLoaded) {
-        // Game is loaded, check if board has expired
+        // Game is loaded, check if board has expired or is not current
         bool isBoardExpired = await StateManager.isBoardExpired();
-        LogService.logInfo("App resume check: Board expired? $isBoardExpired");
+        bool isBoardCurrent = await StateManager.isBoardCurrent();
+        LogService.logInfo("App resume check: Board expired? $isBoardExpired, Board current? $isBoardCurrent");
 
-        if (isBoardExpired) {
-          // Board expired while app was paused, load new board
-          LogService.logInfo("Board expired during pause - Loading new board");
+        if (isBoardExpired || !isBoardCurrent) {
+          // Board expired or not current (not loaded today), load new board
+          if (isBoardExpired) {
+            LogService.logInfo("Board expired during pause - Loading new board");
+          } else {
+            LogService.logInfo("Board is not current (not loaded today) - Loading new board");
+          }
           await loadBoardForUser(context, api);
         } else {
-          // Board still valid, restore state from preferences
-          LogService.logInfo("Board still valid - Restoring state from preferences");
+          // Board still valid and current, restore state from preferences
+          LogService.logInfo("Board still valid and current - Restoring state from preferences");
           await StateManager.restoreState(gridKey, wildcardKey, scoreNotifier, spelledWordsNotifier);
           _syncUIComponents();
         }

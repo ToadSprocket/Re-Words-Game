@@ -234,6 +234,7 @@ class GameLayoutManager {
     if (currentDeviceInfo.isTablet || currentDeviceInfo.isHybrid) {
       isTablet = true;
       screenHeight = currentDeviceInfo.safeScreenHeight;
+      screenWidth = currentDeviceInfo.safeScreenWidth;
     }
 
     if (currentDeviceInfo.isPhone) {
@@ -528,7 +529,7 @@ class GameLayoutManager {
       LogService.logInfo("Applied iOS font scaling: $iosFontScaleFactor and normal font weight");
     } else {
       // Use bold font weight for non-iOS platforms
-      defaultFontWeight = FontWeight.bold;
+      defaultFontWeight = GameLayoutManager().defaultFontWeight;
     }
 
     // Popup dimensions

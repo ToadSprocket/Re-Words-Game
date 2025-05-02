@@ -283,6 +283,47 @@ class StateManager {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
+  /// Check if the board is current (loaded today)
+  /// This is different from isBoardExpired() which checks if the board has expired
+  /// A board can be not expired but also not current (e.g., if it was loaded yesterday)
+  static Future<bool> isBoardCurrent() async {
+    final prefs = await SharedPreferences.getInstance();
+    final boardLoadedDateUtc = prefs.getString('boardLoadedDate');
+
+    if (boardLoadedDateUtc == null) {
+      LogService.logError("🚨 No board loaded date found. Returning false.");
+      return false;
+    }
+
+    // ✅ Get user's timezone
+    String localTimeZone = await FlutterTimezone.getLocalTimezone();
+    tz.initializeTimeZones();
+    final location = tz.getLocation(localTimeZone);
+
+    // ✅ Convert stored UTC load date to DateTime
+    final utcLoadTime = DateTime.parse(boardLoadedDateUtc).toUtc();
+
+    // ✅ Convert UTC load date to user's local timezone
+    final localLoadTime = tz.TZDateTime.from(utcLoadTime, location);
+
+    // ✅ Get current time in user's timezone
+    final nowLocal = tz.TZDateTime.now(location);
+
+    // ✅ Check if the board was loaded today
+    final isSameDay =
+        localLoadTime.year == nowLocal.year &&
+        localLoadTime.month == nowLocal.month &&
+        localLoadTime.day == nowLocal.day;
+
+    LogService.logInfo("🌍 User Timezone: $localTimeZone");
+    LogService.logInfo("🌍 Current Local Time: $nowLocal");
+    LogService.logInfo("🌍 Board Loaded UTC: $utcLoadTime");
+    LogService.logInfo("🌍 Board Loaded Local: $localLoadTime");
+    LogService.logInfo("🌍 Board Loaded Today?: $isSameDay");
+
+    return isSameDay;
+  }
+
   static Future<bool> isBoardExpired() async {
     final prefs = await SharedPreferences.getInstance();
     final expireDateUtc = prefs.getString('boardExpireDate');
