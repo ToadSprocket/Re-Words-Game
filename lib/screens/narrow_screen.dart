@@ -7,6 +7,7 @@ import '../managers/state_manager.dart'; // Add StateManager import
 import '../logic/spelled_words_handler.dart';
 import '../logic/grid_loader.dart'; // Add GridLoader import
 import '../providers/game_state_provider.dart'; // Import GameStateProvider
+import '../utils/device_utils.dart'; // Import DeviceUtils
 import '../components/game_top_bar_component.dart';
 import '../components/game_title_component.dart';
 import '../components/game_scores_component.dart';
@@ -76,7 +77,7 @@ class NarrowScreen extends StatelessWidget {
           showBorders: showBorders,
           gameLayoutManager: gameLayoutManager,
         ),
-        const Divider(height: 1.0, thickness: 1.0, color: Colors.grey),
+        const Divider(height: 0.5, thickness: 1.0, color: Colors.grey),
         Container(
           width: gameLayoutManager.gameContainerWidth,
           child: Column(
@@ -198,7 +199,7 @@ class NarrowScreen extends StatelessWidget {
                 disableSpellCheck: spelledWordsLogic.disableSpellCheck,
                 updateCurrentGameState: updateCurrentGameState,
               ),
-              SizedBox(height: gameLayoutManager.gridSpacing * 0.7), // Reduced spacing by 30%
+              SizedBox(height: gameLayoutManager.gridSpacing),
               ValueListenableBuilder<String>(
                 valueListenable: messageNotifier,
                 builder: (context, message, child) {
@@ -211,7 +212,6 @@ class NarrowScreen extends StatelessWidget {
                   );
                 },
               ),
-
               WildcardColumnComponent(
                 key: wildcardKey,
                 width: gameLayoutManager.gameContainerWidth,
@@ -221,8 +221,7 @@ class NarrowScreen extends StatelessWidget {
                 gridSpacing: gameLayoutManager.gridSpacing,
                 gameLayoutManager: gameLayoutManager,
               ),
-
-              //SizedBox(height: gameLayoutManager.gridSpacing * 0.4), // Reduced spacing by 30%
+              SizedBox(height: gameLayoutManager.gridSpacing),
               GameButtonsComponent(onSubmit: onSubmit, onClear: onClear, gameLayoutManager: gameLayoutManager),
             ],
           ),

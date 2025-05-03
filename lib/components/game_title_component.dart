@@ -121,7 +121,7 @@ class _GameTitleComponentState extends State<GameTitleComponent> {
                         letter,
                         style: TextStyle(
                           fontSize: widget.gameLayoutManager.titleFontSize,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: GameLayoutManager().defaultFontWeight,
                           color: AppStyles.headerTextColor,
                         ),
                       ),

@@ -132,7 +132,7 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
                   },
                   tooltip: widget.api.loggedIn ? (kIsWeb ? 'Logged In (Alpha)' : 'Logged In') : 'Login',
                 ),
-                const SizedBox(width: 6.0),
+                const SizedBox(width: 3.0),
               ],
             ),
           ],

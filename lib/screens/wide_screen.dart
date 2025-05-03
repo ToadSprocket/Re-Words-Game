@@ -95,7 +95,6 @@ class WideScreen extends StatelessWidget {
                       spelledWordsLogic: spelledWordsLogic,
                       gameLayoutManager: gameLayoutManager,
                     ),
-                    const Divider(height: 1.0, thickness: 1.0, color: Color.fromARGB(237, 94, 94, 94)),
                   ],
                 ),
               ),

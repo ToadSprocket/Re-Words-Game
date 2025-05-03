@@ -66,14 +66,6 @@ class SpelledWordsTickerComponent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Latest Words',
-          style: TextStyle(
-            fontSize: gameLayoutManager.tickerTitleFontSize,
-            color: AppStyles.spelledWordsTextColor,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
         const SizedBox(height: 4.0),
         GestureDetector(
           onTap: onTap ?? () => SpelledWordsPopup.show(context, gameLayoutManager),

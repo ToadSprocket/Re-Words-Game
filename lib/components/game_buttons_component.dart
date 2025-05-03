@@ -17,27 +17,35 @@ class GameButtonsComponent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        ElevatedButton(
-          onPressed: onSubmit,
-          style: gameLayoutManager.buttonStyle(context),
-          child: Transform.translate(
-            offset: Offset(0, gameLayoutManager.buttonTextOffset), // -4.0 moves up
-            child: const Text("Submit"),
+    return SizedBox(
+      height: gameLayoutManager.gameButtonsComponentHeight,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: onSubmit,
+                style: gameLayoutManager.buttonStyle(context),
+                child: Transform.translate(
+                  offset: Offset(0, gameLayoutManager.buttonTextOffset),
+                  child: const Text("Submit"),
+                ),
+              ),
+              const SizedBox(width: 16.0),
+              ElevatedButton(
+                onPressed: onClear,
+                style: gameLayoutManager.buttonStyle(context),
+                child: Transform.translate(
+                  offset: Offset(0, gameLayoutManager.buttonTextOffset),
+                  child: const Text("Clear"),
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(width: 16.0),
-        ElevatedButton(
-          onPressed: onClear,
-          style: gameLayoutManager.buttonStyle(context),
-          child: Transform.translate(
-            offset: Offset(0, gameLayoutManager.buttonTextOffset), // -4.0 moves up
-            child: const Text("Clear"),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

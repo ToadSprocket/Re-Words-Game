@@ -73,6 +73,7 @@ class DeviceUtils {
         // Correct way to get the proper height and size.
         safeScreenWidth: mediaQuery.size.width - mediaQuery.padding.left - mediaQuery.padding.right,
         safeScreenHeight: mediaQuery.size.height - mediaQuery.padding.top - mediaQuery.padding.bottom,
+        aspectRatio: mediaQuery.aspectRatio,
         isPhone: false,
         isTablet: false,
         isHybrid: false,
@@ -87,6 +88,7 @@ class DeviceUtils {
       screenHeight: mediaQuery.size.height,
       safeScreenWidth: mediaQuery.size.width - mediaQuery.padding.left - mediaQuery.padding.right,
       safeScreenHeight: mediaQuery.size.height - mediaQuery.padding.top - mediaQuery.padding.bottom,
+      aspectRatio: mediaQuery.aspectRatio,
       isPhone: mediaQuery.isPhone,
       isTablet: mediaQuery.isTablet,
       isHybrid: mediaQuery.isHybrid,
@@ -157,10 +159,10 @@ extension OrientationExtension on MediaQueryData {
   bool get isTallAspectRatio => aspectRatio <= 0.75;
 
   // Phone detection: tall and skinny (aspect ratio <= 0.667, e.g., 16:9 or taller)
-  bool get isPhone => aspectRatio <= 0.667;
+  bool get isPhone => aspectRatio < 0.6;
 
   // Tablet detection: squarer (aspect ratio between 1.3 and 1.6, e.g., 4:3 or 16:10)
-  bool get isTablet => aspectRatio >= 1.3 && aspectRatio <= 1.6;
+  bool get isTablet => aspectRatio > 0.6 && aspectRatio <= 1.6;
 
   // Optional: Hybrid check (large phones or small tablets, e.g., 6.5–8" with phone-like aspect ratio)
   bool get isHybrid => inches > 6.5 && inches <= 8.0 && aspectRatio <= 0.667;

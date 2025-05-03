@@ -57,7 +57,7 @@ class GameScores extends StatelessWidget {
                   'Score: ${SpelledWordsLogic.score}',
                   style: TextStyle(
                     fontSize: gameLayoutManager.scoreFontSize,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: GameLayoutManager().defaultFontWeight,
                     color: AppStyles.spelledWordsTitleColor,
                   ),
                 ),
@@ -88,7 +88,7 @@ class GameScores extends StatelessWidget {
                   'Words: $wordCount',
                   style: TextStyle(
                     fontSize: gameLayoutManager.scoreFontSize,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: GameLayoutManager().defaultFontWeight,
                     color: AppStyles.spelledWordsTitleColor,
                   ),
                 ),

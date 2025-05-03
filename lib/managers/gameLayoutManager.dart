@@ -227,7 +227,7 @@ class GameLayoutManager {
     final currentOrientation = currentDeviceInfo.orientation;
 
     LogService.logInfo(
-      "Width: $screenWidth, Height: $screenHeight, SafeWidth: ${currentDeviceInfo.safeScreenWidth}, SafeHeight: ${currentDeviceInfo.safeScreenHeight}, Orientation: $currentOrientation, IsTall: ${currentDeviceInfo.isTall}, IsWide: ${currentDeviceInfo.isWide}",
+      "Width: $screenWidth, Height: $screenHeight, SafeWidth: ${currentDeviceInfo.safeScreenWidth}, SafeHeight: ${currentDeviceInfo.safeScreenHeight}, Orientation: $currentOrientation, IsTall: ${currentDeviceInfo.isTall}, IsWide: ${currentDeviceInfo.isWide}, Aspect Ratio: ${currentDeviceInfo.aspectRatio}, Tablet: ${currentDeviceInfo.isTablet}, Phone: ${currentDeviceInfo.isPhone}, Hybrid: ${currentDeviceInfo.isHybrid}",
     );
 
     // If this is a tablet we need to adjust for the safe areas.
@@ -267,14 +267,29 @@ class GameLayoutManager {
     // Determine if we should use narrow layout using the well-tested DeviceUtils method
     bool isNarrowLayout = DeviceUtils.shouldUseNarrowLayout(context, NARROW_LAYOUT_THRESHOLD);
 
+    LogService.logInfo("IsNarrow: $isNarrowLayout");
+
     // Calculate border properties
     componentBorderThickness = (screenWidth * 0.002).clamp(1.0, 2.0);
     componentBorderRadius = 8.0;
 
     // Calculate grid size first
     if (isNarrowLayout) {
-      // Increase grid size by ~6% by reducing divisor from 8.5 to 8.0
-      gridSquareSize = (screenWidth / 8.0).clamp(42.0, 55.0); // Increased min/max values
+      // Add aspect ratio-based grid sizing for tablets in portrait mode
+      if (currentDeviceInfo.isTablet && currentDeviceInfo.aspectRatio > 0.6) {
+        // For tablets with wider aspect ratios, use a larger divisor (smaller grid)
+        double tabletDivisor = 8.5 + ((currentDeviceInfo.aspectRatio - 0.6) * 3.0);
+
+        // Extra adjustment for iPad Mini (aspect ratio ~0.657)
+        if (currentDeviceInfo.aspectRatio > 0.65 && currentDeviceInfo.aspectRatio < 0.7) {
+          tabletDivisor += 0.2; // Increase from 0.1 to 0.2 for iPad Mini
+        }
+
+        gridSquareSize = (screenWidth / tabletDivisor).clamp(38.0, 50.0);
+      } else {
+        // Keep existing calculation for phones
+        gridSquareSize = (screenWidth / 8.0).clamp(42.0, 55.0);
+      }
       gridSpacing = 3.0;
     } else {
       // For wide layout, calculate grid size based on both screen dimensions
@@ -314,11 +329,18 @@ class GameLayoutManager {
     // Adjust grid size if container is wider in narrow layout
     if (isNarrowLayout && gridWidthSize < gameContainerWidth - (GameConstants.baseGridSideSpacing * 2)) {
       // Recalculate grid square size to better fill the container width
+      double maxGridSize = 120.0;
+
+      // For tablets with high aspect ratios, use a lower maximum value
+      if (currentDeviceInfo.isTablet && currentDeviceInfo.aspectRatio > 0.7) {
+        maxGridSize = 110.0; // Reduce maximum size for iPad Pro and similar tablets
+      }
+
       gridSquareSize = ((gameContainerWidth - (GameConstants.baseGridSideSpacing * 2)) /
               (GameConstants.gridCols + (GameConstants.gridCols - 1) * (gridSpacing / gridSquareSize)))
           .clamp(
             40.0, // Minimum for narrow layout
-            120.0, // Maximum for narrow layout
+            maxGridSize, // Maximum adjusted for device type
           );
       // Update grid dimensions with new square size
       gridWidthSize = (gridSquareSize * GameConstants.gridCols) + (gridSpacing * (GameConstants.gridCols - 1));
@@ -388,7 +410,7 @@ class GameLayoutManager {
       gameTitleComponentHeight = (screenHeight * 0.08).clamp(50.0, 100.0);
       gameMessageComponentHeight = (screenHeight * 0.06).clamp(40.0, 50.0);
       gameScoresComponentHeight = (screenHeight * 0.06).clamp(40.0, 50.0);
-      gameButtonsComponentHeight = (screenHeight * 0.06).clamp(40.0, 50.0);
+      gameButtonsComponentHeight = (screenHeight * 0.06).clamp(40.0, 80.0);
     } else {
       // Wide layout - calculate based on both dimensions
       // Title can be taller in wide layout
@@ -405,7 +427,7 @@ class GameLayoutManager {
 
       // Buttons area needs enough space for interaction
       baseHeight = min(screenHeight * 0.07, screenWidth * 0.04);
-      gameButtonsComponentHeight = baseHeight.clamp(45.0, 70.0);
+      gameButtonsComponentHeight = baseHeight.clamp(50.0, 70.0);
     }
 
     infoBoxHeight =
@@ -454,8 +476,23 @@ class GameLayoutManager {
 
     // Distribute remaining height based on layout
     if (isNarrowLayout) {
-      wilcardsContainerHeight = (availableHeight * 0.15).clamp(80.0, 120.0);
-      spelledWordsContainerHeight = (availableHeight * 0.25).clamp(120.0, 200.0);
+      if (currentDeviceInfo.isTablet) {
+        // Smaller container heights for tablets
+        wilcardsContainerHeight = (availableHeight * 0.12).clamp(
+          70.0,
+          110.0,
+        ); // Increase min from 60 to 70, max from 100 to 110
+        spelledWordsContainerHeight = (availableHeight * 0.20).clamp(100.0, 160.0);
+
+        // Extra adjustment for iPad Mini (aspect ratio ~0.657)
+        if (currentDeviceInfo.aspectRatio > 0.65 && currentDeviceInfo.aspectRatio < 0.7) {
+          spelledWordsContainerHeight -= 5.0; // Increase from 3.0 to 5.0 pixels to fix the overflow
+        }
+      } else {
+        // Original values for phones
+        wilcardsContainerHeight = (availableHeight * 0.15).clamp(80.0, 120.0);
+        spelledWordsContainerHeight = (availableHeight * 0.25).clamp(120.0, 200.0);
+      }
       gameContainerHeight = availableHeight - wilcardsContainerHeight - spelledWordsContainerHeight;
       spelledWordsContainerWidth = gameContainerWidth;
     } else {
@@ -473,12 +510,16 @@ class GameLayoutManager {
     gameButtonsComponentWidth = gameContainerWidth;
 
     // Calculate button dimensions
-    buttonVerticalPadding = (screenHeight * (isNarrowLayout ? 0.012 : 0.016)).clamp(11.0, 28.0);
+    buttonVerticalPadding = (screenHeight * (isNarrowLayout ? 0.010 : 0.014)).clamp(11.0, 20.0);
     buttonHorizontalPadding = (screenWidth * (isNarrowLayout ? 0.012 : 0.016)).clamp(18.0, 38.0);
     buttonBorderRadius = (buttonFontSize * 1.6).clamp(12.0, 38.0);
     buttonBorderThickness = (screenWidth * 0.002).clamp(1.0, 3.0);
     buttonTextOffset = -(buttonVerticalPadding * 0.070);
     buttonHeight = buttonFontSize + (2 * buttonVerticalPadding) + (2 * buttonBorderThickness);
+
+    LogService.logInfo(
+      "Button height: $buttonHeight, gameButtonsComponentHeight: $gameButtonsComponentHeight, ButtonVerticalPadding: $buttonVerticalPadding",
+    );
 
     // Calculate dialog dimensions
     // For narrow layouts, ensure dialogs are wide enough to prevent button text wrapping
@@ -529,7 +570,7 @@ class GameLayoutManager {
       LogService.logInfo("Applied iOS font scaling: $iosFontScaleFactor and normal font weight");
     } else {
       // Use bold font weight for non-iOS platforms
-      defaultFontWeight = GameLayoutManager().defaultFontWeight;
+      defaultFontWeight = FontWeight.bold;
     }
 
     // Popup dimensions
@@ -550,10 +591,25 @@ class GameLayoutManager {
 
     spelledWordStyle = TextStyle(fontSize: spelledWordsFontSize, fontWeight: FontWeight.normal, color: Colors.white);
 
+    // Apply grid size reduction for all tablets in portrait mode
+    if (currentDeviceInfo.isTablet && currentOrientation == Orientation.portrait) {
+      // Apply a base reduction for all tablets in portrait mode
+      gridSquareSize *= 0.92; // 8% reduction for all tablets
+
+      // Additional reduction for iPad Mini if needed
+      if (currentDeviceInfo.aspectRatio > 0.65 && currentDeviceInfo.aspectRatio < 0.7) {
+        gridSquareSize *= 0.97; // Extra 3% reduction (total ~11%)
+      }
+
+      // Recalculate grid dimensions with new square size
+      gridWidthSize = (gridSquareSize * GameConstants.gridCols) + (gridSpacing * (GameConstants.gridCols - 1));
+      gridHeightSize = (gridSquareSize * GameConstants.gridRows) + (gridSpacing * (GameConstants.gridRows - 1));
+    }
+
     var gameLayout = isNarrowLayout ? 'Narrow' : 'Wide';
 
     LogService.logInfo(
-      "W: $screenWidth, H: $screenHeight, GAMBX: $gameBoxHeight, TOT: $totalFixedHeight, INF: $infoBoxHeight TIT: $gameTitleComponentHeight, SCR: $gameScoresComponentHeight, GRD: $gridHeightSize, MSG: $gameMessageComponentHeight, BUT: $gameButtonsComponentHeight, WLD: $wilcardsContainerHeight, SPL: $spelledWordsContainerHeight",
+      "W: $screenWidth, H: $screenHeight, GAMBX: $gameBoxHeight, TOT: $totalFixedHeight, INF: $infoBoxHeight TIT: $gameTitleComponentHeight, SCR: $gameScoresComponentHeight, GRD: $gridHeightSize, MSG: $gameMessageComponentHeight, BUT: $gameButtonsComponentHeight, WLD: $wilcardsContainerHeight, SPL: $spelledWordsContainerHeight, GRDSQR: $gridSquareSize, GRDSPC: $gridSpacing",
     );
   }
 }

@@ -194,7 +194,7 @@ class _IntroAnimationState extends State<IntroAnimation> with TickerProviderStat
                               title[index],
                               style: TextStyle(
                                 fontSize: widget.gameLayoutManager.titleFontSize * 1.5,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: GameLayoutManager().defaultFontWeight,
                                 color: AppStyles.headerTextColor,
                                 shadows: [
                                   Shadow(

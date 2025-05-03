@@ -6,6 +6,7 @@ class DeviceLayout {
   final double screenHeight;
   final double safeScreenWidth;
   final double safeScreenHeight;
+  final double aspectRatio;
   final bool isPhone;
   final bool isTablet;
   final bool isHybrid;
@@ -18,6 +19,7 @@ class DeviceLayout {
     required this.screenHeight,
     required this.safeScreenWidth,
     required this.safeScreenHeight,
+    required this.aspectRatio,
     required this.isPhone,
     required this.isTablet,
     required this.isHybrid,
