@@ -32,7 +32,7 @@ class GameTopBarComponent extends StatefulWidget {
   });
 
   @override
-  _GameTopBarComponentState createState() => _GameTopBarComponentState();
+  State<GameTopBarComponent> createState() => _GameTopBarComponentState();
 }
 
 class _GameTopBarComponentState extends State<GameTopBarComponent> {
@@ -57,87 +57,93 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
   Widget build(BuildContext context) {
     bool isLoggedIn = widget.api.loggedIn ?? false;
 
-    return Container(
-      decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 1)) : null,
-      child: SizedBox(
-        width: double.infinity,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Left side - Display name
-            if (isLoggedIn && widget.api.displayName != null)
-              Padding(
-                padding: const EdgeInsets.only(left: 8.0),
-                child: Text(
-                  widget.api.displayName!,
-                  style: TextStyle(color: Colors.green, fontSize: 14.0, fontWeight: FontWeight.w500),
-                ),
-              )
-            else
-              // Empty container to maintain layout when not logged in
-              Container(),
-
-            // Right side - Icons in a Row
-            Row(
-              mainAxisSize: MainAxisSize.min,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 1)) : null,
+          child: SizedBox(
+            width: double.infinity,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.help_outline, size: 20.0, color: AppStyles.infoBarIconColors),
-                  padding: const EdgeInsets.all(4.0),
-                  constraints: const BoxConstraints(),
-                  onPressed: widget.onInstructions,
-                  tooltip: 'How to Play',
+                // Left side - Display name
+                if (isLoggedIn && widget.api.displayName != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: Text(
+                      widget.api.displayName!,
+                      style: TextStyle(color: Colors.green, fontSize: 14.0, fontWeight: FontWeight.w500),
+                    ),
+                  )
+                else
+                  // Empty container to maintain layout when not logged in
+                  Container(),
+
+                // Right side - Icons in a Row
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.help_outline, size: 20.0, color: AppStyles.infoBarIconColors),
+                      padding: const EdgeInsets.all(4.0),
+                      constraints: const BoxConstraints(),
+                      onPressed: widget.onInstructions,
+                      tooltip: 'How to Play',
+                    ),
+                    const SizedBox(width: 6.0),
+                    IconButton(
+                      icon: const Icon(Icons.bar_chart, size: 20.0, color: AppStyles.infoBarIconColors),
+                      padding: const EdgeInsets.all(4.0),
+                      constraints: const BoxConstraints(),
+                      onPressed: widget.onHighScores,
+                      tooltip: 'High Scores',
+                    ),
+                    const SizedBox(width: 6.0),
+                    IconButton(
+                      icon: const Icon(Icons.gavel, size: 20.0, color: AppStyles.infoBarIconColors),
+                      padding: const EdgeInsets.all(4.0),
+                      constraints: const BoxConstraints(),
+                      onPressed: widget.onLegal,
+                      tooltip: 'Legal',
+                    ),
+                    const SizedBox(width: 6.0),
+                    IconButton(
+                      icon: Icon(
+                        widget.api.loggedIn ? Icons.account_circle : Icons.login,
+                        size: 20.0,
+                        color: widget.api.loggedIn ? Colors.green : AppStyles.infoBarIconColors,
+                      ),
+                      padding: const EdgeInsets.all(4.0),
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        if (widget.api.loggedIn) {
+                          // During alpha testing, prevent web users from logging out
+                          if (kIsWeb) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Logout disabled during alpha testing on web.'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                            return;
+                          }
+                          LogoutDialog.show(context, widget.api, widget.gameLayoutManager);
+                        } else {
+                          widget.onLogin();
+                        }
+                      },
+                      tooltip: widget.api.loggedIn ? (kIsWeb ? 'Logged In (Alpha)' : 'Logged In') : 'Login',
+                    ),
+                    const SizedBox(width: 3.0),
+                  ],
                 ),
-                const SizedBox(width: 6.0),
-                IconButton(
-                  icon: const Icon(Icons.bar_chart, size: 20.0, color: AppStyles.infoBarIconColors),
-                  padding: const EdgeInsets.all(4.0),
-                  constraints: const BoxConstraints(),
-                  onPressed: widget.onHighScores,
-                  tooltip: 'High Scores',
-                ),
-                const SizedBox(width: 6.0),
-                IconButton(
-                  icon: const Icon(Icons.gavel, size: 20.0, color: AppStyles.infoBarIconColors),
-                  padding: const EdgeInsets.all(4.0),
-                  constraints: const BoxConstraints(),
-                  onPressed: widget.onLegal,
-                  tooltip: 'Legal',
-                ),
-                const SizedBox(width: 6.0),
-                IconButton(
-                  icon: Icon(
-                    widget.api.loggedIn ? Icons.account_circle : Icons.login,
-                    size: 20.0,
-                    color: widget.api.loggedIn ? Colors.green : AppStyles.infoBarIconColors,
-                  ),
-                  padding: const EdgeInsets.all(4.0),
-                  constraints: const BoxConstraints(),
-                  onPressed: () {
-                    if (widget.api.loggedIn) {
-                      // During alpha testing, prevent web users from logging out
-                      if (kIsWeb) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Logout disabled during alpha testing on web.'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                        return;
-                      }
-                      LogoutDialog.show(context, widget.api, widget.gameLayoutManager);
-                    } else {
-                      widget.onLogin();
-                    }
-                  },
-                  tooltip: widget.api.loggedIn ? (kIsWeb ? 'Logged In (Alpha)' : 'Logged In') : 'Login',
-                ),
-                const SizedBox(width: 3.0),
               ],
             ),
-          ],
+          ),
         ),
-      ),
+        const Divider(height: 0.5, thickness: 1.0, color: Colors.grey),
+      ],
     );
   }
 }

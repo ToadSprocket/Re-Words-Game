@@ -77,7 +77,6 @@ class NarrowScreen extends StatelessWidget {
           showBorders: showBorders,
           gameLayoutManager: gameLayoutManager,
         ),
-        const Divider(height: 0.5, thickness: 1.0, color: Colors.grey),
         Container(
           width: gameLayoutManager.gameContainerWidth,
           child: Column(

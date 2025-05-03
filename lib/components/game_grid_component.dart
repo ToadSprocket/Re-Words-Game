@@ -202,9 +202,10 @@ class GameGridComponentState extends State<GameGridComponent> {
         // If we're in newBoard state and have words, transition to inProgress
         if (gameStateProvider.boardState == BoardState.newBoard && SpelledWordsLogic.spelledWords.isNotEmpty) {
           gameStateProvider.updateBoardState(BoardState.inProgress);
-          // Save the updated state
-          gameStateProvider.saveState();
         }
+
+        // Save the state after each successful word addition
+        gameStateProvider.saveState();
 
         // Mark tiles as used
         for (var tile in selectedTiles) {
@@ -293,6 +294,10 @@ class GameGridComponentState extends State<GameGridComponent> {
                       gridTiles[index].applyWildcard(details.data.letter, details.data.value);
                       widget.onMessage('Wildcard applied to ${gridTiles[index].letter}');
                       _incrementWildcardUse();
+
+                      // Save the state after applying a wildcard
+                      final gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
+                      gameStateProvider.saveState();
                     },
                     onLeave: (Tile? tile) {
                       // ✅ Optional: Reset message if user drags away
