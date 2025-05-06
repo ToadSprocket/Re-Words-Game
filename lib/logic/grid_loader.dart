@@ -42,6 +42,7 @@ class GridLoader {
   };
 
   static Future<bool> loadStoredBoard() async {
+    LogService.logEvent("GL:LoadStoredBoard");
     try {
       // Clear existing data first
       gridTiles.clear();
@@ -52,6 +53,7 @@ class GridLoader {
       _gridData = await StateManager.getBoardData();
       if (_gridData.isEmpty) {
         LogService.logError("No stored board data available");
+        LogService.logEvent("GL:LoadStoredBoard:NoData");
         return false;
       }
 
@@ -60,6 +62,7 @@ class GridLoader {
         LogService.logError(
           "Stored board data is missing required fields: grid=${_gridData.containsKey('grid')}, wildcards=${_gridData.containsKey('wildcards')}",
         );
+        LogService.logEvent("GL:LoadStoredBoard:MissingFields");
         return false;
       }
 
@@ -71,6 +74,7 @@ class GridLoader {
         LogService.logError(
           "Stored board data has empty grid or wildcards: grid=${grid?.length ?? 0}, wildcards=${wildcards?.length ?? 0}",
         );
+        LogService.logEvent("GL:LoadStoredBoard:EmptyData");
         return false;
       }
 
@@ -82,6 +86,7 @@ class GridLoader {
         LogService.logError(
           "Failed to load tiles from stored board data: gridTiles=${gridTiles.length}, wildcardTiles=${wildcardTiles.length}",
         );
+        LogService.logEvent("GL:LoadStoredBoard:NoTiles");
         return false;
       }
 
@@ -89,14 +94,17 @@ class GridLoader {
         "Successfully loaded board from stored data: " +
             "gridTiles=${gridTiles.length}, wildcardTiles=${wildcardTiles.length}",
       );
+      LogService.logEvent("GL:LoadStoredBoard:Success");
       return true;
     } catch (e) {
       LogService.logError("Error loading stored board: $e");
+      LogService.logEvent("GL:LoadStoredBoard:Error");
       return false;
     }
   }
 
   static Future<bool> loadNewBoard(ApiService apiService, SubmitScoreRequest scoreData) async {
+    LogService.logEvent("GL:LoadNewBoard");
     final prefs = await SharedPreferences.getInstance();
 
     try {
@@ -109,6 +117,7 @@ class GridLoader {
 
       if (gameData == null) {
         LogService.logError("getGameToday returned null gameData");
+        LogService.logEvent("GL:LoadNewBoard:NullData");
         return false;
       }
 
@@ -128,9 +137,11 @@ class GridLoader {
       // ✅ Set board values (letters, wildcards)
       _setBoardValues();
 
+      LogService.logEvent("GL:LoadNewBoard:Success");
       return true;
     } catch (e) {
       LogService.logError("Error loading new board: $e");
+      LogService.logEvent("GL:LoadNewBoard:Error");
       return false;
     }
   }

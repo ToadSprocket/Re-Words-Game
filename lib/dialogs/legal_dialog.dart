@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../managers/gameLayoutManager.dart';
 import '../dialogs/delete_account_dialog.dart';
 import '../main.dart' show VERSION_STRING;
+import '../logic/logging_handler.dart';
 
 class LegalDialog {
   static void show(BuildContext context, ApiService api, GameLayoutManager gameLayoutManager) {
@@ -130,6 +131,66 @@ class LegalDialog {
                               ),
                             ),
                             const SizedBox(height: 22),
+
+                            // Add debug logs section
+                            ...[
+                              const SizedBox(height: 16.0),
+                              Divider(color: Colors.grey.withOpacity(0.5), thickness: 1),
+                              const SizedBox(height: 16.0),
+
+                              // Logs section header with a button to clear logs
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Debug Logs',
+                                    style: gameLayoutManager.dialogTitleStyle.copyWith(fontSize: 18.0),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      // Clear logs and rebuild dialog
+                                      LogService.clearEvents();
+                                      Navigator.of(context).pop();
+                                      LegalDialog.show(context, api, gameLayoutManager);
+                                    },
+                                    child: Text('Clear Logs', style: TextStyle(color: Colors.blue)),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12.0),
+
+                              // Container for logs with a different background to distinguish it
+                              Container(
+                                padding: EdgeInsets.all(8.0),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // If no logs, show a message
+                                    if (LogService.getLogEvents().isEmpty)
+                                      Text('No logs recorded yet.', style: gameLayoutManager.dialogContentStyle),
+
+                                    // Otherwise, show all logs
+                                    ...LogService.getLogEvents().map((log) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 4.0),
+                                        child: Text(
+                                          log,
+                                          style: gameLayoutManager.dialogContentStyle.copyWith(
+                                            fontSize: 12.0,
+                                            fontFamily: 'monospace',
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 24.0),
+                            ],
                           ],
                         ),
                       ),

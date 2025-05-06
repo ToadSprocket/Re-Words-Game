@@ -25,6 +25,7 @@ class StateManager {
     GlobalKey<GameGridComponentState> gridKey,
     GlobalKey<WildcardColumnComponentState> wildcardKey,
   ) async {
+    LogService.logEvent("SS:SaveState");
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('spelledWords', SpelledWordsLogic.spelledWords);
     await prefs.setInt('score', SpelledWordsLogic.score);
@@ -60,7 +61,6 @@ class StateManager {
 
     // Save a special flag to indicate that we have saved state for orientation change
     await prefs.setBool('hasOrientationState', true);
-    LogService.logInfo("Game state saved with orientation flag");
   }
 
   static Future<void> restoreState(
@@ -69,6 +69,7 @@ class StateManager {
     ValueNotifier<int> scoreNotifier,
     ValueNotifier<List<String>> spelledWordsNotifier,
   ) async {
+    LogService.logEvent("RS:RestoreState");
     final prefs = await SharedPreferences.getInstance();
 
     // Check if we have orientation state
@@ -152,6 +153,7 @@ class StateManager {
   }
 
   static Future<void> resetState(GlobalKey<GameGridComponentState>? gridKey) async {
+    LogService.logEvent("RS:ResetState");
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('spelledWords');
     await prefs.remove('score');
@@ -177,6 +179,10 @@ class StateManager {
     final hasSelectedIndices = prefs.containsKey('selectedIndices');
     final hasWildcardTiles = prefs.containsKey('wildcardTiles');
     final hasBoardExpireDate = prefs.containsKey('boardExpireDate');
+
+    var hasData = hasGridTiles && hasSelectedIndices && hasWildcardTiles && hasBoardExpireDate;
+
+    LogService.logEvent("HSB:HasData:$hasData");
 
     // All components must be present for valid board data
     return hasGridTiles && hasSelectedIndices && hasWildcardTiles && hasBoardExpireDate;
@@ -321,6 +327,8 @@ class StateManager {
     LogService.logInfo("🌍 Board Loaded Local: $localLoadTime");
     LogService.logInfo("🌍 Board Loaded Today?: $isSameDay");
 
+    LogService.logEvent("IBC:IsCurrent:$isSameDay");
+
     return isSameDay;
   }
 
@@ -360,6 +368,8 @@ class StateManager {
     LogService.logInfo("🌍 Expiration UTC: $utcExpireTime");
     LogService.logInfo("🌍 Expiration Local: $localExpireTime");
     LogService.logInfo("🌍 Board Expired?: $isExpired");
+
+    LogService.logEvent("IBE:Expired:$isExpired");
 
     return isExpired;
   }

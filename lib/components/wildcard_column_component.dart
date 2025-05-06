@@ -1,11 +1,13 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../styles/app_styles.dart';
 import '../logic/grid_loader.dart';
 import '../models/tile.dart';
 import 'letter_square_component.dart';
 import '../logic/logging_handler.dart';
 import '../managers/gameLayoutManager.dart';
+import '../providers/game_state_provider.dart';
 
 class WildcardColumnComponent extends StatefulWidget {
   final double width;
@@ -89,6 +91,21 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
       tiles[index].isRemoved = true; // Mark as removed instead of removing
       //tiles[index].state = 'used'; // Optional: mark as used to match game logic
       widget.onWildcardUsed?.call();
+
+      // Update GridLoader with the modified wildcard tiles
+      List<Map<String, dynamic>> updatedWildcardTiles =
+          tiles.map((tile) {
+            return {'letter': tile.letter, 'value': tile.value, 'isRemoved': tile.isRemoved};
+          }).toList();
+
+      GridLoader.wildcardTiles = updatedWildcardTiles;
+
+      // Save the state using GameStateProvider
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
+        gameStateProvider.setWildcardTiles(updatedWildcardTiles);
+        gameStateProvider.saveState();
+      });
     });
   }
 

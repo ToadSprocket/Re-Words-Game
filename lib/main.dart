@@ -36,7 +36,7 @@ import 'providers/game_state_provider.dart';
 const String MAJOR = "1";
 const String MINOR = "0";
 const String PATCH = "1";
-const String BUILD = "00";
+const String BUILD = "01";
 
 const String VERSION_STRING = "v$MAJOR.$MINOR.$PATCH+$BUILD";
 

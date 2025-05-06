@@ -204,9 +204,6 @@ class GameGridComponentState extends State<GameGridComponent> {
           gameStateProvider.updateBoardState(BoardState.inProgress);
         }
 
-        // Save the state after each successful word addition
-        gameStateProvider.saveState();
-
         // Mark tiles as used
         for (var tile in selectedTiles) {
           final index = gridTiles.indexOf(tile);
@@ -218,6 +215,7 @@ class GameGridComponentState extends State<GameGridComponent> {
         widget.onMessage(message);
         widget.updateScoresRefresh();
         widget.updateCurrentGameState();
+        gameStateProvider.saveState();
       } else {
         // Revert tiles to previous state
         for (var tile in selectedTiles) {

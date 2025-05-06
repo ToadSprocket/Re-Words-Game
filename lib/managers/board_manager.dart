@@ -74,6 +74,7 @@ class BoardManager {
 
   /// Load data for a new user or returning user
   Future<void> loadData(BuildContext context) async {
+    LogService.logEvent("LD:LoadData");
     final api = Provider.of<ApiService>(context, listen: false);
     final prefs = await SharedPreferences.getInstance();
 
@@ -82,6 +83,7 @@ class BoardManager {
 
     if (hasLoadedBefore) {
       LogService.logInfo("🔄 Detected app reload");
+      LogService.logEvent("LD:HasLoaded");
       await _handleAppReload(context, api);
     } else {
       // Mark that we've loaded the app at least once
@@ -122,6 +124,7 @@ class BoardManager {
       bool hasWildcardTiles = wildcardKey.currentState?.getTiles().isNotEmpty ?? false;
 
       if (!hasGridTiles && !hasWildcardTiles) {
+        LogService.logEvent("LD:NoData");
         LogService.logError("❌ No tiles available in UI components! Showing failure dialog...");
         await FailureDialog.show(context, gameLayoutManager);
       } else {
@@ -135,6 +138,7 @@ class BoardManager {
   /// Handle app reload (after orientation change or app restart)
   Future<void> _handleAppReload(BuildContext context, ApiService api) async {
     // Check if the board is expired or not current
+    LogService.logEvent("LD:AppReload");
     final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
     final isBoardCurrent = await StateManager.isBoardCurrent();
     LogService.logInfo("🔄 Board expired check on app reload: $isExpired, Board current? $isBoardCurrent");
@@ -155,16 +159,18 @@ class BoardManager {
 
       try {
         // Force load a new board
+        LogService.logEvent("LD:LoadNewBoard");
         bool success = await _loadNewBoard(context, api);
 
         if (success) {
+          LogService.logEvent("LD:Loaded");
           // Ensure board state is set to newBoard
           final gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
           gameStateProvider.updateBoardState(BoardState.newBoard);
           LogService.logInfo("✅ Board state explicitly set to newBoard during app reload");
         } else {
           LogService.logError("❌ Failed to load new board on app reload");
-
+          LogService.logEvent("LD:Failed:Reloading");
           // Show error dialog
           if (context.mounted) {
             ErrorHandler.handleError(
@@ -189,6 +195,7 @@ class BoardManager {
     // Try to restore from stored board data
     bool success = await GridLoader.loadStoredBoard();
     if (success) {
+      LogService.logEvent("LSB:LoadStoredBoard");
       LogService.logInfo("🔄 Successfully restored board from storage");
 
       // Restore state from preferences
@@ -198,7 +205,7 @@ class BoardManager {
       _syncUIComponents();
     } else {
       LogService.logError("❌ Failed to restore board from storage");
-
+      LogService.logEvent("LSB:LoadStoredBoard:Fail:Reloading");
       // If we can't restore from storage, try to load a new board
       if (context.mounted) {
         LogService.logInfo("🔄 Attempting to load a new board instead");
@@ -268,10 +275,13 @@ class BoardManager {
       if (!hasBoardData || isExpired || !isBoardCurrent) {
         if (isExpired) {
           LogService.logInfo("🔄 Board is expired - Loading new board");
+          LogService.logEvent("LBFU:Expired");
         } else if (!isBoardCurrent) {
           LogService.logInfo("🔄 Board is not current (not loaded today) - Loading new board");
+          LogService.logEvent("LBFU:CurrentLoading");
         } else {
           LogService.logInfo("🔄 No board data available - Loading new board");
+          LogService.logEvent("LBFU:NoBoard");
         }
         await _loadNewBoard(context, api);
       } else {
@@ -304,6 +314,7 @@ class BoardManager {
   /// Returns true if the board was loaded successfully, false otherwise
   Future<bool> _loadNewBoard(BuildContext context, ApiService api) async {
     LogService.logInfo("🔄 Loading new board...");
+    LogService.logEvent("LNB: LoadNewBoard");
 
     if (context.mounted) {
       LoadingDialog.show(context, gameLayoutManager, message: "Loading new board...");
@@ -455,6 +466,7 @@ class BoardManager {
   Future<void> resetBoard(BuildContext context) async {
     isLoadingNotifier.value = true;
     messageNotifier.value = "Resetting board...";
+    LogService.logEvent("RB:Resetting");
 
     try {
       // Save current score for submission
@@ -494,7 +506,7 @@ class BoardManager {
   Future<void> handleAppResume(BuildContext context) async {
     try {
       final api = Provider.of<ApiService>(context, listen: false);
-
+      LogService.logEvent("HAR:Resuming");
       // Reset activity time to exclude pause duration
       await StateManager.resetActivityTimeAfterPause();
 
@@ -503,6 +515,7 @@ class BoardManager {
       LogService.logInfo("App resume check: Game loaded? $isGameLoaded");
 
       if (isGameLoaded) {
+        LogService.logEvent("HAR:Loaded");
         // Game is loaded, check if board has expired or is not current
         bool isBoardExpired = await StateManager.isBoardExpired();
         bool isBoardCurrent = await StateManager.isBoardCurrent();
@@ -511,12 +524,15 @@ class BoardManager {
         if (isBoardExpired || !isBoardCurrent) {
           // Board expired or not current (not loaded today), load new board
           if (isBoardExpired) {
+            LogService.logEvent("HAR:Expired");
             LogService.logInfo("Board expired during pause - Loading new board");
           } else {
+            LogService.logEvent("HAR:NotCurrent");
             LogService.logInfo("Board is not current (not loaded today) - Loading new board");
           }
           await loadBoardForUser(context, api);
         } else {
+          LogService.logEvent("HAR:ValidRestore");
           // Board still valid and current, restore state from preferences
           LogService.logInfo("Board still valid and current - Restoring state from preferences");
           await StateManager.restoreState(gridKey, wildcardKey, scoreNotifier, spelledWordsNotifier);

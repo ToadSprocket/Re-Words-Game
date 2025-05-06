@@ -6,6 +6,9 @@ enum LogLevel { debug, info, standard, production }
 class LogService {
   /// 🔹 Current log level (default to `LogLevel.production` for production)
   static LogLevel _currentLevel = LogLevel.production;
+  static bool _enhancedLoggingEnabled = true;
+  static List<String> _logEntries = [];
+  static const int MAX_LOG_ENTRIES = 200;
 
   /// 🔹 Set log level at runtime
   static void setLogLevel(LogLevel level) {
@@ -41,4 +44,19 @@ class LogService {
 
   /// 🔹 Errors (Always logs in all modes)
   static void logError(String message) => _log(message, LogLevel.production, prefix: "🚨 [ERROR] ");
+
+  static void logEvent(String message) {
+    if (_logEntries.length == MAX_LOG_ENTRIES) {
+      _logEntries.removeAt(0);
+    }
+    _logEntries.add(message + "|");
+  }
+
+  static List<String> getLogEvents() {
+    return List.from(_logEntries);
+  }
+
+  static void clearEvents() {
+    _logEntries.clear();
+  }
 }

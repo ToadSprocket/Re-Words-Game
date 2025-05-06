@@ -32,7 +32,16 @@ class SecureHttpClient {
     // Only apply certificate pinning for non-web platforms and if enabled
     if (!kIsWeb && Config.enableCertificatePinning) {
       _dio.httpClientAdapter = _createPinnedAdapter();
-      LogService.logInfo('🔒 Certificate pinning enabled with fingerprint: $_certificateFingerprint');
+
+      // Add special logging for macOS to indicate potential entitlement issues
+      if (Platform.isMacOS) {
+        LogService.logInfo('🔒 Certificate pinning enabled on macOS with fingerprint: $_certificateFingerprint');
+        LogService.logInfo(
+          'ℹ️ Note: On macOS, certificate pinning may fall back to standard validation if entitlements are missing',
+        );
+      } else {
+        LogService.logInfo('🔒 Certificate pinning enabled with fingerprint: $_certificateFingerprint');
+      }
     } else if (!kIsWeb) {
       LogService.logInfo('⚠️ Certificate pinning is disabled');
     }
@@ -57,21 +66,41 @@ class SecureHttpClient {
       createHttpClient: () {
         final client = HttpClient();
         client.badCertificateCallback = (X509Certificate cert, String host, int port) {
-          // Calculate the SHA-256 fingerprint of the certificate
-          final certBytes = cert.der;
-          final digest = sha256.convert(certBytes);
-          final fingerprint = _formatFingerprint(digest.bytes);
+          try {
+            // Check if we're on macOS
+            bool isMacOS = Platform.isMacOS;
 
-          // Check if the fingerprint matches our pinned fingerprint
-          final bool isValid = fingerprint == _certificateFingerprint;
+            // Calculate the SHA-256 fingerprint of the certificate
+            final certBytes = cert.der;
+            final digest = sha256.convert(certBytes);
+            final fingerprint = _formatFingerprint(digest.bytes);
 
-          if (!isValid) {
-            LogService.logError('🔒 Certificate pinning failed! Expected: $_certificateFingerprint, Got: $fingerprint');
-          } else {
-            LogService.logDebug('🔒 Certificate pinning successful for $host');
+            // Check if the fingerprint matches our pinned fingerprint
+            final bool isValid = fingerprint == _certificateFingerprint;
+
+            if (!isValid) {
+              LogService.logError(
+                '🔒 Certificate pinning failed! Expected: $_certificateFingerprint, Got: $fingerprint',
+              );
+            } else {
+              LogService.logDebug('🔒 Certificate pinning successful for $host');
+            }
+
+            return isValid;
+          } catch (e) {
+            // If we get an error (especially on macOS due to missing entitlements),
+            // log it and fall back to standard HTTPS validation
+            LogService.logError('🔒 Certificate pinning error, falling back to standard validation: $e');
+
+            // On macOS, we'll accept the certificate and let the system validate it
+            if (Platform.isMacOS) {
+              LogService.logInfo('ℹ️ Falling back to standard HTTP client for macOS');
+              return false; // Let the system handle certificate validation
+            }
+
+            // For other platforms, maintain strict validation
+            return false;
           }
-
-          return isValid;
         };
         return client;
       },
@@ -138,6 +167,9 @@ class SecureHttpClient {
     if (error is DioException) {
       if (error.type == DioExceptionType.badCertificate) {
         LogService.logError('🔒 Certificate validation failed! Possible security breach detected.');
+      } else if (Platform.isMacOS && error.toString().contains('entitlement')) {
+        // Special handling for macOS entitlement errors
+        LogService.logInfo('ℹ️ Falling back to standard HTTP client for macOS: ${error.message}');
       }
     }
   }
