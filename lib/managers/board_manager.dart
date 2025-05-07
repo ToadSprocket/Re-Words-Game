@@ -16,6 +16,7 @@ import '../logic/spelled_words_handler.dart';
 import '../managers/state_manager.dart';
 import '../models/api_models.dart';
 import '../models/board_state.dart';
+import '../models/board.dart';
 import '../models/tile.dart';
 import '../providers/game_state_provider.dart';
 import '../services/api_service.dart';
@@ -26,6 +27,9 @@ import 'gameLayoutManager.dart';
 /// BoardManager centralizes all board-related functionality including loading,
 /// resetting, and managing the game board state.
 class BoardManager {
+  // Board object for managing the board and wildcards.
+  Board? _board;
+
   // Board state notifiers
   final ValueNotifier<bool> isLoadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<String> messageNotifier = ValueNotifier<String>('');

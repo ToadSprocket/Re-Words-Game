@@ -13,6 +13,7 @@ import '../components/wildcard_column_component.dart';
 import '../models/tile.dart';
 import '../models/api_models.dart';
 import '../models/board_state.dart';
+import '../models/board.dart';
 import '../logic/logging_handler.dart';
 import '../logic/grid_loader.dart';
 
@@ -21,6 +22,43 @@ extension DateTimeExtension on DateTime {
 }
 
 class StateManager {
+  // Modified Board Save, saves the entire board in one blob.
+  static Future<bool> saveBoardState(Board board) async {
+    LogService.logInfo("Saving the Board State");
+    LogService.logEvent("SBS:SaveBoardState:GameId:$board.gameId");
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final boardJson = jsonEncode(board.toJson());
+      await prefs.setString('boardState', jsonEncode(boardJson));
+      return true;
+    } catch (e) {
+      LogService.logError("Error saving board state");
+      LogService.logEvent("SBS:ErrorSaving");
+      return false;
+    }
+  }
+
+  // Modified Board Load, Loads the blob and returns a board object.
+  static Future<Board?> loadBoardState() async {
+    LogService.logInfo("Loading the Board State");
+    LogService.logEvent("LBS:LoadingBoardFromStorage");
+    final prefs = await SharedPreferences.getInstance();
+    final boardJson = prefs.getString('boardState');
+
+    if (boardJson == null) {
+      LogService.logError("No Board Data Found");
+      LogService.logEvent("LBS:NoData");
+      return null;
+    }
+
+    final Map<String, dynamic> boardData = jsonDecode(boardJson);
+    final board = Board.fromJson(boardData);
+
+    LogService.logEvent("LBS:BoardLoaded:GameId:$board.gameId");
+    return board;
+  }
+
   static Future<void> saveState(
     GlobalKey<GameGridComponentState> gridKey,
     GlobalKey<WildcardColumnComponentState> wildcardKey,
@@ -47,7 +85,6 @@ class StateManager {
               tileCopy.state = tileCopy.previousState ?? (tileCopy.useCount > 0 ? 'used' : 'unused');
               tileCopy.previousState = null;
             }
-
             return tileCopy;
           }).toList();
 
