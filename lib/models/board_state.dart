@@ -5,6 +5,8 @@ import '../styles/app_styles.dart';
 /// Represents the current state of the game board.
 enum BoardState { newBoard, inProgress, finished }
 
+enum Orientation { portrait, landScape, unknown }
+
 /// Extension methods for BoardState
 extension BoardStateExtension on BoardState {
   /// Returns a user-friendly display name for the board state
