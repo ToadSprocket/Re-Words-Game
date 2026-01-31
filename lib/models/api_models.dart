@@ -21,8 +21,8 @@ class SecurityData {
 
 class GameData {
   final String gameId;
-  final String grid;
-  final String wildcards;
+  final String gridLetters;
+  final String wildcardLetters;
   final String dateStart;
   final String dateExpire;
   final int wordCount;
@@ -30,8 +30,8 @@ class GameData {
 
   GameData({
     required this.gameId,
-    required this.grid,
-    required this.wildcards,
+    required this.gridLetters,
+    required this.wildcardLetters,
     required this.dateStart,
     required this.dateExpire,
     required this.wordCount,
@@ -40,8 +40,8 @@ class GameData {
 
   factory GameData.fromJson(Map<String, dynamic> json) => GameData(
     gameId: json['gameId'] ?? '',
-    grid: json['grid'] ?? '',
-    wildcards: json['wildcards'] ?? '',
+    gridLetters: json['gridLetters'] ?? '',
+    wildcardLetters: json['wildcardLetters'] ?? '',
     dateStart: json['dateStart'] ?? '',
     dateExpire: json['dateExpire'] ?? '',
     wordCount: json['wordCount'] ?? 0,
