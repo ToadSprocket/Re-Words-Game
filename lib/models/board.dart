@@ -1,6 +1,5 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'dart:convert';
-
 import 'package:reword_game/logic/logging_handler.dart';
 import 'package:reword_game/models/game_mode.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,8 +10,28 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tzd;
 import 'package:flutter_timezone/flutter_timezone.dart';
 
+/// Represents the game board state for the Re-Word puzzle game.
+///
+/// This class serves as the single source of truth for all board-related data,
+/// including puzzle configuration, player progress, tile states, and timing.
+///
+/// The Board can be:
+/// - Created fresh from API data via [fromApiData]
+/// - Loaded from local storage via [loadBoardFromStorage]
+/// - Saved to local storage via [saveBoardToStorage]
+///
+/// Key responsibilities:
+/// - Store puzzle letters and tile configurations
+/// - Track player's spelled words and score
+/// - Manage session timing and play time statistics
+/// - Handle expiration logic for daily puzzles
+/// - Persist and restore game state
 class Board {
+  /// Storage key name for persisting board state to SharedPreferences.
   static const String _boardStateName = "boardState";
+
+  /// Point values for each letter, following Scrabble-style scoring.
+  /// Vowels and common consonants = 1, rare letters like Q and Z = 10.
   static const Map<String, int> _letterValues = {
     'a': 1,
     'e': 1,
@@ -42,40 +61,103 @@ class Board {
     'z': 10,
   };
 
-  // Identification
+  // ─────────────────────────────────────────────────────────────────────────
+  // IDENTIFICATION
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Unique identifier for this puzzle from the API.
   final String gameId;
 
-  // Actual board values
+  // ─────────────────────────────────────────────────────────────────────────
+  // PUZZLE CONFIGURATION (from API)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// The 49 letters that make up the 7x7 grid, as a string (e.g., "ABCDE...").
   final String gridLetters;
+
+  /// The wildcard letters available for this puzzle.
   final String wildcardLetters;
 
-  // Board configuration
+  // ─────────────────────────────────────────────────────────────────────────
+  // TILE STATE
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// The 49 grid tiles with their current state (unused, used, selected, etc.).
   final List<Tile> gridTiles;
+
+  /// The wildcard tiles with their current state.
   final List<Tile> wildcardTiles;
 
-  // Dates
+  // ─────────────────────────────────────────────────────────────────────────
+  // DATE/TIME TRACKING
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// When this puzzle was created on the server (UTC).
   final DateTime puzzleDate;
+
+  /// When this puzzle expires (midnight in user's timezone, stored as UTC).
   final DateTime puzzleExpires;
+
+  /// When the user loaded this puzzle locally (for "current" check).
   final DateTime loadedAt;
 
-  // Time statistics
+  // ─────────────────────────────────────────────────────────────────────────
+  // TIME STATISTICS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Total seconds played across all sessions (persisted).
   final int secondsPlayed;
+
+  /// When the current play session started (UTC). Used to calculate elapsed time.
   final DateTime? sessionStartedAt;
+
+  /// When the app was paused (UTC). Used to exclude pause time from play time.
   final DateTime? pausedAt;
 
-  // Game statistics
+  // ─────────────────────────────────────────────────────────────────────────
+  // GAME STATISTICS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Total number of valid words in this puzzle (from API).
   final int wordCount;
+
+  /// Estimated maximum possible score (from API).
   final int estimatedHighScore;
 
-  // Current state
+  /// Number of wildcard tiles used by the player.
+  int wildcardUses;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // CURRENT GAME STATE
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Current state of the board (newBoard, inProgress, finished).
   BoardState boardState;
+
+  /// Current game mode (normal, practice, etc.).
   GameMode gameMode;
+
+  /// When the current board activity session started.
   DateTime sessionStartDateTime;
+
+  /// Elapsed time in minutes for the current session.
   int boardElapsedTime;
+
+  /// List of words the player has successfully spelled.
   List<String> spelledWords;
+
+  /// Player's current score.
   int score;
+
+  /// Ratio of words found vs total words (spelledWords.length / wordCount).
   double completionRatio;
+
+  /// Current device orientation (portrait/landscape).
   Orientation orientation;
+
+  /// Grid indices of currently selected tiles (in selection order).
+  /// Used to build the current word and highlight selected tiles.
+  List<int> selectedWordIndex;
 
   Board({
     required this.gameId,
@@ -91,6 +173,7 @@ class Board {
     required this.pausedAt,
     required this.wordCount,
     required this.estimatedHighScore,
+    this.wildcardUses = 0,
     required this.boardState,
     required this.gameMode,
     required this.sessionStartDateTime,
@@ -99,8 +182,11 @@ class Board {
     this.score = 0,
     this.completionRatio = 0,
     this.orientation = Orientation.unknown,
+    this.selectedWordIndex = const [],
   });
 
+  /// Serializes the board state to a JSON-compatible Map.
+  /// Used by [saveBoardToStorage] to persist the board.
   Map<String, dynamic> toJson() {
     return {
       'gameId': gameId,
@@ -109,13 +195,14 @@ class Board {
       'gridTiles': gridTiles.map((t) => t.toJson()).toList(),
       'wildcardTiles': wildcardTiles.map((t) => t.toJson()).toList(),
       'puzzleDate': puzzleDate.toIso8601String(),
-      'bpuzzleExpires': puzzleExpires.toIso8601String(),
+      'puzzleExpires': puzzleExpires.toIso8601String(),
       'loadedAt': loadedAt.toIso8601String(),
       'secondsPlayed': secondsPlayed,
       'sessionStartedAt': sessionStartedAt?.toIso8601String(),
       'pausedAt': pausedAt?.toIso8601String(),
       'wordCount': wordCount,
       'estimatedHighScore': estimatedHighScore,
+      'wildcardUses': wildcardUses,
       'boardState': boardState.index,
       'gameMode': gameMode.index,
       'sessionStartDateTime': sessionStartDateTime.toIso8601String(),
@@ -124,9 +211,12 @@ class Board {
       'score': score,
       'completionRatio': completionRatio,
       'orientation': orientation.name,
+      'selectedWordIndex': selectedWordIndex,
     };
   }
 
+  /// Creates a Board instance from a JSON Map.
+  /// Used by [loadBoardFromStorage] to restore board state.
   factory Board.fromJson(Map<String, dynamic> json) {
     return Board(
       gameId: json['gameId'],
@@ -142,6 +232,7 @@ class Board {
       pausedAt: json['pausedAt'] != null ? DateTime.parse(json['pausedAt']) : null,
       wordCount: json['wordCount'],
       estimatedHighScore: json['estimatedHighScore'],
+      wildcardUses: json['wildcardUses'],
       boardState: BoardState.values[json['boardState']],
       gameMode: GameMode.values[json['gameMode']],
       sessionStartDateTime: DateTime.parse(json['sessionStartDateTime']),
@@ -153,9 +244,13 @@ class Board {
         (e) => e.name == json['orientation'],
         orElse: () => Orientation.unknown, // Default if not found
       ),
+      selectedWordIndex: json['selectedWordIndex'],
     );
   }
 
+  /// Creates a copy of this Board with the specified fields replaced.
+  /// Unspecified fields retain their current values.
+  /// This is the preferred way to update Board state (immutable pattern).
   Board copyWith({
     String? gameId,
     String? gameHashCode,
@@ -171,6 +266,7 @@ class Board {
     DateTime? pausedAt,
     int? wordCount,
     int? estimatedHighScore,
+    int? wildcardUses,
     BoardState? boardState,
     GameMode? gameMode,
     DateTime? sessionStartDateTime,
@@ -179,6 +275,7 @@ class Board {
     int? score,
     double? completionRatio,
     Orientation? orientation,
+    List<int>? selectedWordIndex,
   }) {
     return Board(
       gameId: gameId ?? this.gameId,
@@ -194,6 +291,7 @@ class Board {
       pausedAt: pausedAt ?? this.pausedAt,
       wordCount: wordCount ?? this.wordCount,
       estimatedHighScore: estimatedHighScore ?? this.estimatedHighScore,
+      wildcardUses: wildcardUses ?? this.wildcardUses,
       boardState: boardState ?? this.boardState,
       gameMode: gameMode ?? this.gameMode,
       sessionStartDateTime: sessionStartDateTime ?? this.sessionStartDateTime,
@@ -202,9 +300,13 @@ class Board {
       score: score ?? this.score,
       completionRatio: completionRatio ?? this.completionRatio,
       orientation: orientation ?? this.orientation,
+      selectedWordIndex: selectedWordIndex ?? this.selectedWordIndex,
     );
   }
 
+  /// Resets board state for starting a new game session.
+  /// Clears tiles, spelled words, score, and resets timing.
+  /// Does NOT clear puzzle configuration (gameId, gridLetters, etc.).
   Board startNewBoard() {
     return copyWith(
       secondsPlayed: 0,
@@ -216,9 +318,14 @@ class Board {
       gridTiles: <Tile>[],
       wildcardTiles: <Tile>[],
       spelledWords: <String>[],
+      wildcardUses: 0,
+      selectedWordIndex: <int>[],
     );
   }
 
+  /// Completely resets the board to an empty state.
+  /// Clears ALL data including puzzle configuration.
+  /// Use this when loading a completely new puzzle from the API.
   Board resetBoard() {
     return copyWith(
       secondsPlayed: 0,
@@ -234,10 +341,13 @@ class Board {
       wildcardLetters: "",
       gameId: "",
       wordCount: 0,
+      wildcardUses: 0,
       score: 0,
     );
   }
 
+  /// Validates that the board has all required data to be playable.
+  /// Checks: gameId exists, letters exist, grid has 49 tiles, wildcards exist.
   bool isBoardValid() {
     return gameId.isNotEmpty &&
         gridLetters.isNotEmpty &&
@@ -246,7 +356,34 @@ class Board {
         wildcardTiles.isNotEmpty;
   }
 
-  // Creates a new game board from the Api.
+  /// Check if there is valid board data in storage
+  /// Returns true only if data exists AND can be parsed successfully
+  static Future<bool> hasBoardData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final boardStateJson = prefs.getString(_boardStateName);
+
+    if (boardStateJson == null || boardStateJson.isEmpty) {
+      return false;
+    }
+
+    try {
+      // Attempt to parse to verify it's valid
+      final boardJson = jsonDecode(boardStateJson);
+      // Check required fields exist
+      return boardJson['gameId'] != null &&
+          boardJson['gridLetters'] != null &&
+          boardJson['wildcardLetters'] != null &&
+          boardJson['puzzleDate'] != null;
+    } catch (e) {
+      LogService.logError("Invalid board data in storage: $e");
+      return false;
+    }
+  }
+
+  /// Creates a new Board populated with data from the API response.
+  /// Sets up tiles, dates, and resets all gameplay state.
+  /// [gameData] - The puzzle data from the API.
+  /// [currentOrientation] - Current device orientation for layout.
   Future<Board> fromApiData(GameData gameData, Orientation currentOrientation) async {
     return copyWith(
       secondsPlayed: 0,
@@ -271,7 +408,9 @@ class Board {
     );
   }
 
-  // New method for saving the board in it's current state.
+  /// Persists the current board state to SharedPreferences.
+  /// Serializes the entire board to JSON and saves it.
+  /// Returns true if save was successful, false if an error occurred.
   Future<bool> saveBoardToStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -287,6 +426,8 @@ class Board {
     }
   }
 
+  /// Loads a previously saved board state from SharedPreferences.
+  /// Returns null if no saved data exists or if parsing fails.
   Future<Board?> loadBoardFromStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -310,18 +451,25 @@ class Board {
     }
   }
 
+  /// Marks the board as in-progress and starts the activity timer.
+  /// Call when user begins actively playing.
   Board startBoardActivity() {
     return copyWith(boardState: BoardState.inProgress, sessionStartDateTime: DateTime.now(), boardElapsedTime: 0);
   }
 
+  /// Marks the board as finished (game complete).
   Board endBoardActivity() {
     return copyWith(boardState: BoardState.finished);
   }
 
+  /// Records the current time as pause time.
+  /// Call when app goes to background or user pauses.
   Board pauseSession() {
     return copyWith(pausedAt: DateTime.now().toUtc());
   }
 
+  /// Resumes from a paused state, adjusting session start time to exclude pause duration.
+  /// If not paused, starts a new board instead.
   Board resumeSession() {
     if (pausedAt == null || sessionStartedAt == null) {
       // If not paused or no session, just start a new session
@@ -338,6 +486,8 @@ class Board {
     return copyWith(sessionStartedAt: adjustedSessionStart, pausedAt: null);
   }
 
+  /// Updates total play time by adding elapsed time since session start.
+  /// Resets session start to now for next calculation.
   Board updateBoardPlayTime() {
     if (sessionStartedAt == null) {
       return this;
@@ -353,6 +503,8 @@ class Board {
     return copyWith(secondsPlayed: updatedTime, sessionStartedAt: now);
   }
 
+  /// Gets total play time including current session.
+  /// Returns stored time + current session elapsed time.
   int getTotalBoardPlayTime() {
     if (sessionStartedAt == null) {
       return secondsPlayed;
@@ -366,7 +518,8 @@ class Board {
     return secondsPlayed + currentSessionTime;
   }
 
-  // Used to update the elapsed time
+  /// Updates and returns elapsed time in minutes for current session.
+  /// Calculates difference between now and sessionStartDateTime.
   int updateBoardElapsedTimeInMinutes() {
     final now = DateTime.now();
     final elapsedDuration = now.difference(sessionStartDateTime);
@@ -374,7 +527,8 @@ class Board {
     return boardElapsedTime;
   }
 
-  // Method to get the timezone of the user
+  /// Gets the user's timezone location for date/time calculations.
+  /// Uses FlutterTimezone to detect the device's local timezone.
   Future<tzd.Location> _getCurrentTimezoneLocation() async {
     String localTimeZone = await FlutterTimezone.getLocalTimezone();
     tz.initializeTimeZones();
@@ -382,7 +536,8 @@ class Board {
     return location;
   }
 
-  // Validate if the board is in fact current
+  /// Checks if the board was loaded today (in user's local timezone).
+  /// Returns true if loadedAt is the same calendar day as now.
   Future<bool> isBoardCurrent() async {
     final tzd.Location location = await _getCurrentTimezoneLocation();
     final localLoadDateTime = tzd.TZDateTime.from(loadedAt, location);
@@ -399,7 +554,8 @@ class Board {
     return isSameDay;
   }
 
-  // Check to see if the board has expired.
+  /// Checks if the board has passed its expiration date (midnight rollover).
+  /// Board expires at midnight in user's local timezone on puzzleExpires day.
   Future<bool> isBoardExpired() async {
     final tzd.Location location = await _getCurrentTimezoneLocation();
     final localExpirationDateTime = tzd.TZDateTime.from(puzzleExpires, location);
@@ -428,7 +584,8 @@ class Board {
     return isExpired;
   }
 
-  // returns how long the board has lived past midnight
+  /// Returns how many minutes have passed since the board expired (since midnight).
+  /// Returns 0 if the board is not expired.
   Future<int> minutesBoardIsExpired() async {
     // First is the board even expired?
     if (!await isBoardExpired()) {
@@ -454,7 +611,8 @@ class Board {
     return difference.inMinutes;
   }
 
-  // Gets the value of a tile for both regular and wildcard
+  /// Gets the point value of a letter tile.
+  /// Wildcard tiles get a minimum value of 2 (even for common letters).
   int _getLetterValue(String letter, bool isWildCard) {
     final value = _letterValues[letter.toLowerCase()] ?? 0;
     if (isWildCard) {
@@ -464,7 +622,8 @@ class Board {
     }
   }
 
-  // Creates the list of tiles for a new board that's being loaded from the API.
+  /// Creates Tile objects from a string of letters (for grid or wildcards).
+  /// Each letter becomes a Tile with its point value calculated.
   List<Tile> _createGameBoardTiles(String gridTiles, bool isWildCard) {
     return gridTiles.split('').map((letter) {
       return Tile(
@@ -480,7 +639,8 @@ class Board {
     }).toList();
   }
 
-  // Gets the current completion ratio for the board.
+  /// Calculates and returns the completion ratio (words found / total words).
+  /// Returns 0.0 if wordCount is 0 to avoid division by zero.
   double getCompletionRatio() {
     if (wordCount == 0) {
       return 0.0; // Avoid division by zero
@@ -489,7 +649,22 @@ class Board {
     return completionRatio;
   }
 
+  /// Updates the current device orientation.
   void setOrientation(Orientation newOrientation) {
     orientation = newOrientation;
+  }
+
+  /// Builds the current word being spelled from selected tile indices.
+  /// Returns uppercase string of letters at each selected grid position.
+  String getCurrentWord() {
+    if (selectedWordIndex.isEmpty || gridTiles.isEmpty) {
+      return '';
+    }
+
+    return selectedWordIndex
+        .where((index) => index >= 0 && index < gridTiles.length) // Safety check
+        .map((index) => gridTiles[index].letter)
+        .join()
+        .toUpperCase();
   }
 }
