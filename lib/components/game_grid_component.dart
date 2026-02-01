@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../logic/grid_loader.dart';
 import '../logic/spelled_words_handler.dart';
 import '../models/tile.dart';
-import '../models/board_state.dart';
+import '../models/boardState.dart';
 import '../providers/game_state_provider.dart';
 import 'letter_square_component.dart';
 

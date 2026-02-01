@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../styles/app_styles.dart';
 import '../services/api_service.dart';
-import '../models/api_models.dart';
+import '../models/apiModels.dart';
 import '../logic/spelled_words_handler.dart';
 import '../logic/logging_handler.dart';
 import '../managers/gameLayoutManager.dart';

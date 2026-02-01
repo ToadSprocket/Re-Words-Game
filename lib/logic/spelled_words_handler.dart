@@ -6,7 +6,7 @@ import 'dart:io';
 import 'scoring.dart';
 import '../models/tile.dart';
 import '../managers/state_manager.dart';
-import '../models/api_models.dart';
+import '../models/apiModels.dart';
 import '../services/word_service.dart';
 
 class SpelledWordsLogic {

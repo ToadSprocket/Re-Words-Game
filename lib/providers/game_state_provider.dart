@@ -2,8 +2,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/board_state.dart';
-import '../models/game_mode.dart';
+import '../models/boardState.dart';
+import '../models/gameMode.dart';
 import '../logic/spelled_words_handler.dart';
 import '../logic/logging_handler.dart';
 import '../logic/grid_loader.dart';

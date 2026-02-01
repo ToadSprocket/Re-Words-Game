@@ -6,7 +6,7 @@ import '../styles/app_styles.dart';
 import '../logic/spelled_words_handler.dart';
 import '../managers/gameLayoutManager.dart';
 import '../providers/game_state_provider.dart';
-import '../models/board_state.dart';
+import '../models/boardState.dart';
 
 // Displays the score and word count above the grid
 class GameScores extends StatelessWidget {
