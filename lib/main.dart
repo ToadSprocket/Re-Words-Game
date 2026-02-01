@@ -13,33 +13,29 @@ import 'dialogs/legal_dialog.dart';
 import 'dialogs/failure_dialog.dart';
 import 'dialogs/login_dialog.dart';
 import 'components/error_boundary.dart';
-import 'managers/state_manager.dart';
 import 'services/api_service.dart';
-import 'logic/spelled_words_handler.dart';
 import 'logic/error_reporting.dart';
 import 'package:provider/provider.dart';
 import '../logic/logging_handler.dart';
 import '../managers/gameLayoutManager.dart';
-import '../managers/board_manager.dart';
 import 'package:window_size/window_size.dart';
 import 'dialogs/welcome_dialog.dart';
 import 'dialogs/androidTabletDialog.dart';
 import 'services/word_service.dart';
-import 'utils/web_utils.dart';
-import 'utils/connectivity_monitor.dart';
-import 'utils/offline_mode_handler.dart';
 import 'utils/device_utils.dart';
 import 'providers/orientation_provider.dart';
-import 'providers/game_state_provider.dart';
+import 'managers/gameManager.dart';
 
 // App version information
-const String MAJOR = "1";
+const String MAJOR = "2";
 const String MINOR = "0";
-const String PATCH = "1";
-const String BUILD = "01";
+const String PATCH = "0";
+const String BUILD = "00";
+const String PHASE = "A";
 
-const String VERSION_STRING = "v$MAJOR.$MINOR.$PATCH+$BUILD";
+const String VERSION_STRING = "v$MAJOR.$MINOR.$PATCH+$BUILD-$PHASE";
 
+// Variables for debugging the layout and board loading logic
 const bool debugShowBorders = false;
 const bool? debugForceIsWeb = null;
 const bool debugForceIsNarrow = false;
@@ -49,8 +45,10 @@ const bool debugForceValidBoard = false; // Force valid board
 const bool debugClearPrefs = false; // Clear all prefs for new user
 const bool debugForceIntroAnimation = false; // Force intro animation to play
 const bool debugDisableSecretReset = false; // Disable the secret title reset feature
+const LogLevel logLevel = LogLevel.debug; // Set the current logging level
+const bool logStackTraces = false;
 
-// Window size constants
+// Window size constants for the initialization routines
 const double MIN_WINDOW_WIDTH = 1000.0;
 const double MIN_WINDOW_HEIGHT = 800.0;
 const double NARROW_LAYOUT_THRESHOLD = 900.0;
@@ -61,32 +59,16 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Configure logging based on build mode
-  LogService.configureLogging();
+  LogService.configureLogging(logLevel);
 
   // Initialize error reporting
   await ErrorReporting.initialize();
 
   // Disable stack trace logging by default (can be toggled at runtime)
-  ErrorReporting.logStackTraces = false;
+  ErrorReporting.logStackTraces = logStackTraces;
 
-  // Initialize connectivity monitoring
-  ConnectivityMonitor().initialize();
-
-  // Initialize offline mode handler
-  OfflineModeHandler.initialize();
-
-  final wordService = WordService();
-  await wordService.initialize();
-
-  // Initialize ApiService with stored user data
-  final apiService = ApiService();
-  await apiService.initializeFromStorage(); // Load user data from storage
-
-  // Check if user is logged in based on tokens
-  if (apiService.accessToken != null && apiService.userId != null) {
-    apiService.loggedIn = true;
-    LogService.logInfo("👤 User already logged in: ${apiService.userId}");
-  }
+  // Initialize GameManager (handles ApiService, WordService, UserManager, Board)
+  await GameManager().initialize();
 
   final GameLayoutManager layoutManager = GameLayoutManager();
 
@@ -94,18 +76,10 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider<ApiService>(
-          create: (context) => apiService, // Use the initialized instance
-        ),
+        // GameManager is now the central provider (it contains ApiService internally)
+        ChangeNotifierProvider<GameManager>.value(value: GameManager()),
+        // Keep OrientationProvider for now - will consolidate in Phase 5
         ChangeNotifierProvider<OrientationProvider>(create: (context) => OrientationProvider()),
-        ChangeNotifierProvider<GameStateProvider>(create: (context) => GameStateProvider()),
-        Provider<BoardManager>.value(
-          value: BoardManager(
-            gameLayoutManager: layoutManager,
-            debugForceExpiredBoard: debugForceExpiredBoard,
-            disableSpellCheck: disableSpellCheck,
-          ),
-        ),
       ],
       child: ReWordApp(layoutManager: layoutManager),
     ),
@@ -240,9 +214,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   // Use providers for state management
   final GameLayoutManager gameLayoutManager = GameLayoutManager();
   Map<String, dynamic>? sizes;
-  int loginAttempts = 0;
-  late BoardManager boardManager;
-  late GameStateProvider gameStateProvider;
 
   @override
   void initState() {
@@ -283,10 +254,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Get providers
-    boardManager = Provider.of<BoardManager>(context, listen: false);
-    gameStateProvider = Provider.of<GameStateProvider>(context, listen: false);
-
     // Use post-frame callback to handle orientation changes
     // This avoids calling setState or markNeedsBuild during build phase
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -312,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
           orientationProvider.updateSafeSize(context);
 
           // Let the board manager handle orientation change
-          await boardManager.handleOrientationChange(context);
+          await GameManager().handleOrientationChange();
 
           // Force rebuild to apply new sizes - safe to call setState here since we're in a post-frame callback
           setState(() {

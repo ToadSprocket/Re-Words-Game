@@ -10,18 +10,9 @@ class LogService {
   static List<String> _logEntries = [];
   static const int MAX_LOG_ENTRIES = 200;
 
-  /// 🔹 Set log level at runtime
-  static void setLogLevel(LogLevel level) {
-    _currentLevel = level;
-  }
-
   /// 🔹 Configure logging based on build mode
-  static void configureLogging() {
-    if (kDebugMode) {
-      _currentLevel = LogLevel.debug;
-    } else {
-      _currentLevel = LogLevel.production;
-    }
+  static void configureLogging(LogLevel level) {
+    _currentLevel = level;
   }
 
   /// 🔹 Internal log function to check if logging is allowed
