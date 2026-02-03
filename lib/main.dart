@@ -240,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     // Only add window manager listener for desktop platforms
     if (!kIsWeb) {
       try {
-        if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+        if (Platform.isWindows || Platform.isMacOS) {
           windowManager.addListener(this);
         }
       } catch (e) {
@@ -397,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
           orientationProvider.updateSafeSize(context);
 
           // Let the board manager handle orientation change
-          await boardManager.handleOrientationChange(context);
+          await gameManager.handleOrientationChange();
 
           // Force rebuild to apply new sizes - safe to call setState here since we're in a post-frame callback
           setState(() {
@@ -430,67 +430,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
     // Load the board data using BoardManager
     await boardManager.loadData(context);
-  }
-
-  // Handle web login separately since it's specific to the UI flow
-  Future<bool> _handleWebLogin(ApiService api) async {
-    try {
-      // Show login dialog and wait for result
-      bool isLoggedIn = await LoginDialog.show(context, api, gameLayoutManager);
-
-      // Log the attempt
-      LogService.logError("🔄 Login attempt $loginAttempts: isLoggedIn: $isLoggedIn");
-
-      if (!isLoggedIn) {
-        // For web users, redirect to the main website on any failed login
-        if (kIsWeb) {
-          // Show failure dialog if this is the second or later attempt
-          if (loginAttempts >= 1) {
-            await FailureDialog.show(context, gameLayoutManager);
-          }
-
-          // Use a small delay to ensure the dialog is shown before redirecting
-          await Future.delayed(const Duration(milliseconds: 500));
-
-          // Redirect to the main website (without /api)
-          LogService.logError("🔄 Redirecting web user to www.rewordgame.net");
-          WebUtils.redirectToUrl('https://www.rewordgame.net');
-
-          // Force exit the app after redirect
-          if (mounted) {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          }
-
-          return false;
-        } else if (Navigator.canPop(context)) {
-          Navigator.pop(context);
-        } else {
-          // For web, we can't force exit, so just show a message
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Login required to play on web. Please try again later.')));
-        }
-        return false;
-      }
-
-      loginAttempts++;
-      return isLoggedIn;
-    } catch (e) {
-      LogService.logError('Error during web login: $e');
-
-      // For web users, redirect to the main website on error
-      if (kIsWeb) {
-        LogService.logError("🔄 Redirecting web user to www.rewordgame.net after error");
-        WebUtils.redirectToUrl('https://www.rewordgame.net');
-
-        // Force exit the app after redirect
-        if (mounted) {
-          Navigator.of(context).popUntil((route) => route.isFirst);
-        }
-      }
-
-      return false;
-    }
   }
 
   // Delegate methods to BoardManager
