@@ -291,20 +291,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   }
 
   Future<void> _initializeGame() async {
-    await boardManager.initialize(context);
+    final gm = GameManager();
 
-    // Initialize game state provider with default values
-    gameStateProvider.syncWithSpelledWordsLogic();
+    // Setup game layout.
+    gm.initializeLayout(context);
 
-    // Restore saved state (including board state)
-    await gameStateProvider.restoreState();
+    final isExpired = debugForceExpiredBoard || await gm.board.isBoardExpired();
 
-    // Check if board is expired at startup
-    final api = Provider.of<ApiService>(context, listen: false);
-    final isExpired = debugForceExpiredBoard || await StateManager.isBoardExpired();
     if (isExpired) {
       LogService.logInfo("🔄 Board is expired at startup - loading new board");
-      await boardManager.loadBoardForUser(context, api);
+      await gm.loadNewBoard();
     }
 
     await _loadData();
@@ -324,21 +320,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         LogService.logError("Error removing window manager listener: $e");
       }
     }
-    boardManager.saveState();
+    GameManager().saveState();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
-      // Save current state when app is paused
-      boardManager.saveState();
-      StateManager.savePauseTime();
+      // Save state and pause session when app goes to background
+      GameManager().onAppPause();
       LogService.logInfo("App lifecycle: PAUSED - Game state saved");
     } else if (state == AppLifecycleState.resumed) {
-      // Handle app resume
+      // Resume session and check if board expired
       LogService.logInfo("App lifecycle: RESUMED - Checking game state");
-      boardManager.handleAppResume(context);
+      GameManager().onAppResume();
     }
   }
 
@@ -347,7 +342,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     LogService.logInfo("🔄 Window close event detected - Saving state...");
     try {
       // Save state before closing
-      await boardManager.saveState();
+      await GameManager().saveState();
       LogService.logInfo("✅ State saved successfully before window close");
     } catch (e) {
       LogService.logError("❌ Error saving state on window close: $e");
@@ -397,7 +392,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
           orientationProvider.updateSafeSize(context);
 
           // Let the board manager handle orientation change
-          await gameManager.handleOrientationChange();
+          await GameManager().handleOrientationChange();
 
           // Force rebuild to apply new sizes - safe to call setState here since we're in a post-frame callback
           setState(() {
@@ -409,38 +404,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   }
 
   Future<void> _loadData() async {
-    final api = Provider.of<ApiService>(context, listen: false);
+    final gm = GameManager();
 
-    if (kIsWeb) {
-      bool loggedIn = await _handleWebLogin(api);
-      LogService.logInfo("🔄 Web loggedIn: $loggedIn");
-      if (!loggedIn) return; // Exit if login failed
-    }
+    // Check if user has seen welcome animation (tracked in UserManager)
+    bool hasShownWelcome = await gm.userManager.hasShownWelcome();
 
-    bool hasShownWelcome = await StateManager.hasShownWelcomeAnimation();
-
-    // Handle welcome animation first
+    // Handle welcome animation for first-time users
     if (debugForceIntroAnimation || !hasShownWelcome) {
       if (gameLayoutManager.isTablet && Platform.isAndroid) {
         await AndroidTabletDialog.show(context, gameLayoutManager);
       }
       await WelcomeDialog.show(context, gameLayoutManager);
-      await StateManager.markWelcomeAnimationShown();
+      await gm.userManager.markWelcomeShown();
     }
 
-    // Load the board data using BoardManager
-    await boardManager.loadData(context);
+    // If board is empty/new, load from server
+    if (!gm.isBoardReady) {
+      await gm.loadNewBoard();
+    }
+
+    // Sync UI with board data
+    gm.syncUIComponents();
   }
 
-  // Delegate methods to BoardManager
-  void submitWord() => boardManager.submitWord();
-  void clearWords() => boardManager.clearWords();
-  void _handleMessage(String message) => boardManager.handleMessage(message);
-  void updateScoresRefresh() => boardManager.updateScoresRefresh();
-  void updateCurrentGameState() {
-    // Only update game state for web
-    if (kIsWeb) boardManager.saveState();
-  }
+  // Delegate methods to GameManager
+  void submitWord() => GameManager().submitWord();
+  void clearWords() => GameManager().clearWords();
+  void _handleMessage(String message) => GameManager().setMessage(message);
+  void updateScoresRefresh() => GameManager().notifyListeners();
+  void updateCurrentGameState() => GameManager().saveState();
 
   /// Toggle stack trace logging on/off
   /// This can be called from anywhere in the app to enable/disable stack traces
@@ -452,154 +444,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
   @override
   Widget build(BuildContext context) {
-    final api = Provider.of<ApiService>(context, listen: false);
-    final isWebOverride = debugForceIsWeb ?? gameLayoutManager.isWeb;
-    final isWeb = isWebOverride;
-
     // Set debug override if needed
     if (debugForceIsNarrow) {
       DeviceUtils.forceNarrowLayout = true;
     }
 
-    // Determine if we should use narrow layout based on device type and orientation
+    // Determine if we should use narrow layout
     final useNarrowLayout = DeviceUtils.shouldUseNarrowLayout(context, NARROW_LAYOUT_THRESHOLD);
 
-    // Update GameLayoutManager with spelledWordsNotifier
-    gameLayoutManager.spelledWordsNotifier = boardManager.spelledWordsNotifier;
-
-    // Determine if we need to use SafeArea based on platform
+    // Determine if we need SafeArea (mobile only)
     bool isMobilePlatform = false;
     if (!kIsWeb) {
       try {
         isMobilePlatform = Platform.isAndroid || Platform.isIOS;
       } catch (e) {
-        // Ignore platform errors on web
         LogService.logError("Error checking platform: $e");
       }
     }
 
+    // Build the appropriate screen layout
+    Widget screen =
+        useNarrowLayout
+            ? NarrowScreen(showBorders: debugShowBorders, gameLayoutManager: gameLayoutManager)
+            : WideScreen(showBorders: debugShowBorders, gameLayoutManager: gameLayoutManager);
+
     return Scaffold(
       body:
           isMobilePlatform
-              ? SafeArea(
-                child: SizedBox(
-                  width: double.infinity,
-                  height: double.infinity,
-                  child:
-                      useNarrowLayout
-                          ? NarrowScreen(
-                            showBorders: debugShowBorders,
-                            onSubmit: submitWord,
-                            onClear: clearWords,
-                            onInstructions: () => HowToPlayDialog.show(context, gameLayoutManager),
-                            onHighScores:
-                                () => HighScoresDialog.show(
-                                  context,
-                                  api, // Use the existing api instance from Provider
-                                  SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
-                                  gameLayoutManager,
-                                ),
-                            onLegal: () => LegalDialog.show(context, api, gameLayoutManager),
-                            onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
-                            api: api,
-                            gameLayoutManager: gameLayoutManager,
-                            spelledWordsLogic: SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
-                            gridKey: boardManager.gridKey,
-                            wildcardKey: boardManager.wildcardKey,
-                            onMessage: _handleMessage,
-                            messageNotifier: boardManager.messageNotifier,
-                            scoreNotifier: boardManager.scoreNotifier,
-                            spelledWordsNotifier: boardManager.spelledWordsNotifier,
-                            updateScoresRefresh: updateScoresRefresh,
-                            updateCurrentGameState: updateCurrentGameState,
-                          )
-                          : WideScreen(
-                            showBorders: debugShowBorders,
-                            onSubmit: submitWord,
-                            onClear: clearWords,
-                            onInstructions: () => HowToPlayDialog.show(context, gameLayoutManager),
-                            onHighScores:
-                                () => HighScoresDialog.show(
-                                  context,
-                                  api, // Use the existing api instance from Provider
-                                  SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
-                                  gameLayoutManager,
-                                ),
-                            onLegal: () => LegalDialog.show(context, api, gameLayoutManager),
-                            onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
-                            api: api,
-                            gameLayoutManager: gameLayoutManager,
-                            spelledWordsLogic: SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
-                            gridKey: boardManager.gridKey,
-                            wildcardKey: boardManager.wildcardKey,
-                            onMessage: _handleMessage,
-                            messageNotifier: boardManager.messageNotifier,
-                            scoreNotifier: boardManager.scoreNotifier,
-                            spelledWordsNotifier: boardManager.spelledWordsNotifier,
-                            updateScoresRefresh: updateScoresRefresh,
-                            updateCurrentGameState: updateCurrentGameState,
-                          ),
-                ),
-              )
-              : SizedBox(
-                // For non-mobile platforms, we don't need SafeArea
-                width: double.infinity,
-                height: double.infinity,
-                child:
-                    useNarrowLayout
-                        ? NarrowScreen(
-                          showBorders: debugShowBorders,
-                          onSubmit: submitWord,
-                          onClear: clearWords,
-                          onInstructions: () => HowToPlayDialog.show(context, gameLayoutManager),
-                          onHighScores:
-                              () => HighScoresDialog.show(
-                                context,
-                                api, // Use the existing api instance from Provider
-                                SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
-                                gameLayoutManager,
-                              ),
-                          onLegal: () => LegalDialog.show(context, api, gameLayoutManager),
-                          onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
-                          api: api,
-                          gameLayoutManager: gameLayoutManager,
-                          spelledWordsLogic: SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
-                          gridKey: boardManager.gridKey,
-                          wildcardKey: boardManager.wildcardKey,
-                          onMessage: _handleMessage,
-                          messageNotifier: boardManager.messageNotifier,
-                          scoreNotifier: boardManager.scoreNotifier,
-                          spelledWordsNotifier: boardManager.spelledWordsNotifier,
-                          updateScoresRefresh: updateScoresRefresh,
-                          updateCurrentGameState: updateCurrentGameState,
-                        )
-                        : WideScreen(
-                          showBorders: debugShowBorders,
-                          onSubmit: submitWord,
-                          onClear: clearWords,
-                          onInstructions: () => HowToPlayDialog.show(context, gameLayoutManager),
-                          onHighScores:
-                              () => HighScoresDialog.show(
-                                context,
-                                api, // Use the existing api instance from Provider
-                                SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
-                                gameLayoutManager,
-                              ),
-                          onLegal: () => LegalDialog.show(context, api, gameLayoutManager),
-                          onLogin: () => LoginDialog.show(context, api, gameLayoutManager),
-                          api: api,
-                          gameLayoutManager: gameLayoutManager,
-                          spelledWordsLogic: SpelledWordsLogic(disableSpellCheck: disableSpellCheck),
-                          gridKey: boardManager.gridKey,
-                          wildcardKey: boardManager.wildcardKey,
-                          onMessage: _handleMessage,
-                          messageNotifier: boardManager.messageNotifier,
-                          scoreNotifier: boardManager.scoreNotifier,
-                          spelledWordsNotifier: boardManager.spelledWordsNotifier,
-                          updateScoresRefresh: updateScoresRefresh,
-                          updateCurrentGameState: updateCurrentGameState,
-                        ),
-              ),
+              ? SafeArea(child: SizedBox(width: double.infinity, height: double.infinity, child: screen))
+              : SizedBox(width: double.infinity, height: double.infinity, child: screen),
     );
   }
 }
