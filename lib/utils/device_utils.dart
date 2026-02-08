@@ -1,4 +1,5 @@
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/utils/device_utils.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math';

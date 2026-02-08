@@ -1,3 +1,5 @@
+// File: /lib/dialogs/register_dialog.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:email_validator/email_validator.dart';
 import '../styles/app_styles.dart';

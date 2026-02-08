@@ -1,4 +1,5 @@
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/logic/error_reporting.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../logic/logging_handler.dart';

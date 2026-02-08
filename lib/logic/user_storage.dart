@@ -1,4 +1,5 @@
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/logic/user_storage.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_html/html.dart' as html; // For web cookies
 import 'package:flutter/foundation.dart' show kIsWeb;

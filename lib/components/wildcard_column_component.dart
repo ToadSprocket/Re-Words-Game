@@ -1,4 +1,5 @@
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/components/wildcard_column_component.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../models/tile.dart';
 import 'letter_square_component.dart';

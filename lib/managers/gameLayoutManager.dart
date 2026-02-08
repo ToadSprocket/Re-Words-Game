@@ -1,5 +1,5 @@
-// /manager/gameLayoutManager.dart
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/managers/gameLayoutManager.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;

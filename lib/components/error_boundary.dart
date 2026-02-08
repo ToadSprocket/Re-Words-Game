@@ -1,4 +1,5 @@
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/components/error_boundary.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../logic/logging_handler.dart';

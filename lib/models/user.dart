@@ -1,5 +1,5 @@
-//lib/models/user.dart
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/models/user.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'apiModels.dart'; // For SecurityData
 
 /// User subscription/account type

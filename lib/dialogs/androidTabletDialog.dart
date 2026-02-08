@@ -1,5 +1,5 @@
-// lib/dialogs/androidTabletDialog.dart
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/dialogs/androidTabletDialog.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../managers/gameManager.dart';

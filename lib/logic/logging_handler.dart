@@ -1,3 +1,5 @@
+// File: /lib/logic/logging_handler.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/foundation.dart';
 
 /// Logging levels

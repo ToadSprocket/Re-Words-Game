@@ -1,3 +1,5 @@
+// File: /lib/services/api_service.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'dart:convert';
 import 'dart:async'; // Add this import for Completer
 import 'package:flutter/material.dart';

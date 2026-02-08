@@ -1,5 +1,5 @@
-// lib/components/game_title_component.dart
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/components/game_title_component.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:reword_game/managers/gameLayoutManager.dart';
 import '../styles/app_styles.dart';

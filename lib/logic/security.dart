@@ -1,4 +1,5 @@
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/logic/security.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import '../config/config.dart';

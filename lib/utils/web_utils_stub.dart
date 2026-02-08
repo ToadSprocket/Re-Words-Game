@@ -1,5 +1,5 @@
-// lib/utils/web_utils_stub.dart
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/utils/web_utils_stub.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 // This file is only included in non-web builds
 
 import '../logic/logging_handler.dart';

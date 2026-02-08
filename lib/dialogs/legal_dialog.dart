@@ -1,5 +1,5 @@
-// lib/layouts/legal_dialog.dart
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/dialogs/legal_dialog.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../styles/app_styles.dart';

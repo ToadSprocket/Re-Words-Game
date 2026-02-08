@@ -1,4 +1,5 @@
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/utils/connectivity_monitor.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../logic/logging_handler.dart';

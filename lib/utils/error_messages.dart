@@ -1,4 +1,5 @@
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/utils/error_messages.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:dio/dio.dart';
 
 /// A utility class that maps technical error codes and exceptions to user-friendly messages.

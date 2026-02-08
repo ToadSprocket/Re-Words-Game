@@ -1,5 +1,5 @@
-// logic/scoring.dart
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/logic/scoring.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import '../models/tile.dart';
 
 class Scoring {

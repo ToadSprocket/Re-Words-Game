@@ -1,5 +1,5 @@
-// models/tile.dart
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/models/tile.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 class Tile {
   String letter;
   int value;

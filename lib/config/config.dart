@@ -1,3 +1,5 @@
+// File: /lib/config/config.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 class Config {
   static const apiUrl = 'https://rewordgame.net/api';
 

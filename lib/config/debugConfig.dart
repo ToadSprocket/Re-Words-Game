@@ -1,4 +1,4 @@
-// /config/debugConfig.dart
+// File: /lib/config/debugConfig.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 
 import '../logic/logging_handler.dart';

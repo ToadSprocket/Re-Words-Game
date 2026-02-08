@@ -1,3 +1,4 @@
+// File: /lib/models/board.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'dart:convert';
 import 'package:reword_game/logic/logging_handler.dart';

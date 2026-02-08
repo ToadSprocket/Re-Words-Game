@@ -1,5 +1,5 @@
-// lib/dialogs/failure_dialog.dart
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/dialogs/failure_dialog.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // For SystemNavigator.pop
 import 'package:flutter/foundation.dart' show kIsWeb;

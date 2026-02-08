@@ -1,4 +1,4 @@
-// lib/managers/gameManager.dart
+// File: /lib/managers/gameManager.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 
 import 'package:flutter/foundation.dart';

@@ -1,3 +1,5 @@
+// File: /lib/dialogs/login_dialog.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:reword_game/logic/logging_handler.dart';
 import '../styles/app_styles.dart';

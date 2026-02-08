@@ -1,5 +1,5 @@
-// components/game_message_component.dart
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/components/game_message_component.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../managers/gameManager.dart';

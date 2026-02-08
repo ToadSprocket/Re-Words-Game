@@ -1,4 +1,5 @@
-// game_layout.dart
+// File: /lib/logic/game_layout.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../managers/gameLayoutManager.dart'; // Import GameLayoutManager
 

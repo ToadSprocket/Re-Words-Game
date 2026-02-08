@@ -1,4 +1,5 @@
-// lib/managers/userManager.dart
+// File: /lib/managers/userManager.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 
 import 'dart:convert';
 import 'package:reword_game/models/user.dart';

@@ -1,4 +1,4 @@
-// screens/wide_screen.dart
+// File: /lib/screens/wide_screen.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

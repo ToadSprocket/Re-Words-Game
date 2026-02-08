@@ -1,5 +1,5 @@
-// lib/utils/web_utils.dart
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/utils/web_utils.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 
 // This file uses conditional imports to provide platform-specific implementations
 // For web: web_utils_web.dart

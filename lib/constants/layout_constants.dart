@@ -1,5 +1,5 @@
-// constants/layout_constants.dart
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/constants/layout_constants.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 class GameConstants {
   // Window Constraints
   static const double minWindowWidth = 900.0;

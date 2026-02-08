@@ -1,3 +1,5 @@
+// File: /lib/dialogs/reset_password_dialog.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../services/api_service.dart';

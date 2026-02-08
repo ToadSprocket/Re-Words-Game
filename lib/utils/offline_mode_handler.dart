@@ -1,4 +1,5 @@
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/utils/offline_mode_handler.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'dart:async';
 import '../logic/logging_handler.dart';
 import '../utils/connectivity_monitor.dart';

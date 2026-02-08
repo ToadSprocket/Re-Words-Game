@@ -1,5 +1,5 @@
-// Copyright © 2025 Digital Relics. All Rights Reserved.
-// file: lib/components/game_grid_component.dart
+// File: /lib/components/game_grid_component.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:reword_game/managers/gameLayoutManager.dart';
 import '../models/tile.dart';

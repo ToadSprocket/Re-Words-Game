@@ -1,5 +1,5 @@
-// styles/app_styles.dart
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/styles/app_styles.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 

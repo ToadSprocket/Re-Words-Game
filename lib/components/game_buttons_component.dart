@@ -1,5 +1,5 @@
-// layouts/game_buttons.dart
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/components/game_buttons_component.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../managers/gameManager.dart';
 

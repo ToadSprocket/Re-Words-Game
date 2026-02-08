@@ -1,4 +1,4 @@
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 

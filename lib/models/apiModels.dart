@@ -1,4 +1,5 @@
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// File: /lib/models/apiModels.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 class ApiResponse {
   final String? message;
   final SecurityData? security;

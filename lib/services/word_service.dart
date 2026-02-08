@@ -1,3 +1,5 @@
+// File: /lib/services/word_service.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/services.dart' show rootBundle;
 
 class WordService {
