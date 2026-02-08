@@ -2,52 +2,28 @@
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../dialogs/spelled_words_popup.dart';
-import '../managers/gameLayoutManager.dart';
+import '../managers/gameManager.dart';
 
 class SpelledWordsTickerComponent extends StatelessWidget {
   final double gridSize;
   final double squareSize;
-  final List<String> words; // Add this
+  final List<String> words;
   final VoidCallback? onTap;
-  final GameLayoutManager gameLayoutManager;
 
   const SpelledWordsTickerComponent({
     super.key,
     required this.gridSize,
     required this.squareSize,
-    required this.words, // Required prop
+    required this.words,
     this.onTap,
-    required this.gameLayoutManager,
   });
-
-  List<String> _getFittingWords(BuildContext context, double maxWidth) {
-    final textStyle = TextStyle(fontSize: gameLayoutManager.tickerFontSize, color: AppStyles.spelledWordsTextColor);
-    final List<String> fittingWords = [];
-    double currentWidth = 0.0;
-    const double widthOffset = 6.0; // Small offset per word
-
-    for (String word in words.reversed) {
-      final textPainter = TextPainter(
-        text: TextSpan(text: '$word ', style: textStyle),
-        textDirection: TextDirection.ltr,
-      )..layout();
-
-      double adjustedWidth = textPainter.width + widthOffset;
-      if (currentWidth + adjustedWidth <= maxWidth) {
-        fittingWords.add(word);
-        currentWidth += adjustedWidth;
-      } else {
-        break;
-      }
-    }
-
-    return fittingWords.reversed.toList();
-  }
 
   @override
   Widget build(BuildContext context) {
-    final double tickerWidth = (gridSize + squareSize) * gameLayoutManager.tickerWidthFactor;
-    final double contentHeight = gameLayoutManager.tickerHeight - gameLayoutManager.tickerTitleFontSize;
+    // Access layout from GameManager singleton
+    final layout = GameManager().layoutManager!;
+    final double tickerWidth = (gridSize + squareSize) * layout.tickerWidthFactor;
+    final double contentHeight = layout.tickerHeight - layout.tickerTitleFontSize;
 
     // Create a scroll controller to manage automatic scrolling
     final ScrollController scrollController = ScrollController();
@@ -68,19 +44,19 @@ class SpelledWordsTickerComponent extends StatelessWidget {
       children: [
         const SizedBox(height: 4.0),
         GestureDetector(
-          onTap: onTap ?? () => SpelledWordsPopup.show(context, gameLayoutManager),
+          onTap: onTap ?? () => SpelledWordsPopup.show(context),
           child: Container(
             width: tickerWidth,
             height: contentHeight,
             decoration: BoxDecoration(
               border: Border.all(
                 color: AppStyles.tickerBorderColor.withOpacity(0.5),
-                width: gameLayoutManager.componentBorderThickness,
+                width: layout.componentBorderThickness,
               ),
-              borderRadius: BorderRadius.circular(gameLayoutManager.componentBorderRadius),
+              borderRadius: BorderRadius.circular(layout.componentBorderRadius),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(gameLayoutManager.componentBorderRadius),
+              borderRadius: BorderRadius.circular(layout.componentBorderRadius),
               child: ListView.builder(
                 controller: scrollController,
                 scrollDirection: Axis.horizontal,
@@ -101,10 +77,7 @@ class SpelledWordsTickerComponent extends StatelessWidget {
                         children: [
                           Text(
                             word,
-                            style: TextStyle(
-                              fontSize: gameLayoutManager.tickerFontSize,
-                              color: AppStyles.spelledWordsTextColor,
-                            ),
+                            style: TextStyle(fontSize: layout.tickerFontSize, color: AppStyles.spelledWordsTextColor),
                           ),
                           if (index < words.length - 1)
                             Container(
@@ -115,7 +88,7 @@ class SpelledWordsTickerComponent extends StatelessWidget {
                                 child: Text(
                                   '•',
                                   style: TextStyle(
-                                    fontSize: gameLayoutManager.tickerFontSize * AppStyles.tickerDotSizeFactor,
+                                    fontSize: layout.tickerFontSize * AppStyles.tickerDotSizeFactor,
                                     height: 1.0,
                                     color: AppStyles.tickerDotsColor,
                                   ),

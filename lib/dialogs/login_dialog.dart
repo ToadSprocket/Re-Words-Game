@@ -5,11 +5,11 @@ import '../services/api_service.dart';
 import '../logic/security.dart';
 import 'register_dialog.dart';
 import 'password_recovery_dialog.dart';
-import '../managers/gameLayoutManager.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import '../managers/gameManager.dart';
 
 class LoginDialog {
-  static Future<bool> show(BuildContext context, ApiService api, GameLayoutManager gameLayoutManager) async {
+  static Future<bool> show(BuildContext context, GameManager gm) async {
     final userNameController = TextEditingController();
     final passwordController = TextEditingController();
     String? errorMessage;
@@ -48,7 +48,7 @@ class LoginDialog {
           return;
         }
 
-        final response = await api.login(username, password);
+        final response = await gm.apiService.login(username, password);
         if (response == null) {
           // Record failed login attempt
           final failureResult = await loginSecurity.recordFailedAttempt();
@@ -98,27 +98,27 @@ class LoginDialog {
               ),
               backgroundColor: AppStyles.dialogBackgroundColor,
               child: Container(
-                width: gameLayoutManager.dialogMaxWidth,
+                width: gm.layoutManager!.dialogMaxWidth,
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Title & Close Button
-                    Stack(children: [Center(child: Text('Reword Login', style: gameLayoutManager.dialogTitleStyle))]),
+                    Stack(children: [Center(child: Text('Reword Login', style: gm.layoutManager!.dialogTitleStyle))]),
                     const SizedBox(height: 16.0),
 
                     // Input Fields (Centered)
                     SizedBox(
-                      width: gameLayoutManager.dialogMaxWidth * 0.8,
+                      width: gm.layoutManager!.dialogMaxWidth * 0.8,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Username or Email Address', style: gameLayoutManager.dialogInputContentStyle),
+                          Text('Username or Email Address', style: gm.layoutManager!.dialogInputContentStyle),
                           const SizedBox(height: 4.0),
                           TextFormField(
                             controller: userNameController,
-                            style: gameLayoutManager.dialogInputContentStyle,
+                            style: gm.layoutManager!.dialogInputContentStyle,
                             enabled: !isLoading,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
@@ -127,11 +127,11 @@ class LoginDialog {
                           ),
                           const SizedBox(height: 12.0),
 
-                          Text('Password', style: gameLayoutManager.dialogInputTitleStyle),
+                          Text('Password', style: gm.layoutManager!.dialogInputTitleStyle),
                           const SizedBox(height: 4.0),
                           TextFormField(
                             controller: passwordController,
-                            style: gameLayoutManager.dialogInputContentStyle,
+                            style: gm.layoutManager!.dialogInputContentStyle,
                             enabled: !isLoading,
                             obscureText: true,
                             decoration: const InputDecoration(
@@ -151,10 +151,10 @@ class LoginDialog {
                                       ? null
                                       : () {
                                         Navigator.pop(context);
-                                        ForgotPasswordDialog.show(context, api, gameLayoutManager);
+                                        ForgotPasswordDialog.show(context, gm);
                                       },
                               style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft),
-                              child: Text('Forgot Password?', style: gameLayoutManager.dialogLinkStyle),
+                              child: Text('Forgot Password?', style: gm.layoutManager!.dialogLinkStyle),
                             ),
                           ),
                           Container(
@@ -166,7 +166,7 @@ class LoginDialog {
                                     : errorMessage != null && errorMessage!.isNotEmpty
                                     ? Text(
                                       errorMessage!,
-                                      style: gameLayoutManager.dialogErrorStyle,
+                                      style: gm.layoutManager!.dialogErrorStyle,
                                       textAlign: TextAlign.center,
                                     )
                                     : const SizedBox.shrink(),
@@ -189,13 +189,13 @@ class LoginDialog {
                                     loginSuccess = false;
                                     Navigator.pop(context);
                                   },
-                          style: gameLayoutManager.buttonStyle(context),
+                          style: gm.layoutManager!.buttonStyle(context),
                           child: const Text('Cancel'),
                         ),
                         const SizedBox(width: 16.0),
                         ElevatedButton(
                           onPressed: isLoading ? null : () => attemptLogin(setState),
-                          style: gameLayoutManager.buttonStyle(context),
+                          style: gm.layoutManager!.buttonStyle(context),
                           child: const Text('Login'),
                         ),
                       ],
@@ -208,17 +208,17 @@ class LoginDialog {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text("Don't have an account? ", style: gameLayoutManager.dialogContentStyle),
+                          Text("Don't have an account? ", style: gm.layoutManager!.dialogContentStyle),
                           TextButton(
                             onPressed:
                                 isLoading
                                     ? null
                                     : () {
                                       Navigator.pop(context);
-                                      RegisterDialog.show(context, api, gameLayoutManager);
+                                      RegisterDialog.show(context, gm);
                                     },
                             style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                            child: Text('Sign Up', style: gameLayoutManager.dialogLinkStyle),
+                            child: Text('Sign Up', style: gm.layoutManager!.dialogLinkStyle),
                           ),
                         ],
                       ),

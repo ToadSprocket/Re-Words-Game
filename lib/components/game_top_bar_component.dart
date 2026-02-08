@@ -1,78 +1,42 @@
-// layouts/game_top_bar.dart
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// components/game_top_bar_component.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
-import '/styles/app_styles.dart';
-import '../services/api_service.dart';
-import '../dialogs/logout_dialog.dart';
-import '../logic/spelled_words_handler.dart';
-import '../logic/logging_handler.dart';
-import '../managers/gameLayoutManager.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:provider/provider.dart';
+import '/styles/app_styles.dart';
+import '../managers/gameManager.dart';
+import '../dialogs/how_to_play_dialog.dart';
+import '../dialogs/high_scores_dialog.dart';
+import '../dialogs/legal_dialog.dart';
+import '../dialogs/login_dialog.dart';
+import '../dialogs/logout_dialog.dart';
 
-class GameTopBarComponent extends StatefulWidget {
-  final VoidCallback onInstructions;
-  final VoidCallback onHighScores;
-  final VoidCallback onLegal;
-  final VoidCallback onLogin;
-  final ApiService api;
-  final SpelledWordsLogic spelledWordsLogic;
+class GameTopBarComponent extends StatelessWidget {
   final bool showBorders;
-  final GameLayoutManager gameLayoutManager;
 
-  const GameTopBarComponent({
-    super.key,
-    required this.onInstructions,
-    required this.onHighScores,
-    required this.onLegal,
-    required this.showBorders,
-    required this.onLogin,
-    required this.api,
-    required this.spelledWordsLogic,
-    required this.gameLayoutManager,
-  });
-
-  @override
-  State<GameTopBarComponent> createState() => _GameTopBarComponentState();
-}
-
-class _GameTopBarComponentState extends State<GameTopBarComponent> {
-  @override
-  void initState() {
-    super.initState();
-    widget.api.addListener(_updateState); // 🔥 Listen for login state changes
-  }
-
-  @override
-  void dispose() {
-    widget.api.removeListener(_updateState); // Cleanup
-    super.dispose();
-  }
-
-  void _updateState() {
-    LogService.logInfo('GameTopBarComponent: Login state changed');
-    setState(() {}); // 🔄 Rebuild when login state changes
-  }
+  const GameTopBarComponent({super.key, this.showBorders = false});
 
   @override
   Widget build(BuildContext context) {
-    bool isLoggedIn = widget.api.loggedIn ?? false;
+    final gm = context.watch<GameManager>();
+    bool isLoggedIn = gm.apiService.loggedIn ?? false;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 1)) : null,
+          decoration: showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 1)) : null,
           child: SizedBox(
             width: double.infinity,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Left side - Display name
-                if (isLoggedIn && widget.api.displayName != null)
+                if (isLoggedIn && gm.apiService.displayName != null)
                   Padding(
                     padding: const EdgeInsets.only(left: 8.0),
                     child: Text(
-                      widget.api.displayName!,
+                      gm.apiService.displayName!,
                       style: TextStyle(color: Colors.green, fontSize: 14.0, fontWeight: FontWeight.w500),
                     ),
                   )
@@ -88,7 +52,7 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
                       icon: const Icon(Icons.help_outline, size: 20.0, color: AppStyles.infoBarIconColors),
                       padding: const EdgeInsets.all(4.0),
                       constraints: const BoxConstraints(),
-                      onPressed: widget.onInstructions,
+                      onPressed: () => HowToPlayDialog.show(context, gm),
                       tooltip: 'How to Play',
                     ),
                     const SizedBox(width: 6.0),
@@ -96,7 +60,7 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
                       icon: const Icon(Icons.bar_chart, size: 20.0, color: AppStyles.infoBarIconColors),
                       padding: const EdgeInsets.all(4.0),
                       constraints: const BoxConstraints(),
-                      onPressed: widget.onHighScores,
+                      onPressed: () => HighScoresDialog.show(context, gm),
                       tooltip: 'High Scores',
                     ),
                     const SizedBox(width: 6.0),
@@ -104,20 +68,20 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
                       icon: const Icon(Icons.gavel, size: 20.0, color: AppStyles.infoBarIconColors),
                       padding: const EdgeInsets.all(4.0),
                       constraints: const BoxConstraints(),
-                      onPressed: widget.onLegal,
+                      onPressed: () => LegalDialog.show(context, gm),
                       tooltip: 'Legal',
                     ),
                     const SizedBox(width: 6.0),
                     IconButton(
                       icon: Icon(
-                        widget.api.loggedIn ? Icons.account_circle : Icons.login,
+                        gm.apiService.loggedIn ? Icons.account_circle : Icons.login,
                         size: 20.0,
-                        color: widget.api.loggedIn ? Colors.green : AppStyles.infoBarIconColors,
+                        color: gm.apiService.loggedIn ? Colors.green : AppStyles.infoBarIconColors,
                       ),
                       padding: const EdgeInsets.all(4.0),
                       constraints: const BoxConstraints(),
                       onPressed: () {
-                        if (widget.api.loggedIn) {
+                        if (gm.apiService.loggedIn) {
                           // During alpha testing, prevent web users from logging out
                           if (kIsWeb) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -128,12 +92,12 @@ class _GameTopBarComponentState extends State<GameTopBarComponent> {
                             );
                             return;
                           }
-                          LogoutDialog.show(context, widget.api, widget.gameLayoutManager);
+                          LogoutDialog.show(context, gm);
                         } else {
-                          widget.onLogin();
+                          LoginDialog.show(context, gm);
                         }
                       },
-                      tooltip: widget.api.loggedIn ? (kIsWeb ? 'Logged In (Alpha)' : 'Logged In') : 'Login',
+                      tooltip: gm.apiService.loggedIn ? (kIsWeb ? 'Logged In (Alpha)' : 'Logged In') : 'Login',
                     ),
                     const SizedBox(width: 3.0),
                   ],

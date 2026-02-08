@@ -4,21 +4,19 @@ import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../models/tile.dart';
 import '../managers/gameLayoutManager.dart';
+import '../managers/gameManager.dart';
 
 class LetterSquareComponent extends StatelessWidget {
   final Tile tile;
-  final GameLayoutManager gameLayoutManager;
   final bool helpDialog;
 
-  const LetterSquareComponent({
-    super.key,
-    required this.tile,
-    required this.gameLayoutManager,
-    required this.helpDialog,
-  });
+  const LetterSquareComponent({super.key, required this.tile, required this.helpDialog});
 
   @override
   Widget build(BuildContext context) {
+    // Access layout from GameManager singleton
+    final layout = GameManager().layoutManager!;
+
     Color bgColor;
     Color valueColor;
 
@@ -45,8 +43,8 @@ class LetterSquareComponent extends StatelessWidget {
     }
 
     return Container(
-      width: helpDialog ? GameLayoutManager.helpDialogSquareSize : gameLayoutManager.gridSquareSize,
-      height: helpDialog ? GameLayoutManager.helpDialogSquareSize : gameLayoutManager.gridSquareSize,
+      width: helpDialog ? GameLayoutManager.helpDialogSquareSize : layout.gridSquareSize,
+      height: helpDialog ? GameLayoutManager.helpDialogSquareSize : layout.gridSquareSize,
       decoration: BoxDecoration(
         color: bgColor,
         border: Border.all(color: AppStyles.squareBorderColor, width: GameLayoutManager.squareBorderWidth),
@@ -55,15 +53,14 @@ class LetterSquareComponent extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            left: gameLayoutManager.squareValueOffsetLeft,
-            top: gameLayoutManager.squareValueOffsetTop,
+            left: layout.squareValueOffsetLeft,
+            top: layout.squareValueOffsetTop,
             child: Text(
               tile.value.toString(),
               style: TextStyle(
-                fontSize:
-                    helpDialog ? gameLayoutManager.helpDialogSquareValueSize : gameLayoutManager.squareValueFontSize,
-                fontWeight: gameLayoutManager.defaultFontWeight,
-                color: valueColor, // Directly use the color
+                fontSize: helpDialog ? layout.helpDialogSquareValueSize : layout.squareValueFontSize,
+                fontWeight: layout.defaultFontWeight,
+                color: valueColor,
               ),
             ),
           ),
@@ -71,10 +68,9 @@ class LetterSquareComponent extends StatelessWidget {
             child: Text(
               tile.letter.toUpperCase(),
               style: TextStyle(
-                fontSize:
-                    helpDialog ? gameLayoutManager.helpDialogSquareLetterSize : gameLayoutManager.squareLetterFontSize,
-                fontWeight: gameLayoutManager.defaultFontWeight,
-                color: AppStyles.normalLetterTextColor, // Directly use the color
+                fontSize: helpDialog ? layout.helpDialogSquareLetterSize : layout.squareLetterFontSize,
+                fontWeight: layout.defaultFontWeight,
+                color: AppStyles.normalLetterTextColor,
               ),
             ),
           ),

@@ -412,9 +412,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     // Handle welcome animation for first-time users
     if (debugForceIntroAnimation || !hasShownWelcome) {
       if (gameLayoutManager.isTablet && Platform.isAndroid) {
-        await AndroidTabletDialog.show(context, gameLayoutManager);
+        await AndroidTabletDialog.show(context);
       }
-      await WelcomeDialog.show(context, gameLayoutManager);
+      await WelcomeDialog.show(context, gm);
       await gm.userManager.markWelcomeShown();
     }
 
@@ -464,9 +464,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
     // Build the appropriate screen layout
     Widget screen =
-        useNarrowLayout
-            ? NarrowScreen(showBorders: debugShowBorders, gameLayoutManager: gameLayoutManager)
-            : WideScreen(showBorders: debugShowBorders, gameLayoutManager: gameLayoutManager);
+        useNarrowLayout ? NarrowScreen(showBorders: debugShowBorders) : WideScreen(showBorders: debugShowBorders);
 
     return Scaffold(
       body:

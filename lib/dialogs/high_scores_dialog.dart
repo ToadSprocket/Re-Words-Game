@@ -4,35 +4,19 @@ import 'package:provider/provider.dart';
 import '../styles/app_styles.dart';
 import '../services/api_service.dart';
 import '../models/apiModels.dart';
-import '../logic/spelled_words_handler.dart';
 import '../logic/logging_handler.dart';
-import '../managers/gameLayoutManager.dart';
-import '../providers/game_state_provider.dart';
 import 'login_dialog.dart';
+import '../managers/gameManager.dart';
 
 class HighScoresDialog {
-  static Future<void> show(
-    BuildContext context,
-    ApiService api,
-    SpelledWordsLogic spelledWordsLogic,
-    GameLayoutManager gameLayoutManager, {
-    GameStateProvider? gameStateProvider,
-  }) async {
-    // If gameStateProvider is not provided, try to get it from the context
-    final provider = gameStateProvider ?? Provider.of<GameStateProvider>(context, listen: false);
-    await _loadAndShowDialog(context, api, spelledWordsLogic, gameLayoutManager, provider);
+  static Future<void> show(BuildContext context, GameManager gm) async {
+    await _loadAndShowDialog(context, gm);
   }
 
-  static Future<void> _loadAndShowDialog(
-    BuildContext context,
-    ApiService api,
-    SpelledWordsLogic spelledWordsLogic,
-    GameLayoutManager gameLayoutManager,
-    GameStateProvider gameStateProvider,
-  ) async {
+  static Future<void> _loadAndShowDialog(BuildContext context, GameManager gm) async {
     List<HighScore> highScores = [];
     String? date = 'Today';
-    bool loggedIn = api.loggedIn ?? false;
+    bool loggedIn = gm.apiService.loggedIn ?? false;
     bool canSubmitScore = false;
     bool hasGoodScore = false;
     bool userHasSubmitted = false;
@@ -53,10 +37,10 @@ class HighScoresDialog {
     );
 
     try {
-      finalScore = await SpelledWordsLogic.getCurrentScore();
+      finalScore = await gm.buildScoreRequest();
 
       // Use the gameId from finalScore to get game-specific high scores
-      final response = await api.getGameHighScores(finalScore.gameId);
+      final response = await gm.apiService.getGameHighScores(finalScore.gameId);
       highScores = response.highScoreData?.highScores ?? [];
       scoresSubmittedToday = response.highScoreData?.totalScoresToday ?? 0;
       userHasSubmitted = response.highScoreData?.userHasSubmitted ?? false;
@@ -66,7 +50,7 @@ class HighScoresDialog {
       date = rawDate == 'Today' ? 'Today' : DateFormat('MMMM d, yyyy').format(DateTime.parse(rawDate).toUtc());
 
       // Check if user is already on the board
-      bool userIsOnBoard = highScores.any((score) => score.userId == api.userId);
+      bool userIsOnBoard = highScores.any((score) => score.userId == gm.apiService.userId);
 
       // Only allow score submission if:
       // 1. User hasn't submitted a score today
@@ -97,7 +81,7 @@ class HighScoresDialog {
             // Calculate responsive width
             double dialogWidth =
                 constraints.maxWidth > 600
-                    ? gameLayoutManager.dialogMaxWidth
+                    ? gm.layoutManager!.dialogMaxWidth
                     : constraints.maxWidth * 0.95; // Use 95% of screen width on narrow screens
 
             return Dialog(
@@ -114,7 +98,7 @@ class HighScoresDialog {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Stack(
-                      children: [Center(child: Text('High Scores - $date', style: gameLayoutManager.dialogTitleStyle))],
+                      children: [Center(child: Text('High Scores - $date', style: gm.layoutManager!.dialogTitleStyle))],
                     ),
                     const SizedBox(height: 16.0),
                     // Scores list with improved spacing
@@ -139,7 +123,7 @@ class HighScoresDialog {
                                         padding: const EdgeInsets.all(16.0),
                                         child: Text(
                                           'No high scores available yet.',
-                                          style: gameLayoutManager.dialogContentStyle,
+                                          style: gm.layoutManager!.dialogContentStyle,
                                           textAlign: TextAlign.center,
                                         ),
                                       ),
@@ -159,16 +143,16 @@ class HighScoresDialog {
                                                     '${score.ranking}. ',
                                                     style:
                                                         isUser
-                                                            ? gameLayoutManager.dialogContentHighLiteStyle
-                                                            : gameLayoutManager.dialogContentStyle,
+                                                            ? gm.layoutManager!.dialogContentHighLiteStyle
+                                                            : gm.layoutManager!.dialogContentStyle,
                                                   ),
                                                   Flexible(
                                                     child: Text(
                                                       '${score.displayName.isNotEmpty ? score.displayName : "Unknown Player"}',
                                                       style:
                                                           isUser && score.displayName.isNotEmpty
-                                                              ? gameLayoutManager.dialogContentHighLiteStyle
-                                                              : gameLayoutManager.dialogContentStyle,
+                                                              ? gm.layoutManager!.dialogContentHighLiteStyle
+                                                              : gm.layoutManager!.dialogContentStyle,
                                                       overflow: TextOverflow.ellipsis,
                                                     ),
                                                   ),
@@ -197,7 +181,7 @@ class HighScoresDialog {
                                               padding: const EdgeInsets.only(left: 8.0),
                                               child: Text(
                                                 '${score.score} (${score.wordCount})',
-                                                style: gameLayoutManager.dialogContentStyle.copyWith(
+                                                style: gm.layoutManager!.dialogContentStyle.copyWith(
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
@@ -216,7 +200,7 @@ class HighScoresDialog {
                                       child: Center(
                                         child: Text(
                                           'Your Ranking: #$userRank out of $scoresSubmittedToday players',
-                                          style: gameLayoutManager.dialogContentHighLiteStyle,
+                                          style: gm.layoutManager!.dialogContentHighLiteStyle,
                                           textAlign: TextAlign.center,
                                         ),
                                       ),
@@ -238,7 +222,7 @@ class HighScoresDialog {
                           loggedIn
                               ? "Great score! Submit it to the leaderboard!"
                               : "Great score! Log in to submit to the leaderboard!",
-                          style: gameLayoutManager.dialogContentHighLiteStyle,
+                          style: gm.layoutManager!.dialogContentHighLiteStyle,
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -262,24 +246,18 @@ class HighScoresDialog {
                                   child: ElevatedButton(
                                     onPressed: () async {
                                       try {
-                                        final scoreSubmitted = await api.submitHighScore(finalScore);
+                                        final scoreSubmitted = await gm.apiService.submitHighScore(finalScore);
                                         if (scoreSubmitted && context.mounted) {
                                           LogService.logInfo('High score submitted successfully!');
 
                                           // Mark the game as finished
-                                          await gameStateProvider.finishGame();
+                                          gm.finishGame();
                                           LogService.logInfo('Game marked as finished after high score submission');
 
                                           Navigator.of(context).pop();
                                           await Future.delayed(const Duration(milliseconds: 100));
                                           if (context.mounted) {
-                                            await show(
-                                              context,
-                                              api,
-                                              spelledWordsLogic,
-                                              gameLayoutManager,
-                                              gameStateProvider: gameStateProvider,
-                                            );
+                                            await show(context, gm);
                                           }
                                           return;
                                         } else {
@@ -289,7 +267,7 @@ class HighScoresDialog {
                                         LogService.logError('Error submitting high score: $e');
                                       }
                                     },
-                                    style: gameLayoutManager.buttonStyle(context),
+                                    style: gm.layoutManager!.buttonStyle(context),
                                     child: const Text('Submit Score'),
                                   ),
                                 ),
@@ -299,29 +277,23 @@ class HighScoresDialog {
                                   padding: const EdgeInsets.only(bottom: 8.0),
                                   child: ElevatedButton(
                                     onPressed: () async {
-                                      final loginSuccess = await LoginDialog.show(context, api, gameLayoutManager);
+                                      final loginSuccess = await LoginDialog.show(context, gm);
                                       if (loginSuccess && context.mounted) {
                                         Navigator.of(context).pop();
                                         await Future.delayed(const Duration(milliseconds: 100));
                                         if (context.mounted) {
-                                          await show(
-                                            context,
-                                            api,
-                                            spelledWordsLogic,
-                                            gameLayoutManager,
-                                            gameStateProvider: gameStateProvider,
-                                          );
+                                          await show(context, gm);
                                         }
                                       }
                                     },
-                                    style: gameLayoutManager.buttonStyle(context),
+                                    style: gm.layoutManager!.buttonStyle(context),
                                     child: const Text('Login to Submit'),
                                   ),
                                 ),
                               // Close button
                               ElevatedButton(
                                 onPressed: () => Navigator.of(context).pop(),
-                                style: gameLayoutManager.buttonStyle(context),
+                                style: gm.layoutManager!.buttonStyle(context),
                                 child: const Text('Close'),
                               ),
                             ],
@@ -338,24 +310,18 @@ class HighScoresDialog {
                                   child: ElevatedButton(
                                     onPressed: () async {
                                       try {
-                                        final scoreSubmitted = await api.submitHighScore(finalScore);
+                                        final scoreSubmitted = await gm.apiService.submitHighScore(finalScore);
                                         if (scoreSubmitted && context.mounted) {
                                           LogService.logInfo('High score submitted successfully!');
 
                                           // Mark the game as finished
-                                          await gameStateProvider.finishGame();
+                                          gm.finishGame();
                                           LogService.logInfo('Game marked as finished after high score submission');
 
                                           Navigator.of(context).pop();
                                           await Future.delayed(const Duration(milliseconds: 100));
                                           if (context.mounted) {
-                                            await show(
-                                              context,
-                                              api,
-                                              spelledWordsLogic,
-                                              gameLayoutManager,
-                                              gameStateProvider: gameStateProvider,
-                                            );
+                                            await show(context, gm);
                                           }
                                           return;
                                         } else {
@@ -365,7 +331,7 @@ class HighScoresDialog {
                                         LogService.logError('Error submitting high score: $e');
                                       }
                                     },
-                                    style: gameLayoutManager.buttonStyle(context),
+                                    style: gm.layoutManager!.buttonStyle(context),
                                     child: const Text('Submit Score'),
                                   ),
                                 ),
@@ -375,22 +341,16 @@ class HighScoresDialog {
                                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
                                   child: ElevatedButton(
                                     onPressed: () async {
-                                      final loginSuccess = await LoginDialog.show(context, api, gameLayoutManager);
+                                      final loginSuccess = await LoginDialog.show(context, gm);
                                       if (loginSuccess && context.mounted) {
                                         Navigator.of(context).pop();
                                         await Future.delayed(const Duration(milliseconds: 100));
                                         if (context.mounted) {
-                                          await show(
-                                            context,
-                                            api,
-                                            spelledWordsLogic,
-                                            gameLayoutManager,
-                                            gameStateProvider: gameStateProvider,
-                                          );
+                                          await show(context, gm);
                                         }
                                       }
                                     },
-                                    style: gameLayoutManager.buttonStyle(context),
+                                    style: gm.layoutManager!.buttonStyle(context),
                                     child: const Text('Login to Submit'),
                                   ),
                                 ),
@@ -399,7 +359,7 @@ class HighScoresDialog {
                                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                                 child: ElevatedButton(
                                   onPressed: () => Navigator.of(context).pop(),
-                                  style: gameLayoutManager.buttonStyle(context),
+                                  style: gm.layoutManager!.buttonStyle(context),
                                   child: const Text('Close'),
                                 ),
                               ),

@@ -183,8 +183,6 @@ class GameManager extends ChangeNotifier {
 
   /// Sync UI components with current board data
   void syncUIComponents() {
-    gridKey?.currentState?.reloadTiles();
-    wildcardKey?.currentState?.reloadWildcardTiles();
     notifyListeners();
   }
 

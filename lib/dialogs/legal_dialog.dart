@@ -8,9 +8,10 @@ import '../managers/gameLayoutManager.dart';
 import '../dialogs/delete_account_dialog.dart';
 import '../main.dart' show VERSION_STRING;
 import '../logic/logging_handler.dart';
+import '../managers/gameManager.dart';
 
 class LegalDialog {
-  static void show(BuildContext context, ApiService api, GameLayoutManager gameLayoutManager) {
+  static void show(BuildContext context, GameManager gm) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -21,16 +22,16 @@ class LegalDialog {
           ),
           backgroundColor: AppStyles.dialogBackgroundColor,
           child: Container(
-            width: gameLayoutManager.dialogMaxWidth,
+            width: gm.layoutManager!.dialogMaxWidth,
             constraints: BoxConstraints(
-              maxHeight: gameLayoutManager.dialogMaxHeight,
-              minHeight: gameLayoutManager.dialogMinHeight,
+              maxHeight: gm.layoutManager!.dialogMaxHeight,
+              minHeight: gm.layoutManager!.dialogMinHeight,
             ),
             padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Stack(children: [Center(child: Text('Legal Information', style: gameLayoutManager.dialogTitleStyle))]),
+                Stack(children: [Center(child: Text('Legal Information', style: gm.layoutManager!.dialogTitleStyle))]),
                 const SizedBox(height: 16.0),
                 Flexible(
                   child: Stack(
@@ -41,12 +42,12 @@ class LegalDialog {
                           children: [
                             Text(
                               'Re-Word Game – Copyright Notice',
-                              style: gameLayoutManager.dialogTitleStyle.copyWith(fontSize: 18.0),
+                              style: gm.layoutManager!.dialogTitleStyle.copyWith(fontSize: 18.0),
                             ),
                             const SizedBox(height: 12.0),
                             Text(
                               'Re-Word Game, a word puzzle game, is developed and owned by Digital Relics using Flutter.\n\nAll rights reserved.\n\nNo part of this game—including its graphics, sounds, code, or other assets—may be reproduced, distributed, or transmitted in any form (electronic, mechanical, or otherwise) without prior written permission from Digital Relics.\n\nRe-Word Game is a trademark of Digital Relics.\n\nThis game is for personal entertainment only; unauthorized commercial use is prohibited. We respect your privacy: your email is used solely for account recovery, and your Display Name may appear on high score leaderboards.\n\nWe will never share your information with third parties.\n\nFor inquiries, visit',
-                              style: gameLayoutManager.dialogContentStyle,
+                              style: gm.layoutManager!.dialogContentStyle,
                             ),
                             GestureDetector(
                               onTap: () async {
@@ -57,13 +58,13 @@ class LegalDialog {
                               },
                               child: Text(
                                 'www.rewordgame.net',
-                                style: gameLayoutManager.dialogContentStyle.copyWith(
+                                style: gm.layoutManager!.dialogContentStyle.copyWith(
                                   color: Colors.blue,
                                   decoration: TextDecoration.underline,
                                 ),
                               ),
                             ),
-                            Text(' or contact ', style: gameLayoutManager.dialogContentStyle),
+                            Text(' or contact ', style: gm.layoutManager!.dialogContentStyle),
                             GestureDetector(
                               onTap: () async {
                                 final Uri emailLaunchUri = Uri(scheme: 'mailto', path: 'GameMaster@rewordgame.net');
@@ -73,13 +74,13 @@ class LegalDialog {
                               },
                               child: Text(
                                 'GameMaster@rewordgame.net',
-                                style: gameLayoutManager.dialogContentStyle.copyWith(
+                                style: gm.layoutManager!.dialogContentStyle.copyWith(
                                   color: Colors.blue,
                                   decoration: TextDecoration.underline,
                                 ),
                               ),
                             ),
-                            Text('© Digital Relics.', style: gameLayoutManager.dialogContentStyle),
+                            Text('© Digital Relics.', style: gm.layoutManager!.dialogContentStyle),
 
                             // Add account deletion section only for logged-in users
                             const SizedBox(height: 16.0),
@@ -91,21 +92,21 @@ class LegalDialog {
                                   TextSpan(
                                     text:
                                         'If you wish to permanently delete all your Reword Game data, including scores, stats, and account details, tap ',
-                                    style: gameLayoutManager.dialogContentStyle,
+                                    style: gm.layoutManager!.dialogContentStyle,
                                   ),
                                   WidgetSpan(
                                     child: GestureDetector(
                                       onTap: () {
                                         Navigator.pop(context); // Close legal dialog
-                                        DeleteAccountDialog.show(context, api, gameLayoutManager);
+                                        DeleteAccountDialog.show(context, gm);
                                       },
-                                      child: Text('account deletion dialog', style: gameLayoutManager.dialogLinkStyle),
+                                      child: Text('account deletion dialog', style: gm.layoutManager!.dialogLinkStyle),
                                     ),
                                   ),
                                   TextSpan(
                                     text:
                                         '. Please note: This action is irreversible and will erase all your progress.',
-                                    style: gameLayoutManager.dialogContentStyle,
+                                    style: gm.layoutManager!.dialogContentStyle,
                                   ),
                                 ],
                               ),
@@ -124,7 +125,7 @@ class LegalDialog {
                             Center(
                               child: Text(
                                 VERSION_STRING,
-                                style: gameLayoutManager.dialogContentStyle.copyWith(
+                                style: gm.layoutManager!.dialogContentStyle.copyWith(
                                   fontSize: 12,
                                   color: const Color.fromARGB(255, 201, 199, 199),
                                 ),
@@ -144,14 +145,14 @@ class LegalDialog {
                                 children: [
                                   Text(
                                     'Debug Logs',
-                                    style: gameLayoutManager.dialogTitleStyle.copyWith(fontSize: 18.0),
+                                    style: gm.layoutManager!.dialogTitleStyle.copyWith(fontSize: 18.0),
                                   ),
                                   TextButton(
                                     onPressed: () {
                                       // Clear logs and rebuild dialog
                                       LogService.clearEvents();
                                       Navigator.of(context).pop();
-                                      LegalDialog.show(context, api, gameLayoutManager);
+                                      LegalDialog.show(context, gm);
                                     },
                                     child: Text('Clear Logs', style: TextStyle(color: Colors.blue)),
                                   ),
@@ -171,7 +172,7 @@ class LegalDialog {
                                   children: [
                                     // If no logs, show a message
                                     if (LogService.getLogEvents().isEmpty)
-                                      Text('No logs recorded yet.', style: gameLayoutManager.dialogContentStyle),
+                                      Text('No logs recorded yet.', style: gm.layoutManager!.dialogContentStyle),
 
                                     // Otherwise, show all logs
                                     ...LogService.getLogEvents().map((log) {
@@ -179,7 +180,7 @@ class LegalDialog {
                                         padding: const EdgeInsets.only(bottom: 4.0),
                                         child: Text(
                                           log,
-                                          style: gameLayoutManager.dialogContentStyle.copyWith(
+                                          style: gm.layoutManager!.dialogContentStyle.copyWith(
                                             fontSize: 12.0,
                                             fontFamily: 'monospace',
                                           ),
@@ -215,7 +216,7 @@ class LegalDialog {
                 const SizedBox(height: AppStyles.dialogButtonPadding),
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  style: gameLayoutManager.buttonStyle(context),
+                  style: gm.layoutManager!.buttonStyle(context),
                   child: const Text('Close'),
                 ),
                 const SizedBox(height: AppStyles.dialogButtonPadding),

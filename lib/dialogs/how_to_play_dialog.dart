@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../components/letter_square_component.dart';
 import '../models/tile.dart';
-import '../managers/gameLayoutManager.dart';
+import '../managers/gameManager.dart';
 
 class HowToPlayDialog {
-  static void show(BuildContext context, GameLayoutManager gameLayoutManager) {
+  static void show(BuildContext context, GameManager gm) {
+    final layout = gm.layoutManager!;
     final standardTile = Tile(letter: 'A', value: 1, state: 'unused', isExtra: false, isRemoved: false);
     final usedTile = Tile(letter: 'B', value: 2, state: 'used', useCount: 1, isExtra: false, isRemoved: false);
     final wildcardTile = Tile(letter: 'W', value: 2, state: 'unused', isExtra: true, isRemoved: false);
@@ -22,19 +23,17 @@ class HowToPlayDialog {
           ),
           backgroundColor: AppStyles.dialogBackgroundColor,
           child: Container(
-            width: gameLayoutManager.dialogMaxWidth,
+            width: layout.dialogMaxWidth,
             constraints: BoxConstraints(
-              maxHeight: gameLayoutManager.dialogMaxHeight,
-              minHeight: gameLayoutManager.dialogMinHeight,
-              minWidth: 280.0, // Add minimum width constraint
+              maxHeight: layout.dialogMaxHeight,
+              minHeight: layout.dialogMinHeight,
+              minWidth: 280.0,
             ),
             padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Stack(
-                  children: [Center(child: Text('How to Play Re-Word', style: gameLayoutManager.dialogTitleStyle))],
-                ),
+                Stack(children: [Center(child: Text('How to Play Re-Word', style: layout.dialogTitleStyle))]),
                 const SizedBox(height: 16.0),
                 Flexible(
                   child: Stack(
@@ -43,10 +42,10 @@ class HowToPlayDialog {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Objective', style: gameLayoutManager.dialogTitleStyle.copyWith(fontSize: 18.0)),
+                            Text('Objective', style: layout.dialogTitleStyle.copyWith(fontSize: 18.0)),
                             Text(
                               'Find words in the 7x7 grid and maximize your score by strategically reusing letters.',
-                              style: gameLayoutManager.dialogContentStyle,
+                              style: layout.dialogContentStyle,
                               softWrap: true,
                               overflow: TextOverflow.visible,
                             ),
@@ -56,23 +55,19 @@ class HowToPlayDialog {
                               'A letter used more than once in different words doubles in value every time it\'s reused.\n'
                               'You can use a letter up to 8 times, after that it\'s value is capped. You cannot use the same word twice.\n\n'
                               'Five Wildcards can be placed on unused tiles to multiply the total word score.',
-                              style: gameLayoutManager.dialogContentStyle,
+                              style: layout.dialogContentStyle,
                               softWrap: true,
                               overflow: TextOverflow.visible,
                             ),
                             const SizedBox(height: 12.0),
                             Row(
                               children: [
-                                LetterSquareComponent(
-                                  tile: standardTile,
-                                  gameLayoutManager: gameLayoutManager,
-                                  helpDialog: true,
-                                ),
+                                LetterSquareComponent(tile: standardTile, helpDialog: true),
                                 const SizedBox(width: 8.0),
                                 Expanded(
                                   child: Text(
                                     'Basic: Letter tile with a base score.',
-                                    style: gameLayoutManager.dialogContentStyle,
+                                    style: layout.dialogContentStyle,
                                     softWrap: true,
                                     overflow: TextOverflow.visible,
                                   ),
@@ -82,16 +77,12 @@ class HowToPlayDialog {
                             const SizedBox(height: 8.0),
                             Row(
                               children: [
-                                LetterSquareComponent(
-                                  tile: usedTile,
-                                  gameLayoutManager: gameLayoutManager,
-                                  helpDialog: true,
-                                ),
+                                LetterSquareComponent(tile: usedTile, helpDialog: true),
                                 const SizedBox(width: 8.0),
                                 Expanded(
                                   child: Text(
                                     'Used: Each re-use doubles its value.',
-                                    style: gameLayoutManager.dialogContentStyle,
+                                    style: layout.dialogContentStyle,
                                     softWrap: true,
                                     overflow: TextOverflow.visible,
                                   ),
@@ -101,16 +92,12 @@ class HowToPlayDialog {
                             const SizedBox(height: 8.0),
                             Row(
                               children: [
-                                LetterSquareComponent(
-                                  tile: wildcardTile,
-                                  gameLayoutManager: gameLayoutManager,
-                                  helpDialog: true,
-                                ),
+                                LetterSquareComponent(tile: wildcardTile, helpDialog: true),
                                 const SizedBox(width: 8.0),
                                 Expanded(
                                   child: Text(
                                     'Wildcard: Multiplies word value.',
-                                    style: gameLayoutManager.dialogContentStyle,
+                                    style: layout.dialogContentStyle,
                                     softWrap: true,
                                     overflow: TextOverflow.visible,
                                   ),
@@ -123,7 +110,7 @@ class HowToPlayDialog {
                               'Wildcards can dramatically boost your score when used in high-value words.\n'
                               'Longer words = higher points!\n'
                               'Can you maximize the board and achieve the highest possible score?',
-                              style: gameLayoutManager.dialogContentStyle,
+                              style: layout.dialogContentStyle,
                               softWrap: true,
                               overflow: TextOverflow.visible,
                             ),
@@ -131,9 +118,7 @@ class HowToPlayDialog {
                             Center(
                               child: Text(
                                 'Re-Think. Strategize. Re-Word!\n',
-                                style: gameLayoutManager.dialogContentStyle.copyWith(
-                                  fontWeight: gameLayoutManager.defaultFontWeight,
-                                ),
+                                style: layout.dialogContentStyle.copyWith(fontWeight: layout.defaultFontWeight),
                                 softWrap: true,
                                 overflow: TextOverflow.visible,
                               ),
@@ -162,7 +147,7 @@ class HowToPlayDialog {
                 const SizedBox(height: AppStyles.dialogButtonPadding),
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  style: gameLayoutManager.buttonStyle(context),
+                  style: layout.buttonStyle(context),
                   child: const Text('Close'),
                 ),
                 const SizedBox(height: AppStyles.dialogButtonPadding),

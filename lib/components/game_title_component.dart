@@ -5,22 +5,21 @@ import 'package:reword_game/managers/gameLayoutManager.dart';
 import '../styles/app_styles.dart';
 import 'dart:math' as math;
 import 'dart:async';
-import '../main.dart'; // Import for debug flags
+import '../managers/gameManager.dart';
+import '../main.dart'; // For debug flags
 
 class GameTitleComponent extends StatefulWidget {
   final double width;
   final double height;
   final bool showBorders;
-  final GameLayoutManager gameLayoutManager;
-  final VoidCallback? onSecretReset; // New callback for secret reset
+  final VoidCallback? onSecretReset;
 
   const GameTitleComponent({
     super.key,
     required this.width,
     required this.height,
     this.showBorders = false,
-    required this.gameLayoutManager,
-    this.onSecretReset, // Add optional callback
+    this.onSecretReset,
   });
 
   static const List<String> slogans = [
@@ -48,7 +47,6 @@ class _GameTitleComponentState extends State<GameTitleComponent> {
   @override
   void initState() {
     super.initState();
-    // Generate the slogan once when the widget is initialized
     _slogan = _getRandomSlogan();
   }
 
@@ -64,14 +62,10 @@ class _GameTitleComponentState extends State<GameTitleComponent> {
   }
 
   void _handleTitleTap() {
-    // If secret reset is disabled, don't count clicks
-    if (debugDisableSecretReset) {
-      return;
-    }
+    if (debugDisableSecretReset) return;
 
     _clickCount++;
 
-    // Reset click count after 2 seconds of inactivity
     _clickTimer?.cancel();
     _clickTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) {
@@ -81,12 +75,9 @@ class _GameTitleComponentState extends State<GameTitleComponent> {
       }
     });
 
-    // If 5 clicks detected, trigger reset
     if (_clickCount >= 5) {
       _clickCount = 0;
       _clickTimer?.cancel();
-
-      // Call the reset callback if provided
       if (widget.onSecretReset != null) {
         widget.onSecretReset!();
       }
@@ -95,6 +86,8 @@ class _GameTitleComponentState extends State<GameTitleComponent> {
 
   @override
   Widget build(BuildContext context) {
+    // Access layout from GameManager singleton
+    final layout = GameManager().layoutManager!;
     const title = 'Re-Word Game';
 
     return GestureDetector(
@@ -120,7 +113,7 @@ class _GameTitleComponentState extends State<GameTitleComponent> {
                       child: Text(
                         letter,
                         style: TextStyle(
-                          fontSize: widget.gameLayoutManager.titleFontSize,
+                          fontSize: layout.titleFontSize,
                           fontWeight: GameLayoutManager().defaultFontWeight,
                           color: AppStyles.headerTextColor,
                         ),
@@ -132,7 +125,7 @@ class _GameTitleComponentState extends State<GameTitleComponent> {
             Text(
               _slogan,
               style: TextStyle(
-                fontSize: widget.gameLayoutManager.sloganFontSize,
+                fontSize: layout.sloganFontSize,
                 fontWeight: FontWeight.normal,
                 color: AppStyles.titleSloganTextColor.withOpacity(0.8),
               ),

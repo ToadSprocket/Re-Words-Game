@@ -2,16 +2,18 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
-import '../logic/spelled_words_handler.dart';
-import '../managers/gameLayoutManager.dart';
+import '../managers/gameManager.dart';
 
 class SpelledWordsPopup {
-  static void show(BuildContext context, GameLayoutManager gameLayoutManager) {
-    final List<String> words = SpelledWordsLogic.spelledWords;
+  static void show(BuildContext context) {
+    final List<String> words = GameManager().board.spelledWords;
 
     // Find the longest word to determine column width
     double maxWordWidth = 0;
-    final textStyle = TextStyle(fontSize: gameLayoutManager.tickerFontSize, color: AppStyles.spelledWordsTextColor);
+    final textStyle = TextStyle(
+      fontSize: GameManager().layoutManager!.tickerFontSize,
+      color: AppStyles.spelledWordsTextColor,
+    );
 
     // Calculate max word width
     for (String word in words) {
@@ -28,8 +30,11 @@ class SpelledWordsPopup {
       builder: (context) {
         return Dialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(gameLayoutManager.componentBorderRadius),
-            side: BorderSide(color: AppStyles.dialogBorderColor, width: gameLayoutManager.componentBorderThickness),
+            borderRadius: BorderRadius.circular(GameManager().layoutManager!.componentBorderRadius),
+            side: BorderSide(
+              color: AppStyles.dialogBorderColor,
+              width: GameManager().layoutManager!.componentBorderThickness,
+            ),
           ),
           backgroundColor: AppStyles.dialogBackgroundColor,
           child: LayoutBuilder(
@@ -42,16 +47,16 @@ class SpelledWordsPopup {
               final rowCount = (words.length / columnCount).ceil();
 
               return Container(
-                width: gameLayoutManager.dialogMaxWidth,
+                width: GameManager().layoutManager!.dialogMaxWidth,
                 constraints: BoxConstraints(
-                  maxHeight: gameLayoutManager.dialogMaxHeight,
-                  minHeight: gameLayoutManager.dialogMinHeight,
+                  maxHeight: GameManager().layoutManager!.dialogMaxHeight,
+                  minHeight: GameManager().layoutManager!.dialogMinHeight,
                 ),
                 padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Words Found (${words.length})', style: gameLayoutManager.dialogTitleStyle),
+                    Text('Words Found (${words.length})', style: GameManager().layoutManager!.dialogTitleStyle),
                     const SizedBox(height: 16.0),
                     Flexible(
                       child: SingleChildScrollView(
@@ -85,7 +90,7 @@ class SpelledWordsPopup {
                     const SizedBox(height: 16.0),
                     ElevatedButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      style: gameLayoutManager.buttonStyle(context),
+                      style: GameManager().layoutManager!.buttonStyle(context),
                       child: const Text('Close'),
                     ),
                     const SizedBox(height: 8.0),

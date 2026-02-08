@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../services/api_service.dart';
 import '../managers/gameLayoutManager.dart';
+import '../managers/gameManager.dart';
 
 class LogoutDialog {
-  static Future<void> show(BuildContext context, ApiService api, GameLayoutManager gameLayoutManager) {
+  static Future<void> show(BuildContext context, GameManager gm) {
     return showDialog<void>(
       context: context,
       barrierDismissible: true, // Allow dismiss by tapping outside
@@ -18,7 +19,7 @@ class LogoutDialog {
           ),
           backgroundColor: AppStyles.dialogBackgroundColor,
           child: SizedBox(
-            width: gameLayoutManager.dialogMaxWidth, // ✅ Match width with other dialogs
+            width: gm.layoutManager!.dialogMaxWidth, // ✅ Match width with other dialogs
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0), // ✅ Tighter padding
               child: Column(
@@ -30,7 +31,7 @@ class LogoutDialog {
                       Center(
                         child: Text(
                           'Logout Confirmation',
-                          style: gameLayoutManager.dialogTitleStyle,
+                          style: gm.layoutManager!.dialogTitleStyle,
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -41,7 +42,7 @@ class LogoutDialog {
                   // 🔹 Logout Message
                   Text(
                     'Are you sure you want to log out?',
-                    style: gameLayoutManager.dialogContentStyle,
+                    style: gm.layoutManager!.dialogContentStyle,
                     textAlign: TextAlign.center,
                   ),
 
@@ -53,17 +54,17 @@ class LogoutDialog {
                       // 🔹 Cancel Button
                       ElevatedButton(
                         onPressed: () => Navigator.of(context).pop(), // Close dialog
-                        style: gameLayoutManager.buttonStyle(context),
+                        style: gm.layoutManager!.buttonStyle(context),
                         child: const Text('Cancel'),
                       ),
                       const SizedBox(width: 12.0), // ✅ Adjusted spacing
                       // 🔹 Logout Button
                       ElevatedButton(
                         onPressed: () {
-                          api.loggedIn = false; // ✅ Log the user out
+                          gm.apiService.loggedIn = false; // ✅ Log the user out
                           Navigator.of(context).pop(); // Close dialog
                         },
-                        style: gameLayoutManager.buttonStyle(context),
+                        style: gm.layoutManager!.buttonStyle(context),
                         child: const Text('Logout'),
                       ),
                     ],

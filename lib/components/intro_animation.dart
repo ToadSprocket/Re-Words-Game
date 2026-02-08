@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import '../managers/gameLayoutManager.dart';
+import '../managers/gameManager.dart';
 import '../styles/app_styles.dart';
 import 'dart:math' as math;
 
 class IntroAnimation extends StatefulWidget {
-  final GameLayoutManager gameLayoutManager;
   final VoidCallback onComplete;
 
-  const IntroAnimation({super.key, required this.gameLayoutManager, required this.onComplete});
+  const IntroAnimation({super.key, required this.onComplete});
 
   @override
   State<IntroAnimation> createState() => _IntroAnimationState();
@@ -15,19 +15,19 @@ class IntroAnimation extends StatefulWidget {
 
 class _IntroAnimationState extends State<IntroAnimation> with TickerProviderStateMixin {
   // Animation durations
-  static const int letterAnimationDuration = 100; // Duration for each letter animation
-  static const int sloganAnimationDuration = 800; // Duration for slogan animation
-  static const int logoAnimationDuration = 1000; // Duration for logo animations
+  static const int letterAnimationDuration = 100;
+  static const int sloganAnimationDuration = 800;
+  static const int logoAnimationDuration = 1000;
 
   // Delays between animations
-  static const int delayBetweenLetters = 500; // Delay between each letter animation
-  static const int delayAfterLetters = 1000; // Delay after all letters finish
-  static const int delayAfterSlogan = 1000; // Delay after slogan finishes
-  static const int finalDelay = 2000; // Final delay before completion
+  static const int delayBetweenLetters = 500;
+  static const int delayAfterLetters = 1000;
+  static const int delayAfterSlogan = 1000;
+  static const int finalDelay = 2000;
 
   // Animation distances
-  static const double logoOffsetExtra = 50.0; // Extra pixels beyond screen edge for logos
-  static const double sloganOffsetExtra = 50.0; // Extra pixels beyond screen edge for slogan
+  static const double logoOffsetExtra = 50.0;
+  static const double sloganOffsetExtra = 50.0;
 
   late List<AnimationController> _letterControllers;
   late AnimationController _sloganController;
@@ -42,23 +42,21 @@ class _IntroAnimationState extends State<IntroAnimation> with TickerProviderStat
   final String title = "RE-WORD";
   final String slogan = "Re-Think. Re-Use. Re-Word!";
 
-  // Starting positions for letters (random positions around the screen)
   final List<Offset> _startPositions = [
-    const Offset(-2.0, -2.0), // Top left
-    const Offset(2.0, -2.0), // Top right
-    const Offset(-2.0, 2.0), // Bottom left
-    const Offset(2.0, 2.0), // Bottom right
-    const Offset(0.0, -2.0), // Top center
-    const Offset(0.0, 2.0), // Bottom center
-    const Offset(-2.0, 0.0), // Left center
-    const Offset(2.0, 0.0), // Right center
+    const Offset(-2.0, -2.0),
+    const Offset(2.0, -2.0),
+    const Offset(-2.0, 2.0),
+    const Offset(2.0, 2.0),
+    const Offset(0.0, -2.0),
+    const Offset(0.0, 2.0),
+    const Offset(-2.0, 0.0),
+    const Offset(2.0, 0.0),
   ];
 
   @override
   void initState() {
     super.initState();
 
-    // Letter animations
     _letterControllers = List.generate(
       title.length,
       (index) => AnimationController(duration: Duration(milliseconds: letterAnimationDuration), vsync: this),
@@ -89,44 +87,31 @@ class _IntroAnimationState extends State<IntroAnimation> with TickerProviderStat
           ).animate(CurvedAnimation(parent: controller, curve: Curves.elasticOut));
         }).toList();
 
-    // Slogan animation
     _sloganController = AnimationController(duration: Duration(milliseconds: sloganAnimationDuration), vsync: this);
 
-    // Logo animations
     _logoControllers = List.generate(
       2,
       (index) => AnimationController(duration: Duration(milliseconds: logoAnimationDuration), vsync: this),
     );
 
-    // Start animations in sequence
     _startAnimations();
   }
 
   void _startAnimations() async {
-    // Start letter animations one by one
     for (int i = 0; i < title.length; i++) {
       await Future.delayed(Duration(milliseconds: delayBetweenLetters));
       _letterControllers[i].forward();
     }
 
-    // Wait for letters to finish
     await Future.delayed(Duration(milliseconds: delayAfterLetters));
-
-    // Start slogan animation
     _sloganController.forward();
 
-    // Wait for slogan to finish
     await Future.delayed(Duration(milliseconds: delayAfterSlogan));
-
-    // Start logo animations
     for (var controller in _logoControllers) {
       controller.forward();
     }
 
-    // Wait for everything to finish
     await Future.delayed(Duration(milliseconds: finalDelay));
-
-    // Call onComplete
     if (mounted) {
       widget.onComplete();
     }
@@ -146,10 +131,13 @@ class _IntroAnimationState extends State<IntroAnimation> with TickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    // Access layout from GameManager singleton
+    final layout = GameManager().layoutManager!;
+
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    final logoOffset = screenWidth / 2 + logoOffsetExtra; // Start beyond the screen edge
-    final sloganOffset = screenHeight / 2 + sloganOffsetExtra; // Start beyond the bottom edge
+    final logoOffset = screenWidth / 2 + logoOffsetExtra;
+    final sloganOffset = screenHeight / 2 + sloganOffsetExtra;
 
     _sloganSlideAnimation = Tween<Offset>(
       begin: Offset(0, sloganOffset),
@@ -193,7 +181,7 @@ class _IntroAnimationState extends State<IntroAnimation> with TickerProviderStat
                             child: Text(
                               title[index],
                               style: TextStyle(
-                                fontSize: widget.gameLayoutManager.titleFontSize * 1.5,
+                                fontSize: layout.titleFontSize * 1.5,
                                 fontWeight: GameLayoutManager().defaultFontWeight,
                                 color: AppStyles.headerTextColor,
                                 shadows: [
@@ -223,7 +211,7 @@ class _IntroAnimationState extends State<IntroAnimation> with TickerProviderStat
                   child: Text(
                     slogan,
                     style: TextStyle(
-                      fontSize: widget.gameLayoutManager.sloganFontSize,
+                      fontSize: layout.sloganFontSize,
                       fontWeight: FontWeight.normal,
                       color: AppStyles.titleSloganTextColor,
                     ),
@@ -237,7 +225,6 @@ class _IntroAnimationState extends State<IntroAnimation> with TickerProviderStat
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Flutter Logo
                 AnimatedBuilder(
                   animation: _logoControllers[0],
                   builder: (context, child) {
@@ -248,7 +235,6 @@ class _IntroAnimationState extends State<IntroAnimation> with TickerProviderStat
                   },
                 ),
                 const SizedBox(width: 32),
-                // Digital Relics Logo
                 AnimatedBuilder(
                   animation: _logoControllers[1],
                   builder: (context, child) {

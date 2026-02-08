@@ -2,21 +2,14 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../managers/gameLayoutManager.dart';
+import '../managers/gameManager.dart';
 
 class GameMessageComponent extends StatefulWidget {
   final String message;
   final double width;
   final double height;
-  final GameLayoutManager gameLayoutManager;
 
-  const GameMessageComponent({
-    super.key,
-    required this.width,
-    required this.height,
-    required this.message,
-    required this.gameLayoutManager,
-  });
+  const GameMessageComponent({super.key, required this.width, required this.height, required this.message});
 
   @override
   _GameMessageComponentState createState() => _GameMessageComponentState();
@@ -41,12 +34,10 @@ class _GameMessageComponentState extends State<GameMessageComponent> {
   }
 
   bool _isImportantMessage(String message) {
-    // Consider wildcard multiplier messages as important
     return message.contains("multiplied by");
   }
 
   int _getMessageDuration(String message) {
-    // Important messages stay longer
     return _isImportantMessage(message) ? 3 : 2;
   }
 
@@ -58,17 +49,13 @@ class _GameMessageComponentState extends State<GameMessageComponent> {
       final now = DateTime.now();
       final newMessageIsImportant = _isImportantMessage(widget.message);
 
-      // If there's no current message, or the new message is important,
-      // or the new message is different from the current one,
-      // or the current message has been displayed for at least 1.5 seconds
       final shouldUpdateMessage =
           displayMessage == null ||
           newMessageIsImportant ||
-          widget.message != displayMessage || // Check if the message is different
+          widget.message != displayMessage ||
           (messageDisplayTime != null && now.difference(messageDisplayTime!).inMilliseconds > 1500);
 
       if (shouldUpdateMessage) {
-        // Cancel any existing timer
         messageTimer?.cancel();
 
         setState(() {
@@ -77,7 +64,6 @@ class _GameMessageComponentState extends State<GameMessageComponent> {
           messageDisplayTime = now;
         });
 
-        // Set a new timer based on message importance
         final duration = _getMessageDuration(widget.message);
         messageTimer = Timer(Duration(seconds: duration), () {
           if (mounted) {
@@ -94,6 +80,8 @@ class _GameMessageComponentState extends State<GameMessageComponent> {
 
   @override
   Widget build(BuildContext context) {
+    // Access layout from GameManager singleton
+    final layout = GameManager().layoutManager!;
     final textColor = isImportantMessage ? Colors.green : Colors.white;
 
     return Padding(
@@ -101,11 +89,7 @@ class _GameMessageComponentState extends State<GameMessageComponent> {
       child: Center(
         child: Text(
           displayMessage ?? '',
-          style: TextStyle(
-            color: textColor,
-            fontSize: widget.gameLayoutManager.gameMessageFontSize,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: textColor, fontSize: layout.gameMessageFontSize, fontWeight: FontWeight.bold),
         ),
       ),
     );

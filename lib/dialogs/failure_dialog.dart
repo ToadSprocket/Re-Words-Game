@@ -3,10 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // For SystemNavigator.pop
 import 'package:flutter/foundation.dart' show kIsWeb;
-import '../styles/app_styles.dart';
 import 'package:window_manager/window_manager.dart';
 import 'dart:io';
-import '../managers/gameLayoutManager.dart';
 import '../dialogs/enhanced_error_dialog.dart';
 import '../logic/error_handler.dart';
 import '../logic/error_reporting.dart';
@@ -14,8 +12,7 @@ import '../utils/connectivity_monitor.dart';
 
 class FailureDialog {
   static Future<void> show(
-    BuildContext context,
-    GameLayoutManager gameLayoutManager, {
+    BuildContext context, {
     String? title,
     String? message,
     VoidCallback? onRetry,
@@ -53,7 +50,6 @@ class FailureDialog {
     // Check connectivity
     ConnectivityMonitor().checkConnection().then((isConnected) {
       if (!isConnected) {
-        // If we're not connected, report this information
         ErrorReporting.reportWarning(
           'No network connection detected when showing failure dialog',
           context: 'FailureDialog.show',
@@ -64,7 +60,7 @@ class FailureDialog {
     // Default server error dialog
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, // Prevent dismiss without button
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return EnhancedErrorDialog(
           title: title ?? 'Server Error',
@@ -73,9 +69,9 @@ class FailureDialog {
           onClose: () async {
             Navigator.of(context).pop();
             if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
-              await windowManager.destroy(); // Force close on desktop
+              await windowManager.destroy();
             } else {
-              SystemNavigator.pop(); // Mobile fallback
+              SystemNavigator.pop();
             }
           },
           actionButtonText: onRetry != null ? 'Retry' : null,
@@ -85,12 +81,7 @@ class FailureDialog {
   }
 
   /// Show a specific error dialog based on error type
-  static Future<void> showError(
-    BuildContext context,
-    GameLayoutManager gameLayoutManager,
-    dynamic error, {
-    VoidCallback? onRetry,
-  }) {
+  static Future<void> showError(BuildContext context, dynamic error, {VoidCallback? onRetry}) {
     // Determine error category and message
     String category = ErrorHandler.UNKNOWN_ERROR;
     String title = 'Error';
@@ -100,7 +91,6 @@ class FailureDialog {
     if (error is Exception) {
       category = ErrorHandler.categorizeException(error);
 
-      // Get appropriate title and message based on category
       switch (category) {
         case ErrorHandler.NETWORK_ERROR:
           title = 'Connection Error';
@@ -124,20 +114,15 @@ class FailureDialog {
           message = 'An unexpected error occurred. Please try again later.';
       }
 
-      // Report the error
       ErrorReporting.reportException(error, StackTrace.current, context: 'FailureDialog.showError');
     } else {
-      // For non-exception errors, use default error handling
       message = error.toString();
-
-      // Report the error
       ErrorReporting.reportWarning('Non-exception error: $error', context: 'FailureDialog.showError');
     }
 
     // Show the appropriate dialog
     return show(
       context,
-      gameLayoutManager,
       title: title,
       message: message,
       onRetry: onRetry,

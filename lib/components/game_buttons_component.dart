@@ -1,24 +1,21 @@
 // layouts/game_buttons.dart
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
-import '../managers/gameLayoutManager.dart';
+import '../managers/gameManager.dart';
 
 class GameButtonsComponent extends StatelessWidget {
   final VoidCallback onSubmit;
   final VoidCallback onClear;
-  final GameLayoutManager gameLayoutManager;
 
-  const GameButtonsComponent({
-    super.key,
-    required this.onSubmit,
-    required this.onClear,
-    required this.gameLayoutManager,
-  });
+  const GameButtonsComponent({super.key, required this.onSubmit, required this.onClear});
 
   @override
   Widget build(BuildContext context) {
+    // Access layout from GameManager singleton
+    final layout = GameManager().layoutManager!;
+
     return SizedBox(
-      height: gameLayoutManager.gameButtonsComponentHeight,
+      height: layout.gameButtonsComponentHeight,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -27,20 +24,14 @@ class GameButtonsComponent extends StatelessWidget {
             children: [
               ElevatedButton(
                 onPressed: onSubmit,
-                style: gameLayoutManager.buttonStyle(context),
-                child: Transform.translate(
-                  offset: Offset(0, gameLayoutManager.buttonTextOffset),
-                  child: const Text("Submit"),
-                ),
+                style: layout.buttonStyle(context),
+                child: Transform.translate(offset: Offset(0, layout.buttonTextOffset), child: const Text("Submit")),
               ),
               const SizedBox(width: 16.0),
               ElevatedButton(
                 onPressed: onClear,
-                style: gameLayoutManager.buttonStyle(context),
-                child: Transform.translate(
-                  offset: Offset(0, gameLayoutManager.buttonTextOffset),
-                  child: const Text("Clear"),
-                ),
+                style: layout.buttonStyle(context),
+                child: Transform.translate(offset: Offset(0, layout.buttonTextOffset), child: const Text("Clear")),
               ),
             ],
           ),

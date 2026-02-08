@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
-import '../managers/gameLayoutManager.dart';
+import '../managers/gameManager.dart';
 
 class LoadingDialog {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-  static Future<void> show(BuildContext context, GameLayoutManager gameLayoutManager, {String message = "Loading..."}) {
+  static Future<void> show(BuildContext context, {String message = "Loading..."}) {
+    // Access layout from GameManager singleton
+    final layout = GameManager().layoutManager!;
+
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, // Prevent dismissing by tapping outside
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return WillPopScope(
-          onWillPop: () async => false, // Prevent back button from dismissing
+          onWillPop: () async => false,
           child: Dialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppStyles.dialogBorderRadius),
@@ -25,7 +28,7 @@ class LoadingDialog {
                 children: [
                   CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppStyles.dialogBorderColor)),
                   const SizedBox(height: 16),
-                  Text(message, style: gameLayoutManager.dialogTitleStyle, textAlign: TextAlign.center),
+                  Text(message, style: layout.dialogTitleStyle, textAlign: TextAlign.center),
                 ],
               ),
             ),

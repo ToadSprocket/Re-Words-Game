@@ -2,10 +2,12 @@
 // Copyright © 2025 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
-import '../managers/gameLayoutManager.dart';
+import '../managers/gameManager.dart';
 
 class BoardExpiredDialog {
-  static Future<bool?> show(BuildContext context, GameLayoutManager gameLayoutManager) {
+  static Future<bool?> show(BuildContext context) {
+    // Access layout from GameManager singleton
+    final layout = GameManager().layoutManager!;
     bool? result;
     return showDialog<bool>(
       context: context,
@@ -17,20 +19,16 @@ class BoardExpiredDialog {
           ),
           backgroundColor: AppStyles.dialogBackgroundColor,
           child: SizedBox(
-            width: gameLayoutManager.dialogMaxWidth, // ✅ Fixed width
+            width: layout.dialogMaxWidth,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
               child: Column(
-                mainAxisSize: MainAxisSize.min, // ✅ Dynamic height
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Stack(
                     children: [
                       Center(
-                        child: Text(
-                          'New Board Available',
-                          style: gameLayoutManager.dialogTitleStyle,
-                          textAlign: TextAlign.center,
-                        ),
+                        child: Text('New Board Available', style: layout.dialogTitleStyle, textAlign: TextAlign.center),
                       ),
                     ],
                   ),
@@ -38,31 +36,31 @@ class BoardExpiredDialog {
                   Text(
                     'Your current board has expired.\n'
                     'Would you like to load a new board?\n',
-                    style: gameLayoutManager.dialogContentStyle,
+                    style: layout.dialogContentStyle,
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 24.0), // ✅ More space before buttons
+                  const SizedBox(height: 24.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            result = false; // Keep Playing
+                            result = false;
                             Navigator.of(context).pop(false);
-                          }, // Keep Playing
-                          style: gameLayoutManager.buttonStyle(context),
+                          },
+                          style: layout.buttonStyle(context),
                           child: const Text('No'),
                         ),
                       ),
-                      const SizedBox(width: 12.0), // ✅ Spacing between buttons
+                      const SizedBox(width: 12.0),
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            result = true; // Load New Board
+                            result = true;
                             Navigator.of(context).pop(true);
                           },
-                          style: gameLayoutManager.buttonStyle(context),
+                          style: layout.buttonStyle(context),
                           child: const Text('Yes'),
                         ),
                       ),
