@@ -4,11 +4,11 @@ import '../models/tile.dart';
 import 'letter_square_component.dart';
 import '../logic/logging_handler.dart';
 import '../managers/gameManager.dart';
+import '../config/debugConfig.dart';
 
 class WildcardColumnComponent extends StatefulWidget {
   final double width;
   final double height;
-  final bool showBorders;
   final bool isHorizontal;
   final double gridSpacing;
   final VoidCallback? onWildcardUsed;
@@ -17,7 +17,6 @@ class WildcardColumnComponent extends StatefulWidget {
     super.key,
     required this.width,
     required this.height,
-    this.showBorders = false,
     this.isHorizontal = false,
     required this.gridSpacing,
     this.onWildcardUsed,
@@ -74,7 +73,7 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
     return Container(
       width: widget.width,
       height: widget.height,
-      decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.blue, width: 1)) : null,
+      decoration: DebugConfig().showBorders ? BoxDecoration(border: Border.all(color: Colors.blue, width: 1)) : null,
       child:
           tiles.isEmpty
               ? Center(child: Text("", style: TextStyle(color: Colors.white70, fontSize: 16)))

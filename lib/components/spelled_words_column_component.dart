@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../managers/gameManager.dart';
+import '../config/debugConfig.dart';
 
 class SpelledWordsColumnComponent extends StatelessWidget {
   final List<String> words;
@@ -9,7 +10,6 @@ class SpelledWordsColumnComponent extends StatelessWidget {
   final double columnHeight;
   final double gridSpacing;
   final double wordColumnHeight;
-  final bool showBorders;
 
   const SpelledWordsColumnComponent({
     super.key,
@@ -18,7 +18,6 @@ class SpelledWordsColumnComponent extends StatelessWidget {
     required this.columnHeight,
     required this.gridSpacing,
     required this.wordColumnHeight,
-    this.showBorders = false,
   });
 
   int _calculateWordsPerColumn(double height) {
@@ -92,7 +91,7 @@ class SpelledWordsColumnComponent extends StatelessWidget {
       width: columnWidth,
       height: columnHeight,
       decoration:
-          showBorders
+          DebugConfig().showBorders
               ? BoxDecoration(border: Border.all(color: AppStyles.spelledWordsOuterBorderColor, width: 1))
               : null,
       child: LayoutBuilder(
@@ -114,7 +113,7 @@ class SpelledWordsColumnComponent extends StatelessWidget {
                       child: Container(
                         height: wordColumnHeight,
                         decoration:
-                            showBorders
+                            DebugConfig().showBorders
                                 ? BoxDecoration(
                                   border: Border.all(color: AppStyles.spelledWordsColumnBorderColor, width: 1),
                                 )

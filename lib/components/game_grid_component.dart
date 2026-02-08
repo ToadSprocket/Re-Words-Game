@@ -6,11 +6,10 @@ import '../models/tile.dart';
 import '../models/boardState.dart';
 import 'letter_square_component.dart';
 import '../managers/gameManager.dart';
+import '../config/debugConfig.dart';
 
 class GameGridComponent extends StatefulWidget {
-  final bool showBorders;
-
-  const GameGridComponent({super.key, this.showBorders = false});
+  const GameGridComponent({super.key});
 
   @override
   GameGridComponentState createState() => GameGridComponentState();
@@ -132,7 +131,7 @@ class GameGridComponentState extends State<GameGridComponent> {
     return Container(
       width: layout.gridWidthSize,
       height: layout.gridHeightSize,
-      decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 1)) : null,
+      decoration: DebugConfig().showBorders ? BoxDecoration(border: Border.all(color: Colors.red, width: 1)) : null,
       child:
           isLoading
               ? Center(

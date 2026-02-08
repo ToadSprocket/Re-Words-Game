@@ -25,6 +25,7 @@ import 'services/word_service.dart';
 import 'utils/device_utils.dart';
 import 'providers/orientation_provider.dart';
 import 'managers/gameManager.dart';
+import 'config/debugConfig.dart';
 
 // App version information
 const String MAJOR = "2";
@@ -34,19 +35,6 @@ const String BUILD = "00";
 const String PHASE = "A";
 
 const String VERSION_STRING = "v$MAJOR.$MINOR.$PATCH+$BUILD-$PHASE";
-
-// Variables for debugging the layout and board loading logic
-const bool debugShowBorders = false;
-const bool? debugForceIsWeb = null;
-const bool debugForceIsNarrow = false;
-const bool disableSpellCheck = false;
-const bool debugForceExpiredBoard = false; // Force expired board
-const bool debugForceValidBoard = false; // Force valid board
-const bool debugClearPrefs = false; // Clear all prefs for new user
-const bool debugForceIntroAnimation = false; // Force intro animation to play
-const bool debugDisableSecretReset = false; // Disable the secret title reset feature
-const LogLevel logLevel = LogLevel.debug; // Set the current logging level
-const bool logStackTraces = false;
 
 // Window size constants for the initialization routines
 const double MIN_WINDOW_WIDTH = 1000.0;
@@ -59,13 +47,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Configure logging based on build mode
-  LogService.configureLogging(logLevel);
+  LogService.configureLogging(DebugConfig().logLevel);
 
   // Initialize error reporting
   await ErrorReporting.initialize();
 
   // Disable stack trace logging by default (can be toggled at runtime)
-  ErrorReporting.logStackTraces = logStackTraces;
+  ErrorReporting.logStackTraces = DebugConfig().logStackTraces;
 
   // Initialize GameManager (handles ApiService, WordService, UserManager, Board)
   await GameManager().initialize();
@@ -296,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     // Setup game layout.
     gm.initializeLayout(context);
 
-    final isExpired = debugForceExpiredBoard || await gm.board.isBoardExpired();
+    final isExpired = DebugConfig().forceExpiredBoard || await gm.board.isBoardExpired();
 
     if (isExpired) {
       LogService.logInfo("🔄 Board is expired at startup - loading new board");
@@ -410,7 +398,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     bool hasShownWelcome = await gm.userManager.hasShownWelcome();
 
     // Handle welcome animation for first-time users
-    if (debugForceIntroAnimation || !hasShownWelcome) {
+    if (DebugConfig().forceIntroAnimation || !hasShownWelcome) {
       if (gameLayoutManager.isTablet && Platform.isAndroid) {
         await AndroidTabletDialog.show(context);
       }
@@ -445,7 +433,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   @override
   Widget build(BuildContext context) {
     // Set debug override if needed
-    if (debugForceIsNarrow) {
+    if (DebugConfig().forceIsNarrow) {
       DeviceUtils.forceNarrowLayout = true;
     }
 
@@ -463,8 +451,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     }
 
     // Build the appropriate screen layout
-    Widget screen =
-        useNarrowLayout ? NarrowScreen(showBorders: debugShowBorders) : WideScreen(showBorders: debugShowBorders);
+    Widget screen = useNarrowLayout ? NarrowScreen() : WideScreen();
 
     return Scaffold(
       body:

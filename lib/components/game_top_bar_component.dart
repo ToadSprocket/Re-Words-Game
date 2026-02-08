@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import '/styles/app_styles.dart';
 import '../managers/gameManager.dart';
+import '../config/debugConfig.dart';
 import '../dialogs/how_to_play_dialog.dart';
 import '../dialogs/high_scores_dialog.dart';
 import '../dialogs/legal_dialog.dart';
@@ -12,13 +13,13 @@ import '../dialogs/login_dialog.dart';
 import '../dialogs/logout_dialog.dart';
 
 class GameTopBarComponent extends StatelessWidget {
-  final bool showBorders;
-
-  const GameTopBarComponent({super.key, this.showBorders = false});
+  const GameTopBarComponent({super.key});
 
   @override
   Widget build(BuildContext context) {
     final gm = context.watch<GameManager>();
+    // Read showBorders from centralized debug config
+    final showBorders = DebugConfig().showBorders;
     bool isLoggedIn = gm.apiService.loggedIn ?? false;
 
     return Column(

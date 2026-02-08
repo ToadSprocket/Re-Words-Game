@@ -13,9 +13,7 @@ import '../components/game_message_component.dart';
 import '../components/wildcard_column_component.dart';
 
 class NarrowScreen extends StatelessWidget {
-  final bool showBorders;
-
-  const NarrowScreen({super.key, this.showBorders = false});
+  const NarrowScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +25,7 @@ class NarrowScreen extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         // Top Bar - instructions, high scores, legal, login
-        GameTopBarComponent(showBorders: showBorders),
+        GameTopBarComponent(),
         Container(
           width: layout.gameContainerWidth,
           child: Column(
@@ -37,7 +35,6 @@ class NarrowScreen extends StatelessWidget {
               GameTitleComponent(
                 width: layout.gameTitleComponentWidth,
                 height: layout.gameTitleComponentHeight,
-                showBorders: showBorders,
                 onSecretReset: () => gm.secretReset(),
               ),
               SizedBox(height: layout.gridSpacing),
@@ -56,7 +53,7 @@ class NarrowScreen extends StatelessWidget {
               ),
               SizedBox(height: layout.gridSpacing),
               // Game grid
-              GameGridComponent(key: gm.gridKey, showBorders: showBorders),
+              GameGridComponent(key: gm.gridKey),
               SizedBox(height: layout.gridSpacing),
               // Message display
               GameMessageComponent(
@@ -69,7 +66,6 @@ class NarrowScreen extends StatelessWidget {
                 key: gm.wildcardKey,
                 width: layout.gameContainerWidth,
                 height: layout.wilcardsContainerHeight,
-                showBorders: showBorders,
                 isHorizontal: true,
                 gridSpacing: layout.gridSpacing,
               ),

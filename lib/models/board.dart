@@ -1,4 +1,4 @@
-// Copyright © 2025 Digital Relics. All Rights Reserved.
+// Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'dart:convert';
 import 'package:reword_game/logic/logging_handler.dart';
 import 'package:reword_game/models/gameMode.dart';

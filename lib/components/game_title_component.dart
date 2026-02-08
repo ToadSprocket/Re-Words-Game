@@ -6,21 +6,14 @@ import '../styles/app_styles.dart';
 import 'dart:math' as math;
 import 'dart:async';
 import '../managers/gameManager.dart';
-import '../main.dart'; // For debug flags
+import '../config/debugConfig.dart';
 
 class GameTitleComponent extends StatefulWidget {
   final double width;
   final double height;
-  final bool showBorders;
   final VoidCallback? onSecretReset;
 
-  const GameTitleComponent({
-    super.key,
-    required this.width,
-    required this.height,
-    this.showBorders = false,
-    this.onSecretReset,
-  });
+  const GameTitleComponent({super.key, required this.width, required this.height, this.onSecretReset});
 
   static const List<String> slogans = [
     "Re-Think. Re-Use. Re-Word!",
@@ -62,7 +55,7 @@ class _GameTitleComponentState extends State<GameTitleComponent> {
   }
 
   void _handleTitleTap() {
-    if (debugDisableSecretReset) return;
+    if (DebugConfig().disableSecretReset) return;
 
     _clickCount++;
 
@@ -95,7 +88,8 @@ class _GameTitleComponentState extends State<GameTitleComponent> {
       child: Container(
         width: widget.width,
         height: widget.height,
-        decoration: widget.showBorders ? BoxDecoration(border: Border.all(color: Colors.purple, width: 1)) : null,
+        decoration:
+            DebugConfig().showBorders ? BoxDecoration(border: Border.all(color: Colors.purple, width: 1)) : null,
         child: Column(
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.start,

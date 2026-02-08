@@ -11,16 +11,17 @@ import '../components/game_buttons_component.dart';
 import '../components/spelled_words_column_component.dart';
 import '../components/game_message_component.dart';
 import '../components/wildcard_column_component.dart';
+import '../config/debugConfig.dart';
 
 class WideScreen extends StatelessWidget {
-  final bool showBorders;
-
-  const WideScreen({super.key, this.showBorders = false});
+  const WideScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final gm = context.watch<GameManager>();
     final layout = gm.layoutManager!;
+    // Read showBorders from centralized debug config
+    final showBorders = DebugConfig().showBorders;
     const borderWidth = 1.0;
     final screenWidth = layout.screenWidth;
     final screenHeight = layout.screenHeight;
@@ -40,10 +41,7 @@ class WideScreen extends StatelessWidget {
               child: Container(
                 decoration:
                     showBorders ? BoxDecoration(border: Border.all(color: Colors.orange, width: borderWidth)) : null,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [GameTopBarComponent(showBorders: showBorders)],
-                ),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [GameTopBarComponent()]),
               ),
             ),
             // Container 2: Game Area with Three Columns
@@ -75,14 +73,11 @@ class WideScreen extends StatelessWidget {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            SizedBox(
-                              height: layout.gameTitleComponentHeight + layout.gameScoresComponentHeight,
-                            ), // Matches title + scores
+                            SizedBox(height: layout.gameTitleComponentHeight + layout.gameScoresComponentHeight),
                             WildcardColumnComponent(
                               key: gm.wildcardKey,
                               width: layout.wildcardContainerWidth - (showBorders ? 2 * borderWidth : 0),
                               height: layout.gridHeightSize,
-                              showBorders: showBorders,
                               isHorizontal: false,
                               gridSpacing: layout.gridSpacing,
                             ),
@@ -105,7 +100,6 @@ class WideScreen extends StatelessWidget {
                             GameTitleComponent(
                               width: layout.gameTitleComponentWidth,
                               height: layout.gameTitleComponentHeight,
-                              showBorders: showBorders,
                               onSecretReset: () => gm.secretReset(),
                             ),
                             GameScores(
@@ -113,7 +107,7 @@ class WideScreen extends StatelessWidget {
                               height: layout.gameScoresComponentHeight,
                               score: gm.board.score,
                             ),
-                            GameGridComponent(key: gm.gridKey, showBorders: showBorders),
+                            GameGridComponent(key: gm.gridKey),
                             GameMessageComponent(
                               width: layout.gameMessageComponentWidth,
                               height: layout.gameMessageComponentHeight,
@@ -138,9 +132,7 @@ class WideScreen extends StatelessWidget {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            SizedBox(
-                              height: layout.gameTitleComponentHeight + layout.gameScoresComponentHeight - 2,
-                            ), // Matches title + scores, aligns with wildcards
+                            SizedBox(height: layout.gameTitleComponentHeight + layout.gameScoresComponentHeight - 2),
                             SpelledWordsColumnComponent(
                               words: gm.board.spelledWords,
                               columnWidth: layout.spelledWordsContainerWidth,
@@ -149,7 +141,6 @@ class WideScreen extends StatelessWidget {
                                   layout.gameMessageComponentHeight +
                                   layout.gameButtonsComponentHeight,
                               gridSpacing: layout.spelledWordsGridSpacing,
-                              showBorders: showBorders,
                               wordColumnHeight:
                                   layout.gridHeightSize +
                                   layout.gameMessageComponentHeight +
