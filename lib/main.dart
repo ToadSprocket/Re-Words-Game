@@ -289,7 +289,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
     if (isExpired) {
       LogService.logInfo("🔄 Board is expired at startup - loading new board");
-      await gm.loadNewBoard();
+      final success = await gm.loadNewBoard();
+
+      if (!success && !gm.isBoardReady) {
+        if (mounted) {
+          await FailureDialog.show(
+            context,
+            title: "Error loading new board",
+            message: "Unable to connect to server. Please check your connection and try again.",
+            onRetry: () => _initializeGame(),
+          );
+        }
+      }
     }
 
     await _loadData();

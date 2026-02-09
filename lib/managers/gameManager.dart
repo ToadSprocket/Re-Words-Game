@@ -368,7 +368,10 @@ class GameManager extends ChangeNotifier {
 
     // Check if board expired
     if (await board.isBoardExpired()) {
-      await loadNewBoard();
+      final success = await loadNewBoard();
+      if (!success) {
+        message = 'Server unavailable — playing with current board';
+      }
     }
     notifyListeners();
   }
