@@ -17,9 +17,10 @@ class DebugConfig {
   bool disableSpellCheck = false;
   bool forceExpiredBoard = false;
   bool forceValidBoard = false;
-  bool clearPrefs = false;
+  bool clearPrefs = true;
   bool forceIntroAnimation = false;
   bool disableSecretReset = false;
+  bool showLayoutMeasurements = false;
   LogLevel logLevel = LogLevel.debug;
   bool logStackTraces = false;
 }

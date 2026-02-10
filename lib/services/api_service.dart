@@ -266,25 +266,15 @@ class ApiService with ChangeNotifier {
 
   /// **Register a new user**
   Future<ApiResponse> register(String locale, String platform) async {
+    LogService.logInfo("register called");
     final headers = {'X-API-Key': Security.generateApiKeyHash(), 'Content-Type': 'application/json'};
-    final body = {'locale': locale, 'platform': platform};
+    final body = jsonEncode({'locale': locale, 'platform': platform});
 
-    try {
-      // Use secure HTTP client with certificate pinning
-      final secureClient = SecureHttpClient();
-      final response = await secureClient.post('/users/register', data: body, headers: headers);
-
-      final apiResponse = _parseResponseDio(response);
-      await _updateTokens(apiResponse.security!);
-      return apiResponse;
-    } on DioException catch (e) {
-      // Fall back to standard HTTP client if there's a certificate issue
-      LogService.logInfo("⚠️ Falling back to standard HTTP client for registration: ${e.message}");
-      final response = await _makeApiRequest(false, '${Config.apiUrl}/users/register', headers, jsonEncode(body));
-      final apiResponse = _parseResponse(response);
-      await _updateTokens(apiResponse.security!);
-      return apiResponse;
-    }
+    // Use standard HTTP client directly (certificate pinning deferred to Phase B)
+    final response = await _makeApiRequest(false, '${Config.apiUrl}/users/register', headers, body);
+    final apiResponse = _parseResponse(response);
+    await _updateTokens(apiResponse.security!);
+    return apiResponse;
   }
 
   /// **Update User Profile**
@@ -407,6 +397,7 @@ class ApiService with ChangeNotifier {
 
   /// **Fetch Today's Game**
   Future<ApiResponse> getGameToday(SubmitScoreRequest scoreRequest) async {
+    LogService.logInfo("getGameToday called");
     await _getTokens(); // Ensure tokens are loaded
 
     // Check if user is logged in - if not, we need to register first

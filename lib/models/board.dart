@@ -29,7 +29,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 /// - Persist and restore game state
 class Board {
   /// Storage key name for persisting board state to SharedPreferences.
-  static const String _boardStateName = "boardState";
+  static const String _boardStateName = "boardState-v1.1";
 
   /// Point values for each letter, following Scrabble-style scoring.
   /// Vowels and common consonants = 1, rare letters like Q and Z = 10.
@@ -245,7 +245,7 @@ class Board {
         (e) => e.name == json['orientation'],
         orElse: () => Orientation.unknown, // Default if not found
       ),
-      selectedWordIndex: json['selectedWordIndex'],
+      selectedWordIndex: (json['selectedWordIndex'] as List).cast<int>(),
     );
   }
 
@@ -667,5 +667,12 @@ class Board {
         .map((index) => gridTiles[index].letter)
         .join()
         .toUpperCase();
+  }
+
+  /// Debug: Clear stored board data for fresh start
+  static Future<void> clearBoardFromStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_boardStateName);
+    LogService.logInfo("🧹 Debug: Cleared stored board data");
   }
 }

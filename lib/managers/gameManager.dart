@@ -17,6 +17,8 @@ import '../managers/userManager.dart';
 import '../logic/scoring.dart';
 import '../utils/wordUtilities.dart';
 import '../managers/gameLayoutManager.dart';
+import '../config/debugConfig.dart';
+import '../logic/logging_handler.dart';
 
 class GameManager extends ChangeNotifier {
   // ─────────────────────────────────────────────────────────────────────
@@ -49,15 +51,9 @@ class GameManager extends ChangeNotifier {
   // UI COMPONENT REFERENCES
   // ─────────────────────────────────────────────────────────────────────
 
-  GlobalKey<GameGridComponentState>? gridKey;
-  GlobalKey<WildcardColumnComponentState>? wildcardKey;
+  final GlobalKey<GameGridComponentState> gridKey = GlobalKey<GameGridComponentState>();
+  final GlobalKey<WildcardColumnComponentState> wildcardKey = GlobalKey<WildcardColumnComponentState>();
   GameLayoutManager? layoutManager;
-
-  /// Set UI component keys (called from screen widgets)
-  void setUIKeys({GlobalKey<GameGridComponentState>? grid, GlobalKey<WildcardColumnComponentState>? wildcard}) {
-    gridKey = grid;
-    wildcardKey = wildcard;
-  }
 
   // ─────────────────────────────────────────────────────────────────────
   // INITIALIZATION
@@ -71,6 +67,13 @@ class GameManager extends ChangeNotifier {
     apiService = ApiService();
     wordService = WordService();
     userManager = UserManager(apiService: apiService);
+
+    // After creating services:
+    if (DebugConfig().clearPrefs) {
+      await userManager.clearAllData();
+      await apiService.logout();
+      await Board.clearBoardFromStorage();
+    }
 
     // Initialize word service (load dictionary)
     await wordService.initialize();
@@ -141,7 +144,7 @@ class GameManager extends ChangeNotifier {
       await board.saveBoardToStorage();
 
       isLoading = false;
-      notifyListeners();
+      syncUIComponents();
       return true;
     } catch (e) {
       isLoading = false;
@@ -183,6 +186,8 @@ class GameManager extends ChangeNotifier {
 
   /// Sync UI components with current board data
   void syncUIComponents() {
+    LogService.logInfo("syncUI: gridState=${gridKey.currentState != null}, tiles=${board.gridTiles.length}");
+    gridKey.currentState?.setTiles(List.from(board.gridTiles));
     notifyListeners();
   }
 
@@ -197,6 +202,12 @@ class GameManager extends ChangeNotifier {
   // ─────────────────────────────────────────────────────────────────────
 
   Future<void> handleOrientationChange() async {
+    // Don't save/restore during startup — board may not be loaded yet
+    if (!isBoardReady) {
+      LogService.logInfo("Skipping orientation save/restore — board not ready");
+      return;
+    }
+
     isChangingOrientation = true;
     notifyListeners();
 

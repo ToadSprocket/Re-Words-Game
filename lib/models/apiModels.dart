@@ -41,8 +41,8 @@ class GameData {
 
   factory GameData.fromJson(Map<String, dynamic> json) => GameData(
     gameId: json['gameId'] ?? '',
-    gridLetters: json['gridLetters'] ?? '',
-    wildcardLetters: json['wildcardLetters'] ?? '',
+    gridLetters: json['grid'] ?? '',
+    wildcardLetters: json['wildcards'] ?? '',
     dateStart: json['dateStart'] ?? '',
     dateExpire: json['dateExpire'] ?? '',
     wordCount: json['wordCount'] ?? 0,

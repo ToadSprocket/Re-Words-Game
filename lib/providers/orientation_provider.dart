@@ -49,13 +49,12 @@ class OrientationProvider extends ChangeNotifier {
   }
 
   void changeOrientation(Orientation newOrientation, Size newSize) {
-    LogService.logInfo("CHANGE ORIENTATION CALLED: old: $_orientation, new: $newOrientation");
-    LogService.logInfo("SIZE CHANGE: old: $_currentSize, new: $newSize");
-
     bool hasChanged = _orientation != newOrientation || _currentSize != newSize;
 
     // Only update values and notify if there's an actual change
     if (hasChanged) {
+      LogService.logInfo("CHANGE ORIENTATION CALLED: old: $_orientation, new: $newOrientation");
+      LogService.logInfo("SIZE CHANGE: old: $_currentSize, new: $newSize");
       _orientation = newOrientation;
       _currentSize = newSize;
 

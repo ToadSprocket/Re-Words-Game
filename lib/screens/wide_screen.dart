@@ -19,6 +19,10 @@ class WideScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final gm = context.watch<GameManager>();
+    // Guard: layoutManager isn't ready until post-frame callback in HomeScreen
+    if (gm.layoutManager == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
     final layout = gm.layoutManager!;
     // Read showBorders from centralized debug config
     final showBorders = DebugConfig().showBorders;

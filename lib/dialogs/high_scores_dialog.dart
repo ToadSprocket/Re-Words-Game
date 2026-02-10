@@ -2,9 +2,7 @@
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import '../styles/app_styles.dart';
-import '../services/api_service.dart';
 import '../models/apiModels.dart';
 import '../logic/logging_handler.dart';
 import 'login_dialog.dart';

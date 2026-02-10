@@ -7,6 +7,7 @@ import 'dart:math';
 import '../constants/layout_constants.dart';
 import '../styles/app_styles.dart';
 import '../logic/logging_handler.dart';
+import '../config/debugConfig.dart';
 import '../utils/device_utils.dart';
 
 class GameLayoutManager {
@@ -226,10 +227,6 @@ class GameLayoutManager {
     var currentDeviceInfo = DeviceUtils.getDeviceInformation(context);
     final currentOrientation = currentDeviceInfo.orientation;
 
-    LogService.logInfo(
-      "Width: $screenWidth, Height: $screenHeight, SafeWidth: ${currentDeviceInfo.safeScreenWidth}, SafeHeight: ${currentDeviceInfo.safeScreenHeight}, Orientation: $currentOrientation, IsTall: ${currentDeviceInfo.isTall}, IsWide: ${currentDeviceInfo.isWide}, Aspect Ratio: ${currentDeviceInfo.aspectRatio}, Tablet: ${currentDeviceInfo.isTablet}, Phone: ${currentDeviceInfo.isPhone}, Hybrid: ${currentDeviceInfo.isHybrid}",
-    );
-
     // If this is a tablet we need to adjust for the safe areas.
     if (currentDeviceInfo.isTablet || currentDeviceInfo.isHybrid) {
       isTablet = true;
@@ -255,11 +252,13 @@ class GameLayoutManager {
     if (oldScreenWidth == 0 && oldScreenHeight == 0) {
       oldScreenWidth = screenWidth;
       oldScreenHeight = screenHeight;
-      LogService.logInfo("Resetting screen size");
     } else if (oldScreenWidth == screenWidth && oldScreenHeight == screenHeight && !orientationChanged) {
-      LogService.logInfo("Nothing changes");
       return;
     }
+
+    LogService.logInfo(
+      "Width: $screenWidth, Height: $screenHeight, SafeWidth: ${currentDeviceInfo.safeScreenWidth}, SafeHeight: ${currentDeviceInfo.safeScreenHeight}, Orientation: $currentOrientation, IsTall: ${currentDeviceInfo.isTall}, IsWide: ${currentDeviceInfo.isWide}, Aspect Ratio: ${currentDeviceInfo.aspectRatio}, Tablet: ${currentDeviceInfo.isTablet}, Phone: ${currentDeviceInfo.isPhone}, Hybrid: ${currentDeviceInfo.isHybrid}",
+    );
 
     // Update the last orientation
     lastOrientation = currentOrientation;
@@ -517,9 +516,11 @@ class GameLayoutManager {
     buttonTextOffset = -(buttonVerticalPadding * 0.070);
     buttonHeight = buttonFontSize + (2 * buttonVerticalPadding) + (2 * buttonBorderThickness);
 
-    LogService.logInfo(
-      "Button height: $buttonHeight, gameButtonsComponentHeight: $gameButtonsComponentHeight, ButtonVerticalPadding: $buttonVerticalPadding",
-    );
+    if (DebugConfig().showLayoutMeasurements) {
+      LogService.logInfo(
+        "Button height: $buttonHeight, gameButtonsComponentHeight: $gameButtonsComponentHeight, ButtonVerticalPadding: $buttonVerticalPadding",
+      );
+    }
 
     // Calculate dialog dimensions
     // For narrow layouts, ensure dialogs are wide enough to prevent button text wrapping
@@ -608,8 +609,10 @@ class GameLayoutManager {
 
     var gameLayout = isNarrowLayout ? 'Narrow' : 'Wide';
 
-    LogService.logInfo(
-      "W: $screenWidth, H: $screenHeight, GAMBX: $gameBoxHeight, TOT: $totalFixedHeight, INF: $infoBoxHeight TIT: $gameTitleComponentHeight, SCR: $gameScoresComponentHeight, GRD: $gridHeightSize, MSG: $gameMessageComponentHeight, BUT: $gameButtonsComponentHeight, WLD: $wilcardsContainerHeight, SPL: $spelledWordsContainerHeight, GRDSQR: $gridSquareSize, GRDSPC: $gridSpacing",
-    );
+    if (DebugConfig().showLayoutMeasurements) {
+      LogService.logInfo(
+        "W: $screenWidth, H: $screenHeight, GAMBX: $gameBoxHeight, TOT: $totalFixedHeight, INF: $infoBoxHeight TIT: $gameTitleComponentHeight, SCR: $gameScoresComponentHeight, GRD: $gridHeightSize, MSG: $gameMessageComponentHeight, BUT: $gameButtonsComponentHeight, WLD: $wilcardsContainerHeight, SPL: $spelledWordsContainerHeight, GRDSQR: $gridSquareSize, GRDSPC: $gridSpacing",
+      );
+    }
   }
 }

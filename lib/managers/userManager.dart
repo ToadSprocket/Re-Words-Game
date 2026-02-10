@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'package:reword_game/models/user.dart';
 import 'package:reword_game/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/secure_storage.dart';
+import '../logic/logging_handler.dart';
 
 /// Manages user authentication, state, and preferences.
 ///
@@ -195,5 +197,14 @@ class UserManager {
   Future<void> markWelcomeShown() async {
     currentUser?.hasSeenWelcome = true;
     await saveToStorage();
+  }
+
+  /// Debug: Clear all user data (prefs + tokens) for fresh start
+  Future<void> clearAllData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_userstorageKey);
+    await SecureStorage().clearAuthData();
+    currentUser = null;
+    LogService.logInfo("🧹 Debug: Cleared all user data and tokens");
   }
 }

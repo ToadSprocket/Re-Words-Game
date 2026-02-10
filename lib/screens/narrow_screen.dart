@@ -19,6 +19,10 @@ class NarrowScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // Get GameManager from Provider - rebuilds when notifyListeners() is called
     final gm = context.watch<GameManager>();
+    // Guard: layoutManager isn't ready until post-frame callback in HomeScreen
+    if (gm.layoutManager == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
     final layout = gm.layoutManager!;
 
     return Column(

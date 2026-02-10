@@ -214,9 +214,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
       // Set orientation settings based on device type
       DeviceUtils.setOrientationSettings(context);
 
-      // Calculate layout sizes
-      gameLayoutManager.calculateLayoutSizes(context);
-
       // Force rebuild to apply new sizes
       if (mounted) {
         setState(() {});
