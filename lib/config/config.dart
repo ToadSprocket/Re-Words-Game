@@ -2,7 +2,9 @@
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 class Config {
   static const apiUrl = 'https://rewordgame.net/api';
-
+  static const boardStateKeyName = "reWordBoardStateV1.1";
+  static const userDataKeyName = "reWordUserStateV1.1";
+  static const userIdKeyName = "reWordUserInfoV1.1";
   // Certificate pinning configuration
   static const bool enableCertificatePinning = true; // Set to false to disable certificate pinning
   static const String certificateFingerprint =

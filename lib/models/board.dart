@@ -10,6 +10,7 @@ import 'boardState.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tzd;
 import 'package:flutter_timezone/flutter_timezone.dart';
+import '../config/config.dart';
 
 /// Represents the game board state for the Re-Word puzzle game.
 ///
@@ -28,9 +29,6 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 /// - Handle expiration logic for daily puzzles
 /// - Persist and restore game state
 class Board {
-  /// Storage key name for persisting board state to SharedPreferences.
-  static const String _boardStateName = "boardState-v1.1";
-
   /// Point values for each letter, following Scrabble-style scoring.
   /// Vowels and common consonants = 1, rare letters like Q and Z = 10.
   static const Map<String, int> _letterValues = {
@@ -361,7 +359,7 @@ class Board {
   /// Returns true only if data exists AND can be parsed successfully
   static Future<bool> hasBoardData() async {
     final prefs = await SharedPreferences.getInstance();
-    final boardStateJson = prefs.getString(_boardStateName);
+    final boardStateJson = prefs.getString(Config.boardStateKeyName);
 
     if (boardStateJson == null || boardStateJson.isEmpty) {
       return false;
@@ -416,7 +414,7 @@ class Board {
     try {
       final prefs = await SharedPreferences.getInstance();
       final boardStateJson = jsonEncode(this.toJson());
-      await prefs.setString(_boardStateName, boardStateJson);
+      await prefs.setString(Config.boardStateKeyName, boardStateJson);
       LogService.logInfo("Board State Saved: ID: $gameId");
       LogService.logEvent("SBSTS:Success:$gameId");
       return true;
@@ -432,7 +430,7 @@ class Board {
   static Future<Board?> loadBoardFromStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final boardStateJson = prefs.getString(_boardStateName);
+      final boardStateJson = prefs.getString(Config.boardStateKeyName);
       if (boardStateJson == null) {
         LogService.logError("No board data found in storage");
         return null;
@@ -672,7 +670,7 @@ class Board {
   /// Debug: Clear stored board data for fresh start
   static Future<void> clearBoardFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_boardStateName);
+    await prefs.remove(Config.boardStateKeyName);
     LogService.logInfo("🧹 Debug: Cleared stored board data");
   }
 }

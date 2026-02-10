@@ -7,15 +7,13 @@ import 'package:reword_game/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/secure_storage.dart';
 import '../logic/logging_handler.dart';
+import '../config/config.dart';
 
 /// Manages user authentication, state, and preferences.
 ///
 /// Holds the current User instance and delegates API calls to ApiService.
 /// Will be held by GameManager (coming soon).
 class UserManager {
-  // User storage key for loading and saving:
-  static const String _userstorageKey = "userData";
-
   // ─────────────────────────────────────────────────────────────────────────
   // DEPENDENCIES (passed in, later held by GameManager)
   // ─────────────────────────────────────────────────────────────────────────
@@ -57,7 +55,7 @@ class UserManager {
   Future<void> loadFromStorage() async {
     // Load User from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
-    final userJson = prefs.getString(_userstorageKey);
+    final userJson = prefs.getString(Config.userDataKeyName);
     if (userJson != null) {
       currentUser = User.fromJson(jsonDecode(userJson));
       // SYNC: Give ApiService the loaded tokens
@@ -74,7 +72,7 @@ class UserManager {
     final prefs = await SharedPreferences.getInstance();
     if (currentUser != null) {
       updatePlayTime();
-      await prefs.setString(_userstorageKey, jsonEncode(currentUser!.toJson()));
+      await prefs.setString(Config.userDataKeyName, jsonEncode(currentUser!.toJson()));
     }
   }
 
@@ -85,7 +83,7 @@ class UserManager {
   /// Check if this is a new user (no stored credentials)
   Future<bool> isNewUser() async {
     final prefs = await SharedPreferences.getInstance();
-    if (!prefs.containsKey(_userstorageKey)) {
+    if (!prefs.containsKey(Config.userDataKeyName)) {
       return true; // No stored user = IS new user
     }
     return false;
@@ -135,7 +133,7 @@ class UserManager {
 
     // Clear from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_userstorageKey);
+    await prefs.remove(Config.userDataKeyName);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -205,7 +203,7 @@ class UserManager {
   /// Debug: Clear all user data (prefs + tokens) for fresh start
   Future<void> clearAllData() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_userstorageKey);
+    await prefs.remove(Config.userDataKeyName);
     await SecureStorage().clearAuthData();
     currentUser = null;
     LogService.logInfo("🧹 Debug: Cleared all user data and tokens");
