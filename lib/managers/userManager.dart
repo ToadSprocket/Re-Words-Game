@@ -64,6 +64,8 @@ class UserManager {
       _apiService.userId = currentUser?.userId;
       _apiService.accessToken = currentUser?.accessToken;
       _apiService.refreshToken = currentUser?.refreshToken;
+    } else {
+      currentUser = User();
     }
   }
 
@@ -195,6 +197,7 @@ class UserManager {
   }
 
   Future<void> markWelcomeShown() async {
+    currentUser ??= User();
     currentUser?.hasSeenWelcome = true;
     await saveToStorage();
   }

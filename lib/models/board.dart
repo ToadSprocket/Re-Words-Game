@@ -573,7 +573,7 @@ class Board {
         reason = 'Month is past expiration';
         isExpired = true;
       } else if (currentDateTime.month == localExpirationDateTime.month) {
-        if (currentDateTime.day >= localExpirationDateTime.day) {
+        if (currentDateTime.day > localExpirationDateTime.day) {
           reason = 'Day is past expiration';
           isExpired = true;
         }

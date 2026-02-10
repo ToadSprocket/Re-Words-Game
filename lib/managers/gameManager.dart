@@ -46,6 +46,7 @@ class GameManager extends ChangeNotifier {
   bool isLoading = false;
   bool isChangingOrientation = false; // Orientation change tracking
   String message = ''; // UI feedback message
+  bool _startupComplete = false; // Prevents lifecycle events during startup
 
   // ─────────────────────────────────────────────────────────────────────
   // UI COMPONENT REFERENCES
@@ -125,6 +126,12 @@ class GameManager extends ChangeNotifier {
 
   /// Load a new board from the server
   Future<bool> loadNewBoard() async {
+    if (isLoading) {
+      LogService.logInfo("⚠️ loadNewBoard already in progress — skipping");
+      return false;
+    }
+
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: loadNewBoard");
     isLoading = true;
 
     try {
@@ -144,10 +151,12 @@ class GameManager extends ChangeNotifier {
       await board.saveBoardToStorage();
 
       isLoading = false;
+      if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 EXIT: loadNewBoard (success)");
       syncUIComponents();
       return true;
     } catch (e) {
       isLoading = false;
+      if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 EXIT: loadNewBoard (error: $e)");
       notifyListeners();
       return false;
     }
@@ -155,6 +164,7 @@ class GameManager extends ChangeNotifier {
 
   /// Load existing board from storage
   Future<bool> loadStoredBoard() async {
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: loadStoredBoard");
     final loadedBoard = await Board.loadBoardFromStorage();
     if (loadedBoard == null) return false;
 
@@ -167,6 +177,9 @@ class GameManager extends ChangeNotifier {
     return true;
   }
 
+  void setBoardStartupCompleted() {
+    _startupComplete = true;
+  }
   // ─────────────────────────────────────────────────────────────────────
   // UI OPERATIONS
   // ─────────────────────────────────────────────────────────────────────
@@ -186,6 +199,7 @@ class GameManager extends ChangeNotifier {
 
   /// Sync UI components with current board data
   void syncUIComponents() {
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: syncUIComponents");
     LogService.logInfo("syncUI: gridState=${gridKey.currentState != null}, tiles=${board.gridTiles.length}");
     gridKey.currentState?.setTiles(List.from(board.gridTiles));
     notifyListeners();
@@ -202,6 +216,11 @@ class GameManager extends ChangeNotifier {
   // ─────────────────────────────────────────────────────────────────────
 
   Future<void> handleOrientationChange() async {
+    if (!_startupComplete) {
+      return;
+    }
+
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: handleOrientationChange");
     // Don't save/restore during startup — board may not be loaded yet
     if (!isBoardReady) {
       LogService.logInfo("Skipping orientation save/restore — board not ready");
@@ -311,14 +330,15 @@ class GameManager extends ChangeNotifier {
 
       resultMessage = "Word score multiplied by $multiplier!";
       message = resultMessage;
+      await board.saveBoardToStorage();
       notifyListeners();
       return (true, resultMessage);
     }
 
     // Add word to state (no wildcard)
     board = board.copyWith(spelledWords: [...board.spelledWords, displayWord], score: board.score + wordScore);
+    await board.saveBoardToStorage();
     notifyListeners();
-
     return (true, '');
   }
 
@@ -350,6 +370,7 @@ class GameManager extends ChangeNotifier {
   // ─────────────────────────────────────────────────────────────────────
 
   Future<void> saveState() async {
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: saveState (boardId: ${board.gameId})");
     await board.saveBoardToStorage();
     await userManager.saveToStorage();
     // TODO: Save gameState to storage
@@ -357,6 +378,7 @@ class GameManager extends ChangeNotifier {
   }
 
   Future<void> restoreState() async {
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: restoreState");
     await loadStoredBoard();
     await userManager.loadFromStorage();
     // TODO: Load gameState from storage
@@ -369,12 +391,18 @@ class GameManager extends ChangeNotifier {
   // ─────────────────────────────────────────────────────────────────────
 
   Future<void> onAppPause() async {
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: onAppPause");
     await saveState();
     userManager.pauseSession();
     notifyListeners();
   }
 
   Future<void> onAppResume() async {
+    if (!_startupComplete) {
+      return;
+    }
+
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: onAppResume");
     userManager.resumeSession();
 
     // Check if board expired

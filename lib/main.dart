@@ -163,8 +163,7 @@ class _ReWordAppState extends State<ReWordApp> {
               if (mounted) {
                 final orientationProvider = Provider.of<OrientationProvider>(context, listen: false);
                 orientationProvider.initialize(context);
-                orientationProvider.changeOrientation(orientation, MediaQuery.of(context).size);
-                orientationProvider.updateSafeSize(context);
+                orientationProvider.changeOrientation(orientation, MediaQuery.of(context).size, context);
               }
             });
 
@@ -239,6 +238,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: didChangeDependencies");
 
     // Use post-frame callback to handle orientation changes
     // This avoids calling setState or markNeedsBuild during build phase
@@ -259,10 +259,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
           LogService.logInfo("Dependencies changed - orientation: $currentOrientation, size: $currentSize");
 
           // Update the orientation provider with raw dimensions
-          orientationProvider.changeOrientation(currentOrientation, currentSize);
-
-          // Update the safe screen dimensions
-          orientationProvider.updateSafeSize(context);
+          orientationProvider.changeOrientation(currentOrientation, currentSize, context);
 
           // Let the board manager handle orientation change
           await GameManager().handleOrientationChange();
@@ -277,6 +274,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   }
 
   Future<void> _initializeGame() async {
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: _initializeGame");
     final gm = GameManager();
 
     // Setup game layout.
@@ -300,7 +298,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
       }
     }
 
+    // Mark startup complete — enables lifecycle handlers (onAppResume, handleOrientationChange)
+    gm.setBoardStartupCompleted();
+
     await _loadData();
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 EXIT: _initializeGame");
   }
 
   @override
@@ -323,7 +325,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: didChangeAppLifecycleState ($state)");
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.inactive) {
       // Save state and pause session when app goes to background
       GameManager().onAppPause();
       LogService.logInfo("App lifecycle: PAUSED - Game state saved");
@@ -364,6 +369,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: didChangeMetrics");
 
     // Ensure we're not in the build phase by using post-frame callback
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -375,18 +381,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         // Get the orientation provider
         final orientationProvider = Provider.of<OrientationProvider>(context, listen: false);
 
+        final newOrientaion = orientationProvider.orientation;
+        final newSize = orientationProvider.currentSize;
+
         // Check if orientation or size has actually changed
-        bool hasChanged =
-            orientationProvider.orientation != currentOrientation || orientationProvider.currentSize != currentSize;
+        bool hasChanged = newOrientaion != currentOrientation || newSize != currentSize;
 
         if (hasChanged) {
-          LogService.logInfo("Metrics changed - orientation: $currentOrientation, size: $currentSize");
+          LogService.logInfo(
+            "Screen Metrics changed - current orientation: $currentOrientation, new orientation: $newOrientaion, current size: $currentSize, new size: $newSize",
+          );
 
           // Update the orientation provider with raw dimensions
-          orientationProvider.changeOrientation(currentOrientation, currentSize);
-
-          // Update the safe screen dimensions
-          orientationProvider.updateSafeSize(context);
+          orientationProvider.changeOrientation(currentOrientation, currentSize, context);
 
           // Let the board manager handle orientation change
           await GameManager().handleOrientationChange();
@@ -401,6 +408,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   }
 
   Future<void> _loadData() async {
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: _loadData");
     final gm = GameManager();
 
     // Check if user has seen welcome animation (tracked in UserManager)

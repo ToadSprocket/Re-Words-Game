@@ -256,9 +256,11 @@ class GameLayoutManager {
       return;
     }
 
-    LogService.logInfo(
-      "Width: $screenWidth, Height: $screenHeight, SafeWidth: ${currentDeviceInfo.safeScreenWidth}, SafeHeight: ${currentDeviceInfo.safeScreenHeight}, Orientation: $currentOrientation, IsTall: ${currentDeviceInfo.isTall}, IsWide: ${currentDeviceInfo.isWide}, Aspect Ratio: ${currentDeviceInfo.aspectRatio}, Tablet: ${currentDeviceInfo.isTablet}, Phone: ${currentDeviceInfo.isPhone}, Hybrid: ${currentDeviceInfo.isHybrid}",
-    );
+    if (DebugConfig().showLayoutMeasurements) {
+      LogService.logInfo(
+        "Width: $screenWidth, Height: $screenHeight, SafeWidth: ${currentDeviceInfo.safeScreenWidth}, SafeHeight: ${currentDeviceInfo.safeScreenHeight}, Orientation: $currentOrientation, IsTall: ${currentDeviceInfo.isTall}, IsWide: ${currentDeviceInfo.isWide}, Aspect Ratio: ${currentDeviceInfo.aspectRatio}, Tablet: ${currentDeviceInfo.isTablet}, Phone: ${currentDeviceInfo.isPhone}, Hybrid: ${currentDeviceInfo.isHybrid}",
+      );
+    }
 
     // Update the last orientation
     lastOrientation = currentOrientation;

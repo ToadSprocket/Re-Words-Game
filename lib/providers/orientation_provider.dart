@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../utils/device_utils.dart';
 import '../models/layoutModels.dart';
 import '../logic/logging_handler.dart';
+import '../config/debugConfig.dart';
 
 class OrientationProvider extends ChangeNotifier {
   Orientation _orientation = Orientation.portrait;
@@ -48,29 +49,21 @@ class OrientationProvider extends ChangeNotifier {
     }
   }
 
-  void changeOrientation(Orientation newOrientation, Size newSize) {
+  void changeOrientation(Orientation newOrientation, Size newSize, BuildContext context) {
     bool hasChanged = _orientation != newOrientation || _currentSize != newSize;
-
     // Only update values and notify if there's an actual change
     if (hasChanged) {
-      LogService.logInfo("CHANGE ORIENTATION CALLED: old: $_orientation, new: $newOrientation");
-      LogService.logInfo("SIZE CHANGE: old: $_currentSize, new: $newSize");
       _orientation = newOrientation;
       _currentSize = newSize;
 
-      // We need to update the safe size as well, but we need the BuildContext to get it
-      // This will be done by the caller using updateSafeSize
-
+      final deviceInfo = DeviceUtils.getDeviceInformation(context);
+      _deviceInfo = deviceInfo;
+      _currentSafeSize = Size(deviceInfo.safeScreenWidth, deviceInfo.safeScreenHeight);
+      if (DebugConfig().showLayoutMeasurements) {
+        LogService.logInfo("SAFE SIZE UPDATED: $_currentSafeSize");
+      }
       notifyListeners();
     }
-  }
-
-  // New method to update safe screen dimensions
-  void updateSafeSize(BuildContext context) {
-    final deviceInfo = DeviceUtils.getDeviceInformation(context);
-    _deviceInfo = deviceInfo;
-    _currentSafeSize = Size(deviceInfo.safeScreenWidth, deviceInfo.safeScreenHeight);
-    LogService.logInfo("SAFE SIZE UPDATED: $_currentSafeSize");
   }
 
   // Get the correct dimensions based on current orientation
