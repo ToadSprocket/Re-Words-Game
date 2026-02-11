@@ -250,7 +250,7 @@ class ApiService with ChangeNotifier {
           }
         },
         maxRetries: 2,
-        retryIf: (e) => e is! ApiException || (e as ApiException).statusCode != 401, // Don't retry auth failures
+        retryIf: (e) => e is! ApiException || e.statusCode != 401, // Don't retry auth failures
         onRetry: (e, attempt) {
           LogService.logInfo("🔄 Retrying token refresh (attempt $attempt): ${e.toString()}");
         },

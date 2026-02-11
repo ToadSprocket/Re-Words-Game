@@ -148,7 +148,9 @@ class HighScoresDialog {
                                                   ),
                                                   Flexible(
                                                     child: Text(
-                                                      '${score.displayName.isNotEmpty ? score.displayName : "Unknown Player"}',
+                                                      score.displayName.isNotEmpty
+                                                          ? score.displayName
+                                                          : "Unknown Player",
                                                       style:
                                                           isUser && score.displayName.isNotEmpty
                                                               ? gm.layoutManager!.dialogContentHighLiteStyle

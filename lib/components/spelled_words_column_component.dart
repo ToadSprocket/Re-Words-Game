@@ -37,7 +37,6 @@ class SpelledWordsColumnComponent extends StatelessWidget {
   List<List<String>> _organizeColumns(BuildContext context, BoxConstraints constraints) {
     // Access layout from GameManager singleton
     final layout = GameManager().layoutManager!;
-    var columnsTotal = 0;
     var totalColumnsWidth = 0.0;
     if (words.isEmpty) return [];
 
@@ -53,7 +52,6 @@ class SpelledWordsColumnComponent extends StatelessWidget {
       columns.add(words.sublist(i, i + wordsPerColumn > words.length ? words.length : i + wordsPerColumn));
     }
 
-    double totalWidth = 0;
     List<double> columnWidths =
         columns.map((columnWords) {
           double maxWidth = 0;
@@ -79,7 +77,6 @@ class SpelledWordsColumnComponent extends StatelessWidget {
       }
     }
 
-    columnsTotal = columns.length;
     return columns;
   }
 

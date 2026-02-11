@@ -14,7 +14,6 @@ import '../models/apiModels.dart';
 import '../services/api_service.dart';
 import '../services/word_service.dart';
 import '../managers/userManager.dart';
-import '../logic/scoring.dart';
 import '../utils/wordUtilities.dart';
 import '../managers/gameLayoutManager.dart';
 import '../config/debugConfig.dart';
@@ -263,6 +262,15 @@ class GameManager extends ChangeNotifier {
   // WORD OPERATIONS
   // ─────────────────────────────────────────────────────────────────────
 
+  // Calculate the score of the selected tiles or word.
+  static int calculateScore(List<Tile> tiles) {
+    int score = 0;
+    for (var tile in tiles) {
+      score += tile.value * tile.multiplier.round();
+    }
+    return score;
+  }
+
   /// Validate a word using the dictionary
   Future<bool> isValidWord(String word) async {
     return await wordService.isValidWord(word.toLowerCase());
@@ -281,7 +289,7 @@ class GameManager extends ChangeNotifier {
     String casedWord = word.toLowerCase();
     String displayWord = casedWord[0].toUpperCase() + casedWord.substring(1);
     // Calculate score
-    int wordScore = Scoring.calculateScore(selectedTiles);
+    int wordScore = calculateScore(selectedTiles);
 
     String resultMessage = '';
 

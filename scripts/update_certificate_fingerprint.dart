@@ -1,8 +1,6 @@
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'dart:io';
-import 'dart:convert';
 import 'package:crypto/crypto.dart';
-import 'package:http/http.dart' as http;
 
 /// This script helps with certificate rotation by extracting the certificate
 /// fingerprint from the server and updating the Config class.

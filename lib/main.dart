@@ -8,13 +8,8 @@ import 'styles/app_styles.dart';
 import 'logic/game_layout.dart';
 import 'screens/wide_screen.dart';
 import 'screens/narrow_screen.dart';
-import 'dialogs/how_to_play_dialog.dart';
-import 'dialogs/high_scores_dialog.dart';
-import 'dialogs/legal_dialog.dart';
 import 'dialogs/failure_dialog.dart';
-import 'dialogs/login_dialog.dart';
 import 'components/error_boundary.dart';
-import 'services/api_service.dart';
 import 'logic/error_reporting.dart';
 import 'package:provider/provider.dart';
 import '../logic/logging_handler.dart';
@@ -22,7 +17,6 @@ import '../managers/gameLayoutManager.dart';
 import 'package:window_size/window_size.dart';
 import 'dialogs/welcome_dialog.dart';
 import 'dialogs/androidTabletDialog.dart';
-import 'services/word_service.dart';
 import 'utils/device_utils.dart';
 import 'providers/orientation_provider.dart';
 import 'managers/gameManager.dart';
@@ -168,11 +162,10 @@ class _ReWordAppState extends State<ReWordApp> {
             });
 
             // Get the orientation provider
-            final orientationProvider = Provider.of<OrientationProvider>(context, listen: false);
+            //final orientationProvider = Provider.of<OrientationProvider>(context, listen: false);
 
             // We'll only update orientation in the post-frame callback during initialization
             // This avoids creating an infinite loop of orientation changes
-
             return GameLayoutProvider(
               gameLayoutManager: widget.layoutManager,
               child: HomeScreen(userId: widget.userId, authToken: widget.authToken),
