@@ -32,6 +32,14 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
 
   List<Tile> getTiles() => tiles;
 
+  /// Updates wildcard tiles externally (e.g., when a new board is loaded).
+  /// Mirrors the setTiles() pattern used by GameGridComponentState.
+  void setTiles(List<Tile> newTiles) {
+    setState(() {
+      tiles = newTiles;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -39,12 +47,6 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
     final gm = GameManager();
     tiles = List.from(gm.board.wildcardTiles);
     LogService.logInfo('Loaded ${tiles.length} wildcard tiles: ${tiles.map((t) => t.letter).join(', ')}');
-  }
-
-  void _onWildcardTapped(int index) {
-    setState(() {
-      tiles[index].select();
-    });
   }
 
   void clearSelectedTiles() {

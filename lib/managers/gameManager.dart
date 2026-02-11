@@ -166,12 +166,7 @@ class GameManager extends ChangeNotifier {
     if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: loadStoredBoard");
     final loadedBoard = await Board.loadBoardFromStorage();
     if (loadedBoard == null) return false;
-
     board = loadedBoard;
-
-    // Restore game state (if stored with board)
-    // TODO: Load GameState from storage too
-
     notifyListeners();
     return true;
   }
@@ -197,10 +192,16 @@ class GameManager extends ChangeNotifier {
   }
 
   /// Sync UI components with current board data
+  /// Updates both grid and wildcard tiles to reflect the current board state
   void syncUIComponents() {
     if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: syncUIComponents");
-    LogService.logInfo("syncUI: gridState=${gridKey.currentState != null}, tiles=${board.gridTiles.length}");
+    LogService.logInfo(
+      "syncUI: gridState=${gridKey.currentState != null}, wildcardState=${wildcardKey.currentState != null}, "
+      "gridTiles=${board.gridTiles.length}, wildcardTiles=${board.wildcardTiles.length}",
+    );
+    // Push current board tiles into grid and wildcard UI components
     gridKey.currentState?.setTiles(List.from(board.gridTiles));
+    wildcardKey.currentState?.setTiles(List.from(board.wildcardTiles));
     notifyListeners();
   }
 
@@ -381,7 +382,6 @@ class GameManager extends ChangeNotifier {
     if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: saveState (boardId: ${board.gameId})");
     await board.saveBoardToStorage();
     await userManager.saveToStorage();
-    // TODO: Save gameState to storage
     notifyListeners();
   }
 
@@ -389,8 +389,6 @@ class GameManager extends ChangeNotifier {
     if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: restoreState");
     await loadStoredBoard();
     await userManager.loadFromStorage();
-    // TODO: Load gameState from storage
-
     notifyListeners();
   }
 
