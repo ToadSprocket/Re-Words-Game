@@ -45,6 +45,7 @@ class GameManager extends ChangeNotifier {
   bool isLoading = false;
   bool isChangingOrientation = false; // Orientation change tracking
   String message = ''; // UI feedback message
+  String currentWord = ''; // Word currently being built from selected tiles
   bool _startupComplete = false; // Prevents lifecycle events during startup
 
   // ─────────────────────────────────────────────────────────────────────
@@ -183,11 +184,12 @@ class GameManager extends ChangeNotifier {
     gridKey?.currentState?.submitWord();
   }
 
-  /// Clear all selected tiles
+  /// Clear all selected tiles and the word being built
   void clearWords() {
     gridKey?.currentState?.clearSelectedTiles();
     wildcardKey?.currentState?.clearSelectedTiles();
     message = '';
+    currentWord = '';
     notifyListeners();
   }
 
@@ -208,6 +210,13 @@ class GameManager extends ChangeNotifier {
   /// Update UI message and notify
   void setMessage(String msg) {
     message = msg;
+    notifyListeners();
+  }
+
+  /// Update the word currently being built from selected tiles.
+  /// Called by GameGridComponent whenever tiles are selected or deselected.
+  void setCurrentWord(String word) {
+    currentWord = word;
     notifyListeners();
   }
 
@@ -321,7 +330,6 @@ class GameManager extends ChangeNotifier {
       resultMessage = "'$displayWord' already used";
       message = resultMessage;
       notifyListeners();
-      board = board.copyWith(spelledWords: [...board.spelledWords, displayWord], score: board.score + wordScore);
       return (false, resultMessage);
     }
 
@@ -346,6 +354,7 @@ class GameManager extends ChangeNotifier {
 
     // Add word to state (no wildcard)
     board = board.copyWith(spelledWords: [...board.spelledWords, displayWord], score: board.score + wordScore);
+    message = '';
     await board.saveBoardToStorage();
     notifyListeners();
     return (true, '');
@@ -411,10 +420,17 @@ class GameManager extends ChangeNotifier {
     if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: onAppResume");
     userManager.resumeSession();
 
-    // Check if board expired
+    // Check if board expired — if so, fetch a new board from the server
     if (await board.isBoardExpired()) {
+      LogService.logInfo("🔄 Board expired on resume — loading new board");
       final success = await loadNewBoard();
-      if (!success) {
+      if (success) {
+        // Schedule a post-frame sync as fallback in case widget tree
+        // wasn't fully built when syncUIComponents ran inside loadNewBoard
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          syncUIComponents();
+        });
+      } else {
         message = 'Server unavailable — playing with current board';
       }
     }

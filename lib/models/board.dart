@@ -553,32 +553,25 @@ class Board {
     return isSameDay;
   }
 
-  /// Checks if the board has passed its expiration date (midnight rollover).
-  /// Board expires at midnight in user's local timezone on puzzleExpires day.
+  /// Checks if the board has passed its expiration datetime.
+  /// The API's dateExpire represents the exact moment the board stops being valid
+  /// (typically midnight in the user's local timezone for the next day).
+  /// Board is expired if current time is at or past the expiration time.
   Future<bool> isBoardExpired() async {
     final tzd.Location location = await _getCurrentTimezoneLocation();
     final localExpirationDateTime = tzd.TZDateTime.from(puzzleExpires, location);
     final currentDateTime = tzd.TZDateTime.now(location);
-    var isExpired = false;
-    var reason = "";
 
-    // First check if the year is older.
-    if (currentDateTime.year > localExpirationDateTime.year) {
-      reason = 'Year is past expiration';
-      isExpired = true;
-    } else if (currentDateTime.year == localExpirationDateTime.year) {
-      if (currentDateTime.month > localExpirationDateTime.month) {
-        reason = 'Month is past expiration';
-        isExpired = true;
-      } else if (currentDateTime.month == localExpirationDateTime.month) {
-        if (currentDateTime.day > localExpirationDateTime.day) {
-          reason = 'Day is past expiration';
-          isExpired = true;
-        }
-      }
-    }
+    // Use proper temporal comparison — expired when current time reaches or passes expiration
+    final isExpired =
+        currentDateTime.isAfter(localExpirationDateTime) || currentDateTime.isAtSameMomentAs(localExpirationDateTime);
 
-    LogService.logInfo("Board Expired: $isExpired-$reason");
+    final reason =
+        isExpired
+            ? 'Current time ($currentDateTime) is past expiration ($localExpirationDateTime)'
+            : 'Board still valid until $localExpirationDateTime (now: $currentDateTime)';
+
+    LogService.logInfo("Board Expired: $isExpired - $reason");
     LogService.logEvent("IBC:Expired:$isExpired");
     return isExpired;
   }

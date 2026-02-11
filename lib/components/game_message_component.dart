@@ -3,13 +3,21 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../managers/gameManager.dart';
+import '../styles/app_styles.dart';
 
 class GameMessageComponent extends StatefulWidget {
   final String message;
+  final String currentWord;
   final double width;
   final double height;
 
-  const GameMessageComponent({super.key, required this.width, required this.height, required this.message});
+  const GameMessageComponent({
+    super.key,
+    required this.width,
+    required this.height,
+    required this.message,
+    this.currentWord = '',
+  });
 
   @override
   _GameMessageComponentState createState() => _GameMessageComponentState();
@@ -82,13 +90,32 @@ class _GameMessageComponentState extends State<GameMessageComponent> {
   Widget build(BuildContext context) {
     // Access layout from GameManager singleton
     final layout = GameManager().layoutManager!;
-    final textColor = isImportantMessage ? Colors.green : Colors.white;
+
+    // Determine what to display with priority:
+    // 1. Timed feedback messages (errors, wildcard bonuses) — white/green
+    // 2. Word being built from selected tiles — spelledWordTextColor (gold)
+    // 3. Nothing
+    final String textToShow;
+    final Color textColor;
+
+    if (displayMessage != null) {
+      // Active timed message takes priority
+      textToShow = displayMessage!;
+      textColor = isImportantMessage ? Colors.green : Colors.white;
+    } else if (widget.currentWord.isNotEmpty) {
+      // Show the word being built as fallback
+      textToShow = widget.currentWord;
+      textColor = AppStyles.spelledWordTextColor;
+    } else {
+      textToShow = '';
+      textColor = Colors.white;
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Center(
         child: Text(
-          displayMessage ?? '',
+          textToShow,
           style: TextStyle(color: textColor, fontSize: layout.gameMessageFontSize, fontWeight: FontWeight.bold),
         ),
       ),

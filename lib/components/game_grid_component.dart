@@ -73,6 +73,10 @@ class GameGridComponentState extends State<GameGridComponent> {
         selectedTiles.add(gridTiles[index]);
       }
     });
+
+    // Push the word being built to GameManager so it displays in the message area
+    final word = selectedTiles.map((t) => t.letter).join().toUpperCase();
+    GameManager().setCurrentWord(word);
   }
 
   void clearSelectedTiles() {
@@ -120,6 +124,18 @@ class GameGridComponentState extends State<GameGridComponent> {
         }
         selectedTiles.clear();
       }
+    });
+
+    // Clear the word being built immediately
+    gm.currentWord = '';
+
+    // Schedule clearing gm.message for the next frame. This ensures the
+    // message component captures the feedback in didUpdateWidget during
+    // this frame's rebuild, while preventing stale messages from
+    // re-triggering when notifyListeners fires on the next tile tap.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      gm.message = '';
+      gm.notifyListeners();
     });
   }
 

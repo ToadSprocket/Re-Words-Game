@@ -27,6 +27,9 @@ class AppStyles {
   static const Color stackedValueTextColor = Color.fromARGB(230, 4, 190, 29);
   static const Color wildcardValueTextColor = Color.fromARGB(255, 233, 133, 3);
 
+  // Word being spelled color
+  static const Color spelledWordTextColor = Color.fromARGB(255, 243, 198, 50);
+
   // Spelled Words Styles
   static const Color spelledWordsTitleColor = Color(0xFFFFFFFF);
   static const Color spelledWordsTextColor = Color.fromARGB(255, 251, 251, 255);

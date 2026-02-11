@@ -59,11 +59,12 @@ class NarrowScreen extends StatelessWidget {
               // Game grid
               GameGridComponent(key: gm.gridKey),
               SizedBox(height: layout.gridSpacing),
-              // Message display
+              // Message display — shows feedback messages or the word being built
               GameMessageComponent(
                 width: layout.gameMessageComponentWidth,
                 height: layout.gameMessageComponentHeight,
-                message: gm.message, // Direct from GameManager!
+                message: gm.message,
+                currentWord: gm.currentWord,
               ),
               // Wildcards (horizontal in narrow)
               WildcardColumnComponent(

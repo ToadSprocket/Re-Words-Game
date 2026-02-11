@@ -116,6 +116,7 @@ class WideScreen extends StatelessWidget {
                               width: layout.gameMessageComponentWidth,
                               height: layout.gameMessageComponentHeight,
                               message: gm.message,
+                              currentWord: gm.currentWord,
                             ),
                             GameButtonsComponent(onSubmit: () => gm.submitWord(), onClear: () => gm.clearWords()),
                           ],
