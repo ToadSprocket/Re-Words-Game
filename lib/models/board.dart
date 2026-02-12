@@ -554,22 +554,21 @@ class Board {
   }
 
   /// Checks if the board has passed its expiration datetime.
-  /// The API's dateExpire represents the exact moment the board stops being valid
-  /// (typically midnight in the user's local timezone for the next day).
-  /// Board is expired if current time is at or past the expiration time.
+  /// The API's dateExpire is in UTC/GMT — the server operates on GMT and
+  /// will not serve a new board until after midnight GMT. We must compare
+  /// current UTC time against the UTC expiration to stay aligned with the server.
   Future<bool> isBoardExpired() async {
-    final tzd.Location location = await _getCurrentTimezoneLocation();
-    final localExpirationDateTime = tzd.TZDateTime.from(puzzleExpires, location);
-    final currentDateTime = tzd.TZDateTime.now(location);
+    // Convert both times to UTC to align with the server's GMT-based schedule
+    final nowUtc = DateTime.now().toUtc();
+    final expirationUtc = puzzleExpires.toUtc();
 
-    // Use proper temporal comparison — expired when current time reaches or passes expiration
-    final isExpired =
-        currentDateTime.isAfter(localExpirationDateTime) || currentDateTime.isAtSameMomentAs(localExpirationDateTime);
+    // Expired when current UTC time reaches or passes the UTC expiration
+    final isExpired = nowUtc.isAfter(expirationUtc) || nowUtc.isAtSameMomentAs(expirationUtc);
 
     final reason =
         isExpired
-            ? 'Current time ($currentDateTime) is past expiration ($localExpirationDateTime)'
-            : 'Board still valid until $localExpirationDateTime (now: $currentDateTime)';
+            ? 'Current UTC ($nowUtc) is past expiration UTC ($expirationUtc)'
+            : 'Board still valid until $expirationUtc (now UTC: $nowUtc)';
 
     LogService.logInfo("Board Expired: $isExpired - $reason");
     LogService.logEvent("IBC:Expired:$isExpired");
