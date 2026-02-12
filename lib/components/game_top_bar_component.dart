@@ -32,18 +32,35 @@ class GameTopBarComponent extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Left side - Display name
-                if (isLoggedIn && gm.apiService.displayName != null)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: Text(
-                      gm.apiService.displayName!,
-                      style: TextStyle(color: Colors.green, fontSize: 14.0, fontWeight: FontWeight.w500),
-                    ),
-                  )
-                else
-                  // Empty container to maintain layout when not logged in
-                  Container(),
+                // Left side - Countdown timer and display name
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Board countdown timer (e.g., "15h 42m" or "EXPIRED")
+                    if (gm.boardCountdown.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text(
+                          gm.boardCountdown,
+                          style: TextStyle(
+                            color:
+                                gm.boardCountdown == 'EXPIRED' ? Colors.redAccent : AppStyles.boardTimerCountdownColor,
+                            fontSize: 13.0,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                    // Display name (shown when logged in, after countdown)
+                    if (isLoggedIn && gm.apiService.displayName != null)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12.0),
+                        child: Text(
+                          gm.apiService.displayName!,
+                          style: TextStyle(color: Colors.green, fontSize: 14.0, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                  ],
+                ),
 
                 // Right side - Icons in a Row
                 Row(

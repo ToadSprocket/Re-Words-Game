@@ -16,6 +16,7 @@ import '../logic/logging_handler.dart';
 import '../managers/gameLayoutManager.dart';
 import 'package:window_size/window_size.dart';
 import 'dialogs/welcome_dialog.dart';
+import 'dialogs/board_expired_dialog.dart';
 import 'dialogs/androidTabletDialog.dart';
 import 'utils/device_utils.dart';
 import 'providers/orientation_provider.dart';
@@ -162,7 +163,7 @@ class _ReWordAppState extends State<ReWordApp> {
             });
 
             // Get the orientation provider
-            //final orientationProvider = Provider.of<OrientationProvider>(context, listen: false);
+            // final orientationProvider = Provider.of<OrientationProvider>(context, listen: false);
 
             // We'll only update orientation in the post-frame callback during initialization
             // This avoids creating an infinite loop of orientation changes
@@ -294,6 +295,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     // Mark startup complete — enables lifecycle handlers (onAppResume, handleOrientationChange)
     gm.setBoardStartupCompleted();
 
+    // Start the countdown timer so the top bar shows time remaining
+    gm.startCountdownTimer();
+
     await _loadData();
     if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 EXIT: _initializeGame");
   }
@@ -312,6 +316,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         LogService.logError("Error removing window manager listener: $e");
       }
     }
+    // Stop the countdown timer to avoid leaking resources
+    GameManager().stopCountdownTimer();
     GameManager().saveState();
     super.dispose();
   }
@@ -329,6 +335,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
       // Resume session and check if board expired
       LogService.logInfo("App lifecycle: RESUMED - Checking game state");
       GameManager().onAppResume();
+
+      // Check board expiration after resume — must be done here (not in GameManager)
+      // because we need BuildContext to show the BoardExpiredDialog
+      _checkBoardExpirationOnResume();
     }
   }
 
@@ -423,6 +433,46 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
     // Sync UI with board data
     gm.syncUIComponents();
+  }
+
+  /// Checks if the board has expired after app resume and shows the
+  /// BoardExpiredDialog to let the user choose: load new board or keep playing.
+  /// This lives here instead of GameManager because it needs BuildContext for the dialog.
+  Future<void> _checkBoardExpirationOnResume() async {
+    final gm = GameManager();
+
+    // Skip if board is already flagged as playing-expired (user already chose "No")
+    if (gm.board.isPlayingExpired) return;
+
+    final isExpired = await gm.board.isBoardExpired();
+    if (!isExpired || !mounted) return;
+
+    LogService.logInfo("⏰ Board expired on resume — showing BoardExpiredDialog");
+
+    // Show the dialog — true = load new, false = keep playing, null = dismissed
+    final loadNew = await BoardExpiredDialog.show(context);
+
+    if (loadNew == true) {
+      // User chose "Yes" — load a fresh board from the server
+      final success = await gm.loadNewBoard();
+      if (success) {
+        // Restart the countdown timer for the new board
+        gm.startCountdownTimer();
+        // Sync UI after widget tree is ready
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          gm.syncUIComponents();
+        });
+      } else {
+        gm.setMessage('Server unavailable — playing with current board');
+      }
+    } else {
+      // User chose "No" (or dismissed) — mark board as playing-expired
+      // so we don't re-prompt, and persist the flag
+      gm.board = gm.board.copyWith(isPlayingExpired: true);
+      await gm.board.saveBoardToStorage();
+      gm.notifyListeners();
+      LogService.logInfo("🎮 User chose to continue playing expired board");
+    }
   }
 
   // Delegate methods to GameManager

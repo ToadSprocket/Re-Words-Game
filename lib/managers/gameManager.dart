@@ -6,6 +6,7 @@ import 'package:flutter/material.dart' hide Orientation; // For GlobalKey, Build
 import '../components/game_grid_component.dart';
 import '../components/wildcard_column_component.dart';
 import 'package:reword_game/models/gameMode.dart';
+import 'dart:async';
 import 'dart:io';
 import '../models/board.dart';
 import '../models/boardState.dart';
@@ -47,6 +48,18 @@ class GameManager extends ChangeNotifier {
   String message = ''; // UI feedback message
   String currentWord = ''; // Word currently being built from selected tiles
   bool _startupComplete = false; // Prevents lifecycle events during startup
+
+  // ─────────────────────────────────────────────────────────────────────
+  // COUNTDOWN TIMER
+  // ─────────────────────────────────────────────────────────────────────
+
+  /// Formatted countdown string displayed in the top bar (e.g., "15h 42m").
+  /// Updated every minute by the countdown timer. Shows "EXPIRED" when past expiration.
+  String boardCountdown = '';
+
+  /// Periodic timer that recalculates the countdown every 60 seconds.
+  /// Starts when the board loads, stops on dispose or when a new board loads.
+  Timer? _countdownTimer;
 
   // ─────────────────────────────────────────────────────────────────────
   // UI COMPONENT REFERENCES
@@ -380,6 +393,8 @@ class GameManager extends ChangeNotifier {
       score: board.score,
       completionRate: completionRate,
       longestWordLength: longestWord.length,
+      // Pass the expired-board flag so the server can apply scoring policy
+      isPlayingExpired: board.isPlayingExpired,
     );
   }
 
@@ -412,6 +427,9 @@ class GameManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Resumes the user session only. Board expiration is now handled
+  /// by HomeScreen's didChangeAppLifecycleState, which has access to
+  /// BuildContext and can show the BoardExpiredDialog.
   Future<void> onAppResume() async {
     if (!_startupComplete) {
       return;
@@ -419,20 +437,50 @@ class GameManager extends ChangeNotifier {
 
     if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: onAppResume");
     userManager.resumeSession();
+    // Refresh the countdown display after resume
+    updateCountdown();
+    notifyListeners();
+  }
 
-    // Check if board expired — if so, fetch a new board from the server
-    if (await board.isBoardExpired()) {
-      LogService.logInfo("🔄 Board expired on resume — loading new board");
-      final success = await loadNewBoard();
-      if (success) {
-        // Schedule a post-frame sync as fallback in case widget tree
-        // wasn't fully built when syncUIComponents ran inside loadNewBoard
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          syncUIComponents();
-        });
-      } else {
-        message = 'Server unavailable — playing with current board';
-      }
+  // ─────────────────────────────────────────────────────────────────────
+  // BOARD COUNTDOWN TIMER
+  // ─────────────────────────────────────────────────────────────────────
+
+  /// Starts a periodic timer that updates the board countdown every 60 seconds.
+  /// Call after a board is loaded or on app startup.
+  void startCountdownTimer() {
+    // Cancel any existing timer before starting a new one
+    stopCountdownTimer();
+    // Immediately calculate the initial countdown value
+    updateCountdown();
+    // Tick every 60 seconds to keep the countdown current
+    _countdownTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      updateCountdown();
+    });
+    LogService.logInfo("⏱️ Countdown timer started");
+  }
+
+  /// Stops the countdown timer. Call on dispose or before loading a new board.
+  void stopCountdownTimer() {
+    _countdownTimer?.cancel();
+    _countdownTimer = null;
+  }
+
+  /// Recalculates the remaining time until the board expires (in UTC)
+  /// and updates boardCountdown with a human-readable string.
+  void updateCountdown() {
+    final nowUtc = DateTime.now().toUtc();
+    final expirationUtc = board.puzzleExpires.toUtc();
+    final remaining = expirationUtc.difference(nowUtc);
+
+    if (remaining.isNegative) {
+      // Board has expired — show EXPIRED indicator
+      boardCountdown = 'EXPIRED';
+    } else {
+      // Format as "Xh Ym" for readability
+      final hours = remaining.inHours;
+      final minutes = remaining.inMinutes % 60;
+      boardCountdown = '${hours}h ${minutes}m';
     }
     notifyListeners();
   }

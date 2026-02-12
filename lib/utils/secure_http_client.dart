@@ -1,7 +1,6 @@
 // File: /lib/utils/secure_http_client.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'dart:io';
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;

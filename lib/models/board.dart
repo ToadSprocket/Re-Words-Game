@@ -158,6 +158,12 @@ class Board {
   /// Used to build the current word and highlight selected tiles.
   List<int> selectedWordIndex;
 
+  /// Tracks whether the user chose to continue playing an expired board.
+  /// When true, the score may be treated differently by the server
+  /// (e.g., excluded from leaderboards or marked as a late submission).
+  /// Resets to false when a new board is loaded from the API.
+  bool isPlayingExpired;
+
   Board({
     required this.gameId,
     required this.gridLetters,
@@ -182,6 +188,7 @@ class Board {
     this.completionRatio = 0,
     this.orientation = Orientation.unknown,
     this.selectedWordIndex = const [],
+    this.isPlayingExpired = false,
   });
 
   /// Serializes the board state to a JSON-compatible Map.
@@ -211,6 +218,7 @@ class Board {
       'completionRatio': completionRatio,
       'orientation': orientation.name,
       'selectedWordIndex': selectedWordIndex,
+      'isPlayingExpired': isPlayingExpired,
     };
   }
 
@@ -244,6 +252,8 @@ class Board {
         orElse: () => Orientation.unknown, // Default if not found
       ),
       selectedWordIndex: (json['selectedWordIndex'] as List).cast<int>(),
+      // Default to false for boards saved before this field existed
+      isPlayingExpired: json['isPlayingExpired'] ?? false,
     );
   }
 
@@ -275,6 +285,7 @@ class Board {
     double? completionRatio,
     Orientation? orientation,
     List<int>? selectedWordIndex,
+    bool? isPlayingExpired,
   }) {
     return Board(
       gameId: gameId ?? this.gameId,
@@ -300,6 +311,7 @@ class Board {
       completionRatio: completionRatio ?? this.completionRatio,
       orientation: orientation ?? this.orientation,
       selectedWordIndex: selectedWordIndex ?? this.selectedWordIndex,
+      isPlayingExpired: isPlayingExpired ?? this.isPlayingExpired,
     );
   }
 

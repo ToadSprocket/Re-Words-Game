@@ -130,6 +130,10 @@ class SubmitScoreRequest {
   int completionRate;
   int longestWordLength;
 
+  /// Indicates the user chose to continue playing after the board expired.
+  /// The server can use this to apply scoring policy (e.g., exclude from leaderboards).
+  bool isPlayingExpired;
+
   SubmitScoreRequest({
     required this.userId,
     required this.gameId,
@@ -141,6 +145,7 @@ class SubmitScoreRequest {
     required this.score,
     required this.completionRate,
     required this.longestWordLength,
+    this.isPlayingExpired = false,
   });
 
   Map<String, dynamic> toJson() {
@@ -155,6 +160,7 @@ class SubmitScoreRequest {
       "score": score,
       "completionRate": completionRate,
       "longestWordLength": longestWordLength,
+      "isPlayingExpired": isPlayingExpired,
     };
   }
 }
