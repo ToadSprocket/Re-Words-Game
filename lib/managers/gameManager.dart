@@ -422,6 +422,7 @@ class GameManager extends ChangeNotifier {
 
   Future<void> onAppPause() async {
     if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: onAppPause");
+    LogService.logEvent("LCYCL:Pause");
     await saveState();
     userManager.pauseSession();
     notifyListeners();
@@ -436,6 +437,7 @@ class GameManager extends ChangeNotifier {
     }
 
     if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: onAppResume");
+    LogService.logEvent("LCYCL:Resume");
     userManager.resumeSession();
     // Refresh the countdown display after resume
     updateCountdown();
@@ -466,21 +468,24 @@ class GameManager extends ChangeNotifier {
     _countdownTimer = null;
   }
 
-  /// Recalculates the remaining time until the board expires (in UTC)
-  /// and updates boardCountdown with a human-readable string.
+  /// Recalculates the remaining time until local midnight (when the board
+  /// rolls over for the user) and updates boardCountdown with a label.
+  /// We use local midnight rather than the server's UTC expiration because
+  /// the user expects the countdown to reflect their own day boundary.
   void updateCountdown() {
-    final nowUtc = DateTime.now().toUtc();
-    final expirationUtc = board.puzzleExpires.toUtc();
-    final remaining = expirationUtc.difference(nowUtc);
+    final now = DateTime.now();
+    // Calculate next local midnight
+    final localMidnight = DateTime(now.year, now.month, now.day + 1);
+    final remaining = localMidnight.difference(now);
 
-    if (remaining.isNegative) {
-      // Board has expired — show EXPIRED indicator
+    if (remaining.isNegative || remaining.inSeconds == 0 || board.isPlayingExpired) {
+      // Should not happen (midnight is always in the future), but safety check
       boardCountdown = 'EXPIRED';
     } else {
-      // Format as "Xh Ym" for readability
+      // Format as "Time Remaining: Xh Ym"
       final hours = remaining.inHours;
       final minutes = remaining.inMinutes % 60;
-      boardCountdown = '${hours}h ${minutes}m';
+      boardCountdown = 'Board Expires In: ${hours}h ${minutes}m';
     }
     notifyListeners();
   }

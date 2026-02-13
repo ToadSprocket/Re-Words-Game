@@ -17,6 +17,8 @@ import '../managers/gameLayoutManager.dart';
 import 'package:window_size/window_size.dart';
 import 'dialogs/welcome_dialog.dart';
 import 'dialogs/board_expired_dialog.dart';
+import 'dialogs/new_board_loaded_dialog.dart';
+import 'config/config.dart';
 import 'dialogs/androidTabletDialog.dart';
 import 'utils/device_utils.dart';
 import 'providers/orientation_provider.dart';
@@ -274,10 +276,50 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     // Setup game layout.
     gm.initializeLayout(context);
 
-    final isExpired = DebugConfig().forceExpiredBoard || await gm.board.isBoardExpired();
+    // Two-tier expiration logic using minutesBoardIsExpired() (local timezone):
+    //   > grace period  → auto-load new board, show "New Board Loaded" info dialog
+    //   ≤ grace period  → show choice dialog (load new / keep playing)
+    //   0 minutes       → board is current, no action needed
+    final minutesExpired = await gm.board.minutesBoardIsExpired();
+    final forceExpired = DebugConfig().forceExpiredBoard;
+    LogService.logEvent("LCYCL:InitExpChk:${minutesExpired}m");
 
-    if (isExpired) {
-      LogService.logInfo("🔄 Board is expired at startup - loading new board");
+    if ((forceExpired || minutesExpired > 0) && gm.isBoardReady) {
+      if (minutesExpired > Config.expiredBoardGracePeriodMinutes || forceExpired) {
+        // Past grace period — force-load a new board without asking
+        LogService.logInfo(
+          "🔄 Board expired ${minutesExpired}m (>${Config.expiredBoardGracePeriodMinutes}m grace) — auto-loading",
+        );
+        final success = await gm.loadNewBoard();
+        if (success && mounted) {
+          // Show simple confirmation dialog
+          await NewBoardLoadedDialog.show(context);
+        } else if (!success) {
+          gm.setMessage('Server unavailable — playing with current board');
+        }
+      } else {
+        // Within grace period — let the user choose
+        LogService.logInfo(
+          "🔄 Board expired ${minutesExpired}m (≤${Config.expiredBoardGracePeriodMinutes}m grace) — showing choice",
+        );
+        final loadNew = await BoardExpiredDialog.show(context);
+
+        if (loadNew == true) {
+          // User chose "Yes" — load a fresh board from the server
+          final success = await gm.loadNewBoard();
+          if (!success) {
+            gm.setMessage('Server unavailable — playing with current board');
+          }
+        } else {
+          // User chose "No" — mark as playing expired so we don't re-prompt on resume
+          gm.board = gm.board.copyWith(isPlayingExpired: true);
+          await gm.board.saveBoardToStorage();
+          LogService.logInfo("🎮 User chose to continue playing expired board at startup");
+        }
+      }
+    } else if ((forceExpired || minutesExpired > 0) && !gm.isBoardReady) {
+      // No usable board at all — must load from server (first launch or corrupted data)
+      LogService.logInfo("🔄 No valid board at startup — loading new board from server");
       final success = await gm.loadNewBoard();
 
       if (!success && !gm.isBoardReady) {
@@ -435,30 +477,34 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     gm.syncUIComponents();
   }
 
-  /// Checks if the board has expired after app resume and shows the
-  /// BoardExpiredDialog to let the user choose: load new board or keep playing.
-  /// This lives here instead of GameManager because it needs BuildContext for the dialog.
+  /// Checks board expiration on app resume using the same two-tier logic as startup.
+  /// This lives here instead of GameManager because it needs BuildContext for dialogs.
   Future<void> _checkBoardExpirationOnResume() async {
     final gm = GameManager();
 
     // Skip if board is already flagged as playing-expired (user already chose "No")
-    if (gm.board.isPlayingExpired) return;
+    if (gm.board.isPlayingExpired) {
+      LogService.logEvent("LCYCL:ExpChk:SkipPlayingExpired");
+      return;
+    }
 
-    final isExpired = await gm.board.isBoardExpired();
-    if (!isExpired || !mounted) return;
+    // Calculate minutes since local midnight — 0 means board is still current
+    final minutesExpired = await gm.board.minutesBoardIsExpired();
+    LogService.logEvent("LCYCL:ExpChk:${minutesExpired}m");
+    if (minutesExpired == 0 || !mounted) return;
 
-    LogService.logInfo("⏰ Board expired on resume — showing BoardExpiredDialog");
-
-    // Show the dialog — true = load new, false = keep playing, null = dismissed
-    final loadNew = await BoardExpiredDialog.show(context);
-
-    if (loadNew == true) {
-      // User chose "Yes" — load a fresh board from the server
+    if (minutesExpired > Config.expiredBoardGracePeriodMinutes) {
+      // Past grace period — force-load a new board without asking
+      LogService.logInfo(
+        "⏰ Resume: Board expired ${minutesExpired}m (>${Config.expiredBoardGracePeriodMinutes}m) — auto-loading",
+      );
       final success = await gm.loadNewBoard();
       if (success) {
-        // Restart the countdown timer for the new board
         gm.startCountdownTimer();
-        // Sync UI after widget tree is ready
+        if (mounted) {
+          await NewBoardLoadedDialog.show(context);
+        }
+        // Sync UI after dialog is dismissed
         WidgetsBinding.instance.addPostFrameCallback((_) {
           gm.syncUIComponents();
         });
@@ -466,12 +512,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         gm.setMessage('Server unavailable — playing with current board');
       }
     } else {
-      // User chose "No" (or dismissed) — mark board as playing-expired
-      // so we don't re-prompt, and persist the flag
-      gm.board = gm.board.copyWith(isPlayingExpired: true);
-      await gm.board.saveBoardToStorage();
-      gm.notifyListeners();
-      LogService.logInfo("🎮 User chose to continue playing expired board");
+      // Within grace period — let the user choose
+      LogService.logInfo(
+        "⏰ Resume: Board expired ${minutesExpired}m (≤${Config.expiredBoardGracePeriodMinutes}m) — showing choice",
+      );
+      final loadNew = await BoardExpiredDialog.show(context);
+
+      if (loadNew == true) {
+        // User chose "Yes" — load a fresh board from the server
+        final success = await gm.loadNewBoard();
+        if (success) {
+          gm.startCountdownTimer();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            gm.syncUIComponents();
+          });
+        } else {
+          gm.setMessage('Server unavailable — playing with current board');
+        }
+      } else {
+        // User chose "No" (or dismissed) — mark board as playing-expired
+        // so we don't re-prompt, and persist the flag
+        gm.board = gm.board.copyWith(isPlayingExpired: true);
+        await gm.board.saveBoardToStorage();
+        gm.notifyListeners();
+        LogService.logInfo("🎮 User chose to continue playing expired board on resume");
+      }
     }
   }
 

@@ -416,6 +416,8 @@ class Board {
       score: 0,
       completionRatio: 0.0,
       orientation: currentOrientation,
+      // Always reset expired flag when loading a fresh board from the API
+      isPlayingExpired: false,
     );
   }
 
@@ -587,11 +589,13 @@ class Board {
     return isExpired;
   }
 
-  /// Returns how many minutes have passed since the board expired (since midnight).
-  /// Returns 0 if the board is not expired.
+  /// Returns how many minutes have passed since local midnight today.
+  /// Returns 0 if the board is still current (loaded today).
+  /// Uses isBoardCurrent() (local timezone day check) to stay consistent
+  /// with the countdown timer and user-facing expiration logic.
   Future<int> minutesBoardIsExpired() async {
-    // First is the board even expired?
-    if (!await isBoardExpired()) {
+    // If the board was loaded today, it's not expired — return 0
+    if (await isBoardCurrent()) {
       return 0;
     }
 

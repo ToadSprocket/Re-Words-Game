@@ -15,6 +15,12 @@ class Config {
   static const int initialLockoutSeconds = 60; // 1 minute initial lockout
   static const int maxLockoutSeconds = 3600; // 1 hour maximum lockout
 
+  // Board expiration settings
+  // After this many minutes past local midnight, the board is force-loaded
+  // without asking the user. Below this threshold, user gets a choice dialog.
+  // This value is a candidate for Firebase Remote Config in a future release.
+  static int expiredBoardGracePeriodMinutes = 120;
+
   // Obfuscated API key and salt as integer arrays
   static const List<int> _obfuscatedApiKey = [
     112,
