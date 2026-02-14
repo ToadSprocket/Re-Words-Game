@@ -34,13 +34,10 @@ class NewBoardLoadedDialog {
                   Text('Good Luck!', style: layout.dialogContentStyle, textAlign: TextAlign.center),
                   const SizedBox(height: 24.0),
                   // Single OK button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: layout.buttonStyle(context),
-                      child: const Text('OK'),
-                    ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: layout.buttonStyle(context),
+                    child: const Text('OK'),
                   ),
                   const SizedBox(height: AppStyles.dialogButtonPadding),
                 ],
