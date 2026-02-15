@@ -11,9 +11,58 @@ import '../dialogs/high_scores_dialog.dart';
 import '../dialogs/legal_dialog.dart';
 import '../dialogs/login_dialog.dart';
 import '../dialogs/logout_dialog.dart';
+import '../dialogs/board_expired_dialog.dart';
+import '../dialogs/new_board_loaded_dialog.dart';
+import '../config/config.dart';
+import '../logic/logging_handler.dart';
 
 class GameTopBarComponent extends StatelessWidget {
   const GameTopBarComponent({super.key});
+
+  /// Handles manual expiration checks when the user taps the expired label.
+  /// This gives players an in-session path to load a new board without
+  /// requiring an app restart or lifecycle transition.
+  Future<void> _handleExpiredTap(BuildContext context, GameManager gm) async {
+    // Track manual checks separately so device logs clearly show user-triggered flow.
+    LogService.logEvent("LCYCL:ManualExpChk");
+
+    final minutesExpired = await gm.board.minutesBoardIsExpired();
+    LogService.logEvent("LCYCL:ManualExpChk:${minutesExpired}m");
+
+    // Safety: if board is no longer expired by the time user taps, do nothing.
+    if (minutesExpired == 0) return;
+
+    if (minutesExpired > Config.expiredBoardGracePeriodMinutes) {
+      // Past grace period: force-load a new board and show the simple confirmation dialog.
+      final success = await gm.loadNewBoard();
+      if (success && context.mounted) {
+        gm.startCountdownTimer();
+        await NewBoardLoadedDialog.show(context);
+      } else if (!success) {
+        gm.setMessage('Server unavailable — playing with current board');
+      }
+      return;
+    }
+
+    // Inside grace period: let the user decide explicitly.
+    final loadNew = await BoardExpiredDialog.show(context);
+    if (loadNew == true) {
+      final success = await gm.loadNewBoard();
+      if (success) {
+        gm.startCountdownTimer();
+      } else {
+        gm.setMessage('Server unavailable — playing with current board');
+      }
+    } else {
+      // Keep-playing choice is persisted so resume checks respect this preference.
+      gm.board = gm.board.copyWith(isPlayingExpired: true);
+      await gm.board.saveBoardToStorage();
+      // Immediately refresh countdown text so "expired" state appears now,
+      // instead of waiting for the next timer tick.
+      gm.updateCountdown();
+      gm.notifyListeners();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,13 +89,24 @@ class GameTopBarComponent extends StatelessWidget {
                     if (gm.boardCountdown.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(left: 8.0),
-                        child: Text(
-                          gm.boardCountdown,
-                          style: TextStyle(
-                            color:
-                                gm.boardCountdown == 'EXPIRED' ? Colors.redAccent : AppStyles.boardTimerCountdownColor,
-                            fontSize: 13.0,
-                            fontWeight: FontWeight.w400,
+                        child: GestureDetector(
+                          // Only enable tap behavior in expired state.
+                          onTap:
+                              gm.boardCountdown == 'EXPIRED'
+                                  ? () async {
+                                    await _handleExpiredTap(context, gm);
+                                  }
+                                  : null,
+                          child: Text(
+                            gm.boardCountdown == 'EXPIRED' ? 'Board Expired (tap for new)' : gm.boardCountdown,
+                            style: TextStyle(
+                              color:
+                                  gm.boardCountdown == 'EXPIRED'
+                                      ? Colors.redAccent
+                                      : AppStyles.boardTimerCountdownColor,
+                              fontSize: 13.0,
+                              fontWeight: FontWeight.w400,
+                            ),
                           ),
                         ),
                       ),

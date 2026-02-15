@@ -28,7 +28,7 @@ class GameGridComponentState extends State<GameGridComponent> {
   }
 
   void setSelectedIndices(List<int> indices) {
-    selectedTiles = indices.map((index) => gridTiles[index]).where((tile) => tile != null).toList();
+    selectedTiles = indices.map((index) => gridTiles[index]).toList();
   }
 
   void setTiles(List<Tile> newTiles) {
@@ -182,10 +182,7 @@ class GameGridComponentState extends State<GameGridComponent> {
                       }
 
                       // Only allow drops on UNUSED tiles
-                      bool canAccept =
-                          details.data != null &&
-                          gridTiles[index].state == 'unused' &&
-                          gridTiles[index].isHybrid == false;
+                      bool canAccept = gridTiles[index].state == 'unused' && gridTiles[index].isHybrid == false;
 
                       if (!canAccept) {
                         gm.setMessage('Can only drop on unused tiles');

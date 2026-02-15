@@ -16,7 +16,7 @@ class HighScoresDialog {
   static Future<void> _loadAndShowDialog(BuildContext context, GameManager gm) async {
     List<HighScore> highScores = [];
     String? date = 'Today';
-    bool loggedIn = gm.apiService.loggedIn ?? false;
+    bool loggedIn = gm.apiService.loggedIn;
     bool canSubmitScore = false;
     bool hasGoodScore = false;
     bool userHasSubmitted = false;
@@ -74,9 +74,6 @@ class HighScoresDialog {
             // Calculate responsive dimensions
             double maxHeight = constraints.maxHeight * 0.85; // Increased from 0.8 to 0.85
             double minHeight = 300.0; // Increased from 200.0 to 300.0
-
-            // More generous height calculation - add more space per score
-            double calculatedHeight = (50 + (highScores.length * 60)).clamp(minHeight, maxHeight).toDouble();
 
             // Calculate responsive width
             double dialogWidth =

@@ -2,7 +2,6 @@
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import '../config/config.dart';
 import '../logic/logging_handler.dart';
 import '../logic/error_reporting.dart';
 import '../dialogs/enhanced_error_dialog.dart';

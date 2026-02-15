@@ -3,7 +3,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../logic/logging_handler.dart';
-import '../config/config.dart';
 
 /// A class that handles structured error reporting and analytics.
 ///

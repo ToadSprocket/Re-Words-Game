@@ -3,8 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../styles/app_styles.dart';
-import '../services/api_service.dart';
-import '../managers/gameLayoutManager.dart';
 import '../dialogs/delete_account_dialog.dart';
 import '../main.dart' show VERSION_STRING;
 import '../logic/logging_handler.dart';

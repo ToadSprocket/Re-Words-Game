@@ -43,26 +43,26 @@ class BoardExpiredDialog {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            result = false;
-                            Navigator.of(context).pop(false);
-                          },
-                          style: layout.buttonStyle(context),
-                          child: const Text('No'),
-                        ),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Keep-playing action: return false to caller so
+                          // upstream flow can persist expired-play choice.
+                          result = false;
+                          Navigator.of(context).pop(false);
+                        },
+                        style: layout.buttonStyle(context),
+                        child: const Text('No'),
                       ),
                       const SizedBox(width: 12.0),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            result = true;
-                            Navigator.of(context).pop(true);
-                          },
-                          style: layout.buttonStyle(context),
-                          child: const Text('Yes'),
-                        ),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Load-new action: return true so caller can fetch
+                          // a fresh board immediately.
+                          result = true;
+                          Navigator.of(context).pop(true);
+                        },
+                        style: layout.buttonStyle(context),
+                        child: const Text('Yes'),
                       ),
                     ],
                   ),

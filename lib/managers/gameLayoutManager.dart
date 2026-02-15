@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
 import 'dart:math';
 import '../constants/layout_constants.dart';
-import '../styles/app_styles.dart';
 import '../logic/logging_handler.dart';
 import '../config/debugConfig.dart';
 import '../utils/device_utils.dart';

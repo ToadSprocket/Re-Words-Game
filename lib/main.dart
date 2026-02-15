@@ -314,6 +314,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
           // User chose "No" — mark as playing expired so we don't re-prompt on resume
           gm.board = gm.board.copyWith(isPlayingExpired: true);
           await gm.board.saveBoardToStorage();
+          // Force immediate countdown refresh so expired status updates in the top bar
+          // right after the user chooses to keep playing.
+          gm.updateCountdown();
           LogService.logInfo("🎮 User chose to continue playing expired board at startup");
         }
       }
@@ -482,12 +485,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   Future<void> _checkBoardExpirationOnResume() async {
     final gm = GameManager();
 
-    // Skip if board is already flagged as playing-expired (user already chose "No")
-    if (gm.board.isPlayingExpired) {
-      LogService.logEvent("LCYCL:ExpChk:SkipPlayingExpired");
-      return;
-    }
-
     // Calculate minutes since local midnight — 0 means board is still current
     final minutesExpired = await gm.board.minutesBoardIsExpired();
     LogService.logEvent("LCYCL:ExpChk:${minutesExpired}m");
@@ -495,6 +492,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
 
     if (minutesExpired > Config.expiredBoardGracePeriodMinutes) {
       // Past grace period — force-load a new board without asking
+      // IMPORTANT: This branch intentionally ignores isPlayingExpired.
+      // If the user chose "keep playing" earlier, we still force-load
+      // once the grace window has elapsed.
+      LogService.logEvent("LCYCL:ExpChk:ForceLoad:PastGrace");
       LogService.logInfo(
         "⏰ Resume: Board expired ${minutesExpired}m (>${Config.expiredBoardGracePeriodMinutes}m) — auto-loading",
       );
@@ -512,6 +513,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         gm.setMessage('Server unavailable — playing with current board');
       }
     } else {
+      // Inside the grace window, respect a prior "keep playing" choice and
+      // avoid repeatedly prompting on each resume.
+      if (gm.board.isPlayingExpired) {
+        LogService.logEvent("LCYCL:ExpChk:SkipPlayingExpired");
+        return;
+      }
+
       // Within grace period — let the user choose
       LogService.logInfo(
         "⏰ Resume: Board expired ${minutesExpired}m (≤${Config.expiredBoardGracePeriodMinutes}m) — showing choice",
@@ -534,6 +542,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         // so we don't re-prompt, and persist the flag
         gm.board = gm.board.copyWith(isPlayingExpired: true);
         await gm.board.saveBoardToStorage();
+        // Force immediate countdown refresh so expired status updates in the top bar
+        // right after the user chooses to keep playing.
+        gm.updateCountdown();
         gm.notifyListeners();
         LogService.logInfo("🎮 User chose to continue playing expired board on resume");
       }

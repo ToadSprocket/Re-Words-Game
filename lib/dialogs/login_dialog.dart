@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:reword_game/logic/logging_handler.dart';
 import '../styles/app_styles.dart';
-import '../services/api_service.dart';
 import '../logic/security.dart';
 import 'register_dialog.dart';
 import 'password_recovery_dialog.dart';
