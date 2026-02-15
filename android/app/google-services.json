@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "531655291927",
+    "project_id": "reword-game-5ce33",
+    "storage_bucket": "reword-game-5ce33.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:531655291927:android:88a66868ea944758811852",
+        "android_client_info": {
+          "package_name": "com.example.reword_game"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTxlMUmpoJFUtY6ry9TCg0MiTVjSNn5dI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

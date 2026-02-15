@@ -1,0 +1,517 @@
+// File: /lib/managers/gameManager.dart
+// Copyright © 2026 Digital Relics. All Rights Reserved.
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' hide Orientation; // For GlobalKey, BuildContext
+import '../components/game_grid_component.dart';
+import '../components/wildcard_column_component.dart';
+import 'package:reword_game/models/gameMode.dart';
+import 'dart:async';
+import 'dart:io';
+import '../models/board.dart';
+import '../models/boardState.dart';
+import '../models/tile.dart';
+import '../models/apiModels.dart';
+import '../services/api_service.dart';
+import '../services/word_service.dart';
+import '../managers/userManager.dart';
+import '../utils/wordUtilities.dart';
+import '../managers/gameLayoutManager.dart';
+import '../config/debugConfig.dart';
+import '../logic/logging_handler.dart';
+
+class GameManager extends ChangeNotifier {
+  // ─────────────────────────────────────────────────────────────────────
+  // SINGLETON MASTER OBJECT
+  // ─────────────────────────────────────────────────────────────────────
+
+  static final GameManager _instance = GameManager._internal();
+  factory GameManager() => _instance;
+  GameManager._internal();
+
+  // ─────────────────────────────────────────────────────────────────────
+  // CORE COMPONENTS
+  // ─────────────────────────────────────────────────────────────────────
+
+  late final ApiService apiService;
+  late final UserManager userManager;
+  late final WordService wordService;
+  late Board board;
+
+  // ─────────────────────────────────────────────────────────────────────
+  // STATE FLAGS
+  // ─────────────────────────────────────────────────────────────────────
+
+  bool isInitialized = false;
+  bool isLoading = false;
+  bool isChangingOrientation = false; // Orientation change tracking
+  String message = ''; // UI feedback message
+  String currentWord = ''; // Word currently being built from selected tiles
+  bool _startupComplete = false; // Prevents lifecycle events during startup
+
+  // ─────────────────────────────────────────────────────────────────────
+  // COUNTDOWN TIMER
+  // ─────────────────────────────────────────────────────────────────────
+
+  /// Formatted countdown string displayed in the top bar (e.g., "15h 42m").
+  /// Updated every minute by the countdown timer. Shows "EXPIRED" when past expiration.
+  String boardCountdown = '';
+
+  /// Periodic timer that recalculates the countdown every 60 seconds.
+  /// Starts when the board loads, stops on dispose or when a new board loads.
+  Timer? _countdownTimer;
+
+  // ─────────────────────────────────────────────────────────────────────
+  // UI COMPONENT REFERENCES
+  // ─────────────────────────────────────────────────────────────────────
+
+  final GlobalKey<GameGridComponentState> gridKey = GlobalKey<GameGridComponentState>();
+  final GlobalKey<WildcardColumnComponentState> wildcardKey = GlobalKey<WildcardColumnComponentState>();
+  GameLayoutManager? layoutManager;
+
+  // ─────────────────────────────────────────────────────────────────────
+  // INITIALIZATION
+  // ─────────────────────────────────────────────────────────────────────
+
+  /// Initialize all components - call once from main.dart
+  Future<void> initialize() async {
+    if (isInitialized) return;
+
+    // Create services
+    apiService = ApiService();
+    wordService = WordService();
+    userManager = UserManager(apiService: apiService);
+
+    // After creating services:
+    if (DebugConfig().clearPrefs) {
+      await userManager.clearAllData();
+      await apiService.logout();
+      await Board.clearBoardFromStorage();
+    }
+
+    // Initialize word service (load dictionary)
+    await wordService.initialize();
+
+    // Load user from storage
+    await userManager.loadFromStorage();
+
+    // Try to load existing board, or create empty
+    final loadedBoard = await Board.loadBoardFromStorage();
+    board = loadedBoard ?? _createEmptyBoard();
+
+    // Start user session tracking
+    userManager.startSession();
+
+    isInitialized = true;
+  }
+
+  /// Initialize layout manager with BuildContext (Phase 2 of init)
+  void initializeLayout(BuildContext context) {
+    layoutManager = GameLayoutManager();
+    layoutManager!.calculateLayoutSizes(context);
+  }
+
+  Board _createEmptyBoard() {
+    // Return a minimal empty board
+    return Board(
+      gameId: '',
+      gridLetters: '',
+      wildcardLetters: '',
+      gridTiles: [],
+      wildcardTiles: [],
+      puzzleDate: DateTime.now(),
+      puzzleExpires: DateTime.now(),
+      loadedAt: DateTime.now(),
+      sessionStartedAt: null,
+      pausedAt: null,
+      wordCount: 0,
+      estimatedHighScore: 0,
+      boardState: BoardState.newBoard,
+      gameMode: GameMode.classic,
+      sessionStartDateTime: DateTime.now(),
+      boardElapsedTime: 0,
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // BOARD OPERATIONS
+  // ─────────────────────────────────────────────────────────────────────
+
+  /// Load a new board from the server
+  Future<bool> loadNewBoard() async {
+    if (isLoading) {
+      LogService.logInfo("⚠️ loadNewBoard already in progress — skipping");
+      return false;
+    }
+
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: loadNewBoard");
+    isLoading = true;
+
+    try {
+      // Build score request for current game (if any)
+      final scoreRequest = buildScoreRequest();
+
+      // Get new board from API
+      final response = await apiService.getGameToday(scoreRequest);
+      if (response.gameData == null) {
+        isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      // Create new board from API data
+      board = await board.fromApiData(response.gameData!, Orientation.portrait);
+      await board.saveBoardToStorage();
+
+      isLoading = false;
+      if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 EXIT: loadNewBoard (success)");
+      syncUIComponents();
+      return true;
+    } catch (e) {
+      isLoading = false;
+      if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 EXIT: loadNewBoard (error: $e)");
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Load existing board from storage
+  Future<bool> loadStoredBoard() async {
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: loadStoredBoard");
+    final loadedBoard = await Board.loadBoardFromStorage();
+    if (loadedBoard == null) return false;
+    board = loadedBoard;
+    notifyListeners();
+    return true;
+  }
+
+  void setBoardStartupCompleted() {
+    _startupComplete = true;
+  }
+  // ─────────────────────────────────────────────────────────────────────
+  // UI OPERATIONS
+  // ─────────────────────────────────────────────────────────────────────
+
+  /// Submit the current word from selected tiles
+  void submitWord() {
+    gridKey?.currentState?.submitWord();
+  }
+
+  /// Clear all selected tiles and the word being built
+  void clearWords() {
+    gridKey?.currentState?.clearSelectedTiles();
+    wildcardKey?.currentState?.clearSelectedTiles();
+    message = '';
+    currentWord = '';
+    notifyListeners();
+  }
+
+  /// Sync UI components with current board data
+  /// Updates both grid and wildcard tiles to reflect the current board state
+  void syncUIComponents() {
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: syncUIComponents");
+    LogService.logInfo(
+      "syncUI: gridState=${gridKey.currentState != null}, wildcardState=${wildcardKey.currentState != null}, "
+      "gridTiles=${board.gridTiles.length}, wildcardTiles=${board.wildcardTiles.length}",
+    );
+    // Push current board tiles into grid and wildcard UI components
+    gridKey.currentState?.setTiles(List.from(board.gridTiles));
+    wildcardKey.currentState?.setTiles(List.from(board.wildcardTiles));
+    notifyListeners();
+  }
+
+  /// Update UI message and notify
+  void setMessage(String msg) {
+    message = msg;
+    notifyListeners();
+  }
+
+  /// Update the word currently being built from selected tiles.
+  /// Called by GameGridComponent whenever tiles are selected or deselected.
+  void setCurrentWord(String word) {
+    currentWord = word;
+    notifyListeners();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // ORIENTATION HANDLING
+  // ─────────────────────────────────────────────────────────────────────
+
+  Future<void> handleOrientationChange() async {
+    if (!_startupComplete) {
+      return;
+    }
+
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: handleOrientationChange");
+    // Don't save/restore during startup — board may not be loaded yet
+    if (!isBoardReady) {
+      LogService.logInfo("Skipping orientation save/restore — board not ready");
+      return;
+    }
+
+    isChangingOrientation = true;
+    notifyListeners();
+
+    // Save current state
+    await saveState();
+
+    // Small delay for UI to settle
+    await Future.delayed(Duration(milliseconds: 300));
+
+    // Restore state
+    await restoreState();
+
+    // Sync UI
+    syncUIComponents();
+
+    isChangingOrientation = false;
+    notifyListeners();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // GAME FLOW
+  // ─────────────────────────────────────────────────────────────────────
+
+  /// Mark game as finished
+  void finishGame() {
+    board = board.copyWith(boardState: BoardState.finished);
+    notifyListeners();
+  }
+
+  /// Check if board is valid and playable
+  bool get isBoardReady => board.isBoardValid();
+
+  // ─────────────────────────────────────────────────────────────────────
+  // WORD OPERATIONS
+  // ─────────────────────────────────────────────────────────────────────
+
+  // Calculate the score of the selected tiles or word.
+  static int calculateScore(List<Tile> tiles) {
+    int score = 0;
+    for (var tile in tiles) {
+      score += tile.value * tile.multiplier.round();
+    }
+    return score;
+  }
+
+  /// Validate a word using the dictionary
+  Future<bool> isValidWord(String word) async {
+    return await wordService.isValidWord(word.toLowerCase());
+  }
+
+  /// Add a word - main gameplay action
+  /// Updates gameState.message and notifies listeners automatically.
+  /// Returns (success, message) for callers who need the result directly.
+  Future<(bool, String)> addWord(List<Tile> selectedTiles) async {
+    if (selectedTiles.isEmpty) {
+      return (false, '');
+    }
+
+    // Build word from tiles
+    String word = selectedTiles.map((t) => t.letter).join();
+    String casedWord = word.toLowerCase();
+    String displayWord = casedWord[0].toUpperCase() + casedWord.substring(1);
+    // Calculate score
+    int wordScore = calculateScore(selectedTiles);
+
+    String resultMessage = '';
+
+    // Check length
+    if (casedWord.length < 4) {
+      resultMessage = "'$displayWord' too short";
+      message = resultMessage;
+      notifyListeners();
+      return (false, resultMessage);
+    }
+    if (casedWord.length > 12) {
+      resultMessage = "Word too long";
+      message = resultMessage;
+      notifyListeners();
+      return (false, resultMessage);
+    }
+
+    // Check validity
+    if (!await isValidWord(casedWord)) {
+      resultMessage = "'$displayWord' invalid";
+      message = resultMessage;
+      notifyListeners();
+      return (false, resultMessage);
+    }
+
+    // Check duplicate
+    if (WordUtilities.isDuplicateWord(displayWord, board.spelledWords)) {
+      resultMessage = "'$displayWord' already used";
+      message = resultMessage;
+      notifyListeners();
+      return (false, resultMessage);
+    }
+
+    // Check for wildcard bonus
+    if (WordUtilities.doesWordContainWildcard(selectedTiles)) {
+      double multiplier = WordUtilities.getWildcardMultiplier(selectedTiles);
+      int bonusScore = (wordScore * multiplier).toInt();
+      wordScore += bonusScore;
+
+      board = board.copyWith(
+        spelledWords: [...board.spelledWords, displayWord],
+        score: board.score + wordScore,
+        wildcardUses: board.wildcardUses + 1, // Increment wildcard count
+      );
+
+      resultMessage = "Word score multiplied by $multiplier!";
+      message = resultMessage;
+      await board.saveBoardToStorage();
+      notifyListeners();
+      return (true, resultMessage);
+    }
+
+    // Add word to state (no wildcard)
+    board = board.copyWith(spelledWords: [...board.spelledWords, displayWord], score: board.score + wordScore);
+    message = '';
+    await board.saveBoardToStorage();
+    notifyListeners();
+    return (true, '');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // SCORE REQUEST (for API submission)
+  // ─────────────────────────────────────────────────────────────────────
+
+  SubmitScoreRequest buildScoreRequest() {
+    int completionRate = board.wordCount > 0 ? ((board.spelledWords.length / board.wordCount) * 100).ceil() : 0;
+
+    String longestWord = WordUtilities.getLongestWord(board.spelledWords);
+
+    return SubmitScoreRequest(
+      userId: userManager.userId ?? '',
+      gameId: board.gameId,
+      platform: kIsWeb ? 'Web' : Platform.operatingSystem,
+      locale: kIsWeb ? 'en-US' : Platform.localeName,
+      timePlayedSeconds: userManager.getTotalPlayTime(),
+      wordCount: board.spelledWords.length,
+      wildcardUses: board.wildcardUses,
+      score: board.score,
+      completionRate: completionRate,
+      longestWordLength: longestWord.length,
+      // Pass the expired-board flag so the server can apply scoring policy
+      isPlayingExpired: board.isPlayingExpired,
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // SAVE/RESTORE (for orientation change, app lifecycle)
+  // ─────────────────────────────────────────────────────────────────────
+
+  Future<void> saveState() async {
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: saveState (boardId: ${board.gameId})");
+    await board.saveBoardToStorage();
+    await userManager.saveToStorage();
+    notifyListeners();
+  }
+
+  Future<void> restoreState() async {
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: restoreState");
+    await loadStoredBoard();
+    await userManager.loadFromStorage();
+    notifyListeners();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // APP LIFECYCLE
+  // ─────────────────────────────────────────────────────────────────────
+
+  Future<void> onAppPause() async {
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: onAppPause");
+    LogService.logEvent("LCYCL:Pause");
+    await saveState();
+    userManager.pauseSession();
+    notifyListeners();
+  }
+
+  /// Resumes the user session only. Board expiration is now handled
+  /// by HomeScreen's didChangeAppLifecycleState, which has access to
+  /// BuildContext and can show the BoardExpiredDialog.
+  Future<void> onAppResume() async {
+    if (!_startupComplete) {
+      return;
+    }
+
+    if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: onAppResume");
+    LogService.logEvent("LCYCL:Resume");
+    userManager.resumeSession();
+    // Refresh the countdown display after resume
+    updateCountdown();
+    notifyListeners();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // BOARD COUNTDOWN TIMER
+  // ─────────────────────────────────────────────────────────────────────
+
+  /// Starts a periodic timer that updates the board countdown every 60 seconds.
+  /// Call after a board is loaded or on app startup.
+  void startCountdownTimer() {
+    // Cancel any existing timer before starting a new one
+    stopCountdownTimer();
+    // Immediately calculate the initial countdown value
+    updateCountdown();
+    // Tick every 60 seconds to keep the countdown current
+    _countdownTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      updateCountdown();
+    });
+    LogService.logInfo("⏱️ Countdown timer started");
+  }
+
+  /// Stops the countdown timer. Call on dispose or before loading a new board.
+  void stopCountdownTimer() {
+    _countdownTimer?.cancel();
+    _countdownTimer = null;
+  }
+
+  /// Recalculates the remaining time until local midnight (when the board
+  /// rolls over for the user) and updates boardCountdown with a label.
+  /// We use local midnight rather than the server's UTC expiration because
+  /// the user expects the countdown to reflect their own day boundary.
+  void updateCountdown() {
+    final now = DateTime.now();
+    // Calculate next local midnight
+    final localMidnight = DateTime(now.year, now.month, now.day + 1);
+    final remaining = localMidnight.difference(now);
+
+    if (remaining.isNegative || remaining.inSeconds == 0 || board.isPlayingExpired) {
+      // Should not happen (midnight is always in the future), but safety check
+      boardCountdown = 'EXPIRED';
+    } else {
+      // Format as "Time Remaining: Xh Ym"
+      final hours = remaining.inHours;
+      final minutes = remaining.inMinutes % 60;
+      boardCountdown = 'Board Expires In: ${hours}h ${minutes}m';
+    }
+    notifyListeners();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // RESET
+  // ─────────────────────────────────────────────────────────────────────
+
+  /// Secret reset - triggered by triple-tap on title (for testing)
+  /// Resets the game state and loads a new board
+  Future<void> secretReset() async {
+    // Show message
+    message = "Secret reset activated! Loading new board...";
+    notifyListeners();
+
+    // Small delay for user feedback
+    await Future.delayed(Duration(milliseconds: 500));
+
+    // Load new board from server
+    await loadNewBoard();
+
+    // Sync UI components with new board data
+    syncUIComponents();
+
+    // Clear message
+    message = '';
+    notifyListeners();
+  }
+}
