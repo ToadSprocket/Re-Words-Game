@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../styles/app_styles.dart';
 import '../dialogs/delete_account_dialog.dart';
-import '../main.dart' show VERSION_STRING;
+import '../main.dart';
 import '../logic/logging_handler.dart';
 import '../managers/gameManager.dart';
+import '../config/config.dart';
 
 class LegalDialog {
   static void show(BuildContext context, GameManager gm) {
@@ -122,7 +123,7 @@ class LegalDialog {
                             // Display version information
                             Center(
                               child: Text(
-                                VERSION_STRING,
+                                Config.buildVersion,
                                 style: gm.layoutManager!.dialogContentStyle.copyWith(
                                   fontSize: 12,
                                   color: const Color.fromARGB(255, 201, 199, 199),

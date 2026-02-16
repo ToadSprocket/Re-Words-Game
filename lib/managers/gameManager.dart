@@ -249,13 +249,13 @@ class GameManager extends ChangeNotifier {
 
   /// Submit the current word from selected tiles
   void submitWord() {
-    gridKey?.currentState?.submitWord();
+    gridKey.currentState?.submitWord();
   }
 
   /// Clear all selected tiles and the word being built
   void clearWords() {
-    gridKey?.currentState?.clearSelectedTiles();
-    wildcardKey?.currentState?.clearSelectedTiles();
+    gridKey.currentState?.clearSelectedTiles();
+    wildcardKey.currentState?.clearSelectedTiles();
     message = '';
     currentWord = '';
     notifyListeners();

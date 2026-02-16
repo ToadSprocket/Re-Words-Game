@@ -51,7 +51,9 @@ class SpelledWordsTickerComponent extends StatelessWidget {
             height: contentHeight,
             decoration: BoxDecoration(
               border: Border.all(
-                color: AppStyles.tickerBorderColor.withOpacity(0.5),
+                // Use withValues(alpha: ...) to replace deprecated withOpacity(...)
+                // while keeping the same semi-transparent border appearance.
+                color: AppStyles.tickerBorderColor.withValues(alpha: 0.5),
                 width: layout.componentBorderThickness,
               ),
               borderRadius: BorderRadius.circular(layout.componentBorderRadius),

@@ -15,8 +15,10 @@ class LoadingDialog {
       context: context,
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
-        return WillPopScope(
-          onWillPop: () async => false,
+        // Use PopScope with canPop=false to block system back navigation
+        // while the loading dialog is visible.
+        return PopScope(
+          canPop: false,
           child: Dialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppStyles.dialogBorderRadius),

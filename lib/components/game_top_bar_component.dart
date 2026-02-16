@@ -60,7 +60,6 @@ class GameTopBarComponent extends StatelessWidget {
       // Immediately refresh countdown text so "expired" state appears now,
       // instead of waiting for the next timer tick.
       gm.updateCountdown();
-      gm.notifyListeners();
     }
   }
 
@@ -92,17 +91,17 @@ class GameTopBarComponent extends StatelessWidget {
                         child: GestureDetector(
                           // Only enable tap behavior in expired state.
                           onTap:
-                              gm.boardCountdown == 'EXPIRED'
+                              gm.boardCountdown == 'Board Expired'
                                   ? () async {
                                     await _handleExpiredTap(context, gm);
                                   }
                                   : null,
                           child: Text(
-                            gm.boardCountdown == 'EXPIRED' ? 'Board Expired (tap for new)' : gm.boardCountdown,
+                            gm.boardCountdown == 'Board Expired' ? 'Board Expired (tap for new)' : gm.boardCountdown,
                             style: TextStyle(
                               color:
-                                  gm.boardCountdown == 'EXPIRED'
-                                      ? Colors.redAccent
+                                  gm.board.isPlayingExpired
+                                      ? AppStyles.boardTimerCountdownAlertColor
                                       : AppStyles.boardTimerCountdownColor,
                               fontSize: 13.0,
                               fontWeight: FontWeight.w400,

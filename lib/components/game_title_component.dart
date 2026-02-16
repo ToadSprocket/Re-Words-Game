@@ -121,7 +121,9 @@ class _GameTitleComponentState extends State<GameTitleComponent> {
               style: TextStyle(
                 fontSize: layout.sloganFontSize,
                 fontWeight: FontWeight.normal,
-                color: AppStyles.titleSloganTextColor.withOpacity(0.8),
+                // Use withValues(alpha: ...) to avoid deprecated withOpacity(...)
+                // while preserving the exact visual transparency intent.
+                color: AppStyles.titleSloganTextColor.withValues(alpha: 0.8),
               ),
               textAlign: TextAlign.center,
             ),

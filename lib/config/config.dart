@@ -1,6 +1,24 @@
 // File: /lib/config/config.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 class Config {
+  // App version information
+  static const String MAJOR = "2";
+  static const String MINOR = "1";
+  static const String PATCH = "2";
+  static const String BUILD = "03";
+  static const String PHASE = "B";
+
+  static const String buildVersion = '$MAJOR.$MINOR.$PATCH.$BUILD-$PHASE';
+
+  // Initial Screen Sizes
+  // Window size constants for the initialization routines
+  static const double MIN_WINDOW_WIDTH = 1000.0;
+  static const double MIN_WINDOW_HEIGHT = 800.0;
+  static const double NARROW_LAYOUT_THRESHOLD = 900.0;
+  static const double INITIAL_WINDOW_WIDTH = 1024.0;
+  static const double INITIAL_WINDOW_HEIGHT = 768.0;
+
+  // API Url
   static const apiUrl = 'https://rewordgame.net/api';
 
   // Certificate pinning configuration

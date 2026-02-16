@@ -25,22 +25,6 @@ import 'providers/orientation_provider.dart';
 import 'managers/gameManager.dart';
 import 'config/debugConfig.dart';
 
-// App version information
-const String MAJOR = "2";
-const String MINOR = "0";
-const String PATCH = "0";
-const String BUILD = "00";
-const String PHASE = "A";
-
-const String VERSION_STRING = "v$MAJOR.$MINOR.$PATCH+$BUILD-$PHASE";
-
-// Window size constants for the initialization routines
-const double MIN_WINDOW_WIDTH = 1000.0;
-const double MIN_WINDOW_HEIGHT = 800.0;
-const double NARROW_LAYOUT_THRESHOLD = 900.0;
-const double INITIAL_WINDOW_WIDTH = 1024.0;
-const double INITIAL_WINDOW_HEIGHT = 768.0;
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -79,20 +63,20 @@ void main() async {
         setWindowTitle('Re-Word Game');
 
         // Set minimum size
-        setWindowMinSize(const Size(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT));
+        setWindowMinSize(const Size(Config.MIN_WINDOW_WIDTH, Config.MIN_WINDOW_HEIGHT));
 
         // Set initial window size
-        setWindowFrame(Rect.fromLTWH(0, 0, INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT));
+        setWindowFrame(Rect.fromLTWH(0, 0, Config.INITIAL_WINDOW_WIDTH, Config.INITIAL_WINDOW_HEIGHT));
 
         // Center the window
         getCurrentScreen().then((screen) {
           if (screen != null) {
             final screenFrame = screen.visibleFrame;
             final windowFrame = Rect.fromLTWH(
-              screenFrame.left + (screenFrame.width - INITIAL_WINDOW_WIDTH) / 2,
-              screenFrame.top + (screenFrame.height - INITIAL_WINDOW_HEIGHT) / 2,
-              INITIAL_WINDOW_WIDTH,
-              INITIAL_WINDOW_HEIGHT,
+              screenFrame.left + (screenFrame.width - Config.INITIAL_WINDOW_WIDTH) / 2,
+              screenFrame.top + (screenFrame.height - Config.INITIAL_WINDOW_HEIGHT) / 2,
+              Config.INITIAL_WINDOW_WIDTH,
+              Config.INITIAL_WINDOW_HEIGHT,
             );
             setWindowFrame(windowFrame);
           }
@@ -111,8 +95,8 @@ void main() async {
       if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
         await windowManager.ensureInitialized();
         WindowOptions windowOptions = const WindowOptions(
-          size: Size(INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT),
-          minimumSize: Size(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT),
+          size: Size(Config.INITIAL_WINDOW_WIDTH, Config.INITIAL_WINDOW_HEIGHT),
+          minimumSize: Size(Config.MIN_WINDOW_WIDTH, Config.MIN_WINDOW_HEIGHT),
           center: true,
           backgroundColor: Colors.transparent,
           skipTaskbar: false,
@@ -545,7 +529,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
         // Force immediate countdown refresh so expired status updates in the top bar
         // right after the user chooses to keep playing.
         gm.updateCountdown();
-        gm.notifyListeners();
+        // Trigger a safe UI refresh through GameManager's public API (main.dart cannot call notifyListeners directly).
+        gm.syncUIComponents();
         LogService.logInfo("🎮 User chose to continue playing expired board on resume");
       }
     }
@@ -554,17 +539,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
   // Delegate methods to GameManager
   void submitWord() => GameManager().submitWord();
   void clearWords() => GameManager().clearWords();
-  void _handleMessage(String message) => GameManager().setMessage(message);
-  void updateScoresRefresh() => GameManager().notifyListeners();
+  // Refresh scores/UI through a public manager method so notifier updates stay encapsulated inside GameManager.
+  void updateScoresRefresh() => GameManager().syncUIComponents();
   void updateCurrentGameState() => GameManager().saveState();
-
-  /// Toggle stack trace logging on/off
-  /// This can be called from anywhere in the app to enable/disable stack traces
-  static void toggleStackTraces(bool enable) {
-    ErrorReporting.toggleStackTraceLogging(enable);
-    // Show a message to confirm the change
-    LogService.logInfo('Stack trace logging ${enable ? 'enabled' : 'disabled'}');
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -574,7 +551,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Wi
     }
 
     // Determine if we should use narrow layout
-    final useNarrowLayout = DeviceUtils.shouldUseNarrowLayout(context, NARROW_LAYOUT_THRESHOLD);
+    final useNarrowLayout = DeviceUtils.shouldUseNarrowLayout(context, Config.NARROW_LAYOUT_THRESHOLD);
 
     // Determine if we need SafeArea (mobile only)
     bool isMobilePlatform = false;

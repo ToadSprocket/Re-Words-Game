@@ -132,10 +132,11 @@ class GameGridComponentState extends State<GameGridComponent> {
     // Schedule clearing gm.message for the next frame. This ensures the
     // message component captures the feedback in didUpdateWidget during
     // this frame's rebuild, while preventing stale messages from
-    // re-triggering when notifyListeners fires on the next tile tap.
+    // re-triggering when listeners fire on the next tile tap.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      gm.message = '';
-      gm.notifyListeners();
+      // Use the GameManager public API so ChangeNotifier notification stays
+      // encapsulated inside the ChangeNotifier subclass.
+      gm.setMessage('');
     });
   }
 
