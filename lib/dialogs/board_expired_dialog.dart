@@ -8,7 +8,7 @@ class BoardExpiredDialog {
   static Future<bool?> show(BuildContext context) {
     // Access layout from GameManager singleton
     final layout = GameManager().layoutManager!;
-    bool? result;
+    //bool? result;
     return showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -47,7 +47,7 @@ class BoardExpiredDialog {
                         onPressed: () {
                           // Keep-playing action: return false to caller so
                           // upstream flow can persist expired-play choice.
-                          result = false;
+                          //result = false;
                           Navigator.of(context).pop(false);
                         },
                         style: layout.buttonStyle(context),
@@ -58,7 +58,7 @@ class BoardExpiredDialog {
                         onPressed: () {
                           // Load-new action: return true so caller can fetch
                           // a fresh board immediately.
-                          result = true;
+                          //result = true;
                           Navigator.of(context).pop(true);
                         },
                         style: layout.buttonStyle(context),

@@ -8,7 +8,9 @@ enum LogLevel { debug, info, standard, production }
 class LogService {
   /// 🔹 Current log level (default to `LogLevel.production` for production)
   static LogLevel _currentLevel = LogLevel.production;
-  static List<String> _logEntries = [];
+  // Keep the list reference immutable so only its contents can change,
+  // which satisfies analyzer guidance and preserves existing behavior.
+  static final List<String> _logEntries = [];
   static const int MAX_LOG_ENTRIES = 200;
 
   /// 🔹 Configure logging based on build mode

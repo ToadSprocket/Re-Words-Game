@@ -67,9 +67,6 @@ class SecureHttpClient {
         final client = HttpClient();
         client.badCertificateCallback = (X509Certificate cert, String host, int port) {
           try {
-            // Check if we're on macOS
-            bool isMacOS = Platform.isMacOS;
-
             // Calculate the SHA-256 fingerprint of the certificate
             final certBytes = cert.der;
             final digest = sha256.convert(certBytes);

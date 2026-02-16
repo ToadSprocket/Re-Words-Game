@@ -57,7 +57,7 @@ class GameScores extends StatelessWidget {
             // Board State Icon (center)
             Container(
               padding: const EdgeInsets.all(4.0),
-              decoration: BoxDecoration(color: boardState.color.withOpacity(0.2), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: boardState.color.withValues(alpha: 0.2), shape: BoxShape.circle),
               child: Icon(boardState.icon, color: boardState.color, size: layout.scoreFontSize * 1.1),
             ),
 

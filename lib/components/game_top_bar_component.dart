@@ -68,7 +68,7 @@ class GameTopBarComponent extends StatelessWidget {
     final gm = context.watch<GameManager>();
     // Read showBorders from centralized debug config
     final showBorders = DebugConfig().showBorders;
-    bool isLoggedIn = gm.apiService.loggedIn ?? false;
+    bool isLoggedIn = gm.apiService.loggedIn;
 
     return Column(
       mainAxisSize: MainAxisSize.min,

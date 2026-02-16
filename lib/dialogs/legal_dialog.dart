@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../styles/app_styles.dart';
 import '../dialogs/delete_account_dialog.dart';
-import '../main.dart';
 import '../logic/logging_handler.dart';
 import '../managers/gameManager.dart';
 import '../config/config.dart';
@@ -83,7 +82,7 @@ class LegalDialog {
 
                             // Add account deletion section only for logged-in users
                             const SizedBox(height: 16.0),
-                            Divider(color: Colors.grey.withOpacity(0.3)),
+                            Divider(color: Colors.grey.withValues(alpha: 0.3)),
                             const SizedBox(height: 16.0),
                             RichText(
                               text: TextSpan(
@@ -135,7 +134,7 @@ class LegalDialog {
                             // Add debug logs section
                             ...[
                               const SizedBox(height: 16.0),
-                              Divider(color: Colors.grey.withOpacity(0.5), thickness: 1),
+                              Divider(color: Colors.grey.withValues(alpha: 0.5), thickness: 1),
                               const SizedBox(height: 16.0),
 
                               // Logs section header with a button to clear logs
@@ -163,7 +162,7 @@ class LegalDialog {
                               Container(
                                 padding: EdgeInsets.all(8.0),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.withOpacity(0.1),
+                                  color: Colors.grey.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8.0),
                                 ),
                                 child: Column(
@@ -185,7 +184,7 @@ class LegalDialog {
                                           ),
                                         ),
                                       );
-                                    }).toList(),
+                                    }),
                                   ],
                                 ),
                               ),
@@ -204,7 +203,10 @@ class LegalDialog {
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [AppStyles.dialogBackgroundColor.withOpacity(0), AppStyles.dialogBackgroundColor],
+                              colors: [
+                                AppStyles.dialogBackgroundColor.withValues(alpha: 0),
+                                AppStyles.dialogBackgroundColor,
+                              ],
                             ),
                           ),
                         ),

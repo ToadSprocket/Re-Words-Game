@@ -607,8 +607,6 @@ class GameLayoutManager {
       gridHeightSize = (gridSquareSize * GameConstants.gridRows) + (gridSpacing * (GameConstants.gridRows - 1));
     }
 
-    var gameLayout = isNarrowLayout ? 'Narrow' : 'Wide';
-
     if (DebugConfig().showLayoutMeasurements) {
       LogService.logInfo(
         "W: $screenWidth, H: $screenHeight, GAMBX: $gameBoxHeight, TOT: $totalFixedHeight, INF: $infoBoxHeight TIT: $gameTitleComponentHeight, SCR: $gameScoresComponentHeight, GRD: $gridHeightSize, MSG: $gameMessageComponentHeight, BUT: $gameButtonsComponentHeight, WLD: $wilcardsContainerHeight, SPL: $spelledWordsContainerHeight, GRDSQR: $gridSquareSize, GRDSPC: $gridSpacing",

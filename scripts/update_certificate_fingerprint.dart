@@ -13,26 +13,26 @@ void main() async {
   final domain = 'rewordgame.net';
   final configPath = 'lib/config/config.dart';
 
-  print('🔒 Certificate Fingerprint Updater');
-  print('==================================');
-  print('Domain: $domain');
+  stdout.writeln('🔒 Certificate Fingerprint Updater');
+  stdout.writeln('==================================');
+  stdout.writeln('Domain: $domain');
 
   try {
     // Get the certificate fingerprint
     final fingerprint = await getCertificateFingerprint(domain);
-    print('✅ Successfully retrieved certificate fingerprint:');
-    print(fingerprint);
+    stdout.writeln('✅ Successfully retrieved certificate fingerprint:');
+    stdout.writeln(fingerprint);
 
     // Update the Config class
     final success = await updateConfigFile(configPath, fingerprint);
     if (success) {
-      print('✅ Successfully updated $configPath');
-      print('🎉 Certificate fingerprint has been updated!');
+      stdout.writeln('✅ Successfully updated $configPath');
+      stdout.writeln('🎉 Certificate fingerprint has been updated!');
     } else {
-      print('❌ Failed to update $configPath');
+      stdout.writeln('❌ Failed to update $configPath');
     }
   } catch (e) {
-    print('❌ Error: $e');
+    stderr.writeln('❌ Error: $e');
     exit(1);
   }
 }

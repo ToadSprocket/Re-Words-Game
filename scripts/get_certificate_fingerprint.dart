@@ -13,20 +13,20 @@ import 'package:crypto/crypto.dart';
 void main() async {
   final domain = 'rewordgame.net';
 
-  print('🔒 Certificate Fingerprint Extractor');
-  print('====================================');
-  print('Domain: $domain');
+  stdout.writeln('🔒 Certificate Fingerprint Extractor');
+  stdout.writeln('====================================');
+  stdout.writeln('Domain: $domain');
 
   try {
     // Get the certificate fingerprint
     final fingerprint = await getCertificateFingerprint(domain);
-    print('\n✅ Successfully retrieved certificate fingerprint:');
-    print('\n$fingerprint\n');
+    stdout.writeln('\n✅ Successfully retrieved certificate fingerprint:');
+    stdout.writeln('\n$fingerprint\n');
 
-    print('To update your app, copy this fingerprint and replace the existing one in:');
-    print('lib/config/config.dart');
+    stdout.writeln('To update your app, copy this fingerprint and replace the existing one in:');
+    stdout.writeln('lib/config/config.dart');
   } catch (e) {
-    print('❌ Error: $e');
+    stderr.writeln('❌ Error: $e');
     exit(1);
   }
 }

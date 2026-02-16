@@ -136,7 +136,10 @@ class HowToPlayDialog {
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [AppStyles.dialogBackgroundColor.withOpacity(0), AppStyles.dialogBackgroundColor],
+                              colors: [
+                                AppStyles.dialogBackgroundColor.withValues(alpha: 0),
+                                AppStyles.dialogBackgroundColor,
+                              ],
                             ),
                           ),
                         ),

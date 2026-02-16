@@ -31,7 +31,8 @@ class AppStyles {
   static const Color spelledWordTextColor = Color.fromARGB(255, 243, 198, 50);
 
   // Board Timer Color
-  static const Color boardTimerCountdownColor = Color.fromARGB(83, 188, 210, 186);
+  static const Color boardTimerCountdownColor = Color.fromARGB(82, 205, 220, 202);
+  static const Color boardTimerCountdownAlertColor = Color.fromARGB(211, 201, 57, 57);
 
   // Spelled Words Styles
   static const Color spelledWordsTitleColor = Color(0xFFFFFFFF);

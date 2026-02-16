@@ -37,7 +37,7 @@ class HighScoresDialog {
     );
 
     try {
-      finalScore = await gm.buildScoreRequest();
+      finalScore = gm.buildScoreRequest();
 
       // Use the gameId from finalScore to get game-specific high scores
       final response = await gm.apiService.getGameHighScores(finalScore.gameId);
@@ -103,7 +103,7 @@ class HighScoresDialog {
                       child: Container(
                         margin: const EdgeInsets.symmetric(vertical: 8.0),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8.0),
                         ),
                         child: SingleChildScrollView(
