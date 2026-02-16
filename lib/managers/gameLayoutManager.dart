@@ -16,7 +16,6 @@ class GameLayoutManager {
     return _instance;
   }
 
-  DateTime? _lastUpdateTime;
   static const Duration minUpdateInterval = Duration(milliseconds: 100);
   ValueNotifier<List<String>>? spelledWordsNotifier;
 

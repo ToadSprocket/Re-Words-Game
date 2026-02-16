@@ -84,7 +84,6 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
               ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(tiles.length, (index) {
-                  final isAvailable = tiles[index].state != 'used' && !tiles[index].isRemoved;
                   return Padding(
                     padding: EdgeInsets.symmetric(horizontal: widget.gridSpacing / 2),
                     child: SizedBox(
@@ -123,7 +122,6 @@ class WildcardColumnComponentState extends State<WildcardColumnComponent> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: List.generate(tiles.length, (index) {
-                  final isAvailable = tiles[index].state != 'used' && !tiles[index].isRemoved;
                   return Padding(
                     padding: EdgeInsets.symmetric(vertical: widget.gridSpacing / 2),
                     child: SizedBox(

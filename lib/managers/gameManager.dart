@@ -77,6 +77,12 @@ class GameManager extends ChangeNotifier {
   Future<void> initialize() async {
     if (isInitialized) return;
 
+    // Track startup timing in UTC so mobile in-app logs can be correlated
+    // directly with server-side UTC/GMT timestamps.
+    final startupStopwatch = Stopwatch()..start();
+    final startupStartedUtc = DateTime.now().toUtc().toIso8601String();
+    LogService.logEvent("STARTUP:Begin:utc=$startupStartedUtc");
+
     // Create services
     apiService = ApiService();
     wordService = WordService();
@@ -103,6 +109,13 @@ class GameManager extends ChangeNotifier {
     userManager.startSession();
 
     isInitialized = true;
+
+    // Record startup completion and total elapsed time for performance triage.
+    startupStopwatch.stop();
+    final startupEndedUtc = DateTime.now().toUtc().toIso8601String();
+    LogService.logEvent(
+      "STARTUP:End:status=success:elapsedMs=${startupStopwatch.elapsedMilliseconds}:utc=$startupEndedUtc",
+    );
   }
 
   /// Initialize layout manager with BuildContext (Phase 2 of init)
@@ -147,6 +160,11 @@ class GameManager extends ChangeNotifier {
     if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: loadNewBoard");
     isLoading = true;
 
+    // Capture board-load duration for startup/mobile delay analysis.
+    final boardLoadStopwatch = Stopwatch()..start();
+    final boardLoadStartedUtc = DateTime.now().toUtc().toIso8601String();
+    LogService.logEvent("BRDLOAD:Begin:source=api:utc=$boardLoadStartedUtc");
+
     try {
       // Build score request for current game (if any)
       final scoreRequest = buildScoreRequest();
@@ -154,6 +172,11 @@ class GameManager extends ChangeNotifier {
       // Get new board from API
       final response = await apiService.getGameToday(scoreRequest);
       if (response.gameData == null) {
+        boardLoadStopwatch.stop();
+        final boardLoadEndedUtc = DateTime.now().toUtc().toIso8601String();
+        LogService.logEvent(
+          "BRDLOAD:End:source=api:status=no_data:elapsedMs=${boardLoadStopwatch.elapsedMilliseconds}:utc=$boardLoadEndedUtc",
+        );
         isLoading = false;
         notifyListeners();
         return false;
@@ -163,11 +186,22 @@ class GameManager extends ChangeNotifier {
       board = await board.fromApiData(response.gameData!, Orientation.portrait);
       await board.saveBoardToStorage();
 
+      boardLoadStopwatch.stop();
+      final boardLoadEndedUtc = DateTime.now().toUtc().toIso8601String();
+      LogService.logEvent(
+        "BRDLOAD:End:source=api:status=success:gameId=${board.gameId}:elapsedMs=${boardLoadStopwatch.elapsedMilliseconds}:utc=$boardLoadEndedUtc",
+      );
+
       isLoading = false;
       if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 EXIT: loadNewBoard (success)");
       syncUIComponents();
       return true;
     } catch (e) {
+      boardLoadStopwatch.stop();
+      final boardLoadEndedUtc = DateTime.now().toUtc().toIso8601String();
+      LogService.logEvent(
+        "BRDLOAD:End:source=api:status=failure:elapsedMs=${boardLoadStopwatch.elapsedMilliseconds}:utc=$boardLoadEndedUtc",
+      );
       isLoading = false;
       if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 EXIT: loadNewBoard (error: $e)");
       notifyListeners();
@@ -178,9 +212,30 @@ class GameManager extends ChangeNotifier {
   /// Load existing board from storage
   Future<bool> loadStoredBoard() async {
     if (DebugConfig().traceMethodCalls) LogService.logInfo("📍 ENTRY: loadStoredBoard");
+
+    // Track local storage load duration separately from API board fetch time.
+    final boardStorageLoadStopwatch = Stopwatch()..start();
+    final boardStorageLoadStartedUtc = DateTime.now().toUtc().toIso8601String();
+    LogService.logEvent("BRDLOAD:Begin:source=storage:utc=$boardStorageLoadStartedUtc");
+
     final loadedBoard = await Board.loadBoardFromStorage();
-    if (loadedBoard == null) return false;
+    if (loadedBoard == null) {
+      boardStorageLoadStopwatch.stop();
+      final boardStorageLoadEndedUtc = DateTime.now().toUtc().toIso8601String();
+      LogService.logEvent(
+        "BRDLOAD:End:source=storage:status=not_found:elapsedMs=${boardStorageLoadStopwatch.elapsedMilliseconds}:utc=$boardStorageLoadEndedUtc",
+      );
+      return false;
+    }
+
     board = loadedBoard;
+
+    boardStorageLoadStopwatch.stop();
+    final boardStorageLoadEndedUtc = DateTime.now().toUtc().toIso8601String();
+    LogService.logEvent(
+      "BRDLOAD:End:source=storage:status=success:gameId=${board.gameId}:elapsedMs=${boardStorageLoadStopwatch.elapsedMilliseconds}:utc=$boardStorageLoadEndedUtc",
+    );
+
     notifyListeners();
     return true;
   }

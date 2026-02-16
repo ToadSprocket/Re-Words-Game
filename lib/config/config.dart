@@ -2,9 +2,7 @@
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 class Config {
   static const apiUrl = 'https://rewordgame.net/api';
-  static const boardStateKeyName = "reWordBoardStateV1.1";
-  static const userDataKeyName = "reWordUserStateV1.1";
-  static const userIdKeyName = "reWordUserInfoV1.1";
+
   // Certificate pinning configuration
   static const bool enableCertificatePinning = true; // Set to false to disable certificate pinning
   static const String certificateFingerprint =
@@ -14,6 +12,21 @@ class Config {
   static const int maxLoginAttempts = 3; // Maximum allowed attempts before lockout
   static const int initialLockoutSeconds = 60; // 1 minute initial lockout
   static const int maxLockoutSeconds = 3600; // 1 hour maximum lockout
+
+  // Shared Preference Keys
+  static const boardStateKeyName = "reWordBoardStateV1.1";
+  static const userDataKeyName = "reWordUserStateV1.1";
+  static const userIdKeyName = "reWordUserInfoV1.1";
+
+  // Secure Storage Keys
+  static const String secureUserIdKey = 'secure_userId';
+  static const String secureDisplayNameKey = 'secure_displayName';
+  static const String secureAccessTokenKey = 'secure_accessToken';
+  static const String secureRefreshTokenKey = 'secure_refreshToken';
+  static const String secureTokenExpirationKey = 'secure_tokenExpiration';
+  static const String secureRefreshTokenDateKey = 'secure_refreshTokenDate';
+  static const String secureLoginAttemptsKey = 'secure_loginAttempts';
+  static const String secureLoginLockoutUntilKey = 'secure_loginLockoutUntil';
 
   // Board expiration settings
   // After this many minutes past local midnight, the board is force-loaded

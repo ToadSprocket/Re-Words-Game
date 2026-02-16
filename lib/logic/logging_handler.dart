@@ -8,7 +8,6 @@ enum LogLevel { debug, info, standard, production }
 class LogService {
   /// 🔹 Current log level (default to `LogLevel.production` for production)
   static LogLevel _currentLevel = LogLevel.production;
-  static bool _enhancedLoggingEnabled = true;
   static List<String> _logEntries = [];
   static const int MAX_LOG_ENTRIES = 200;
 
@@ -42,7 +41,14 @@ class LogService {
     if (_logEntries.length == MAX_LOG_ENTRIES) {
       _logEntries.removeAt(0);
     }
-    _logEntries.add(message + "|");
+
+    // Always stamp in-app event logs with UTC time so mobile log screenshots
+    // can be matched directly against server-side UTC/GMT log entries.
+    final utcTimestamp = DateTime.now().toUtc().toIso8601String();
+
+    // Keep the original event payload format intact while prefixing with a
+    // machine-readable UTC timestamp for cross-system correlation.
+    _logEntries.add("UTC:$utcTimestamp|$message|");
   }
 
   static List<String> getLogEvents() {

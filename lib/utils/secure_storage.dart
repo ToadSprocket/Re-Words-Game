@@ -3,6 +3,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/config.dart';
 
 /// A utility class for securely storing sensitive data
 /// Uses flutter_secure_storage for native platforms and SharedPreferences for web
@@ -15,23 +16,13 @@ class SecureStorage {
   // Create storage instance with AES encryption for native platforms
   final _secureStorage = const FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
 
-  // Key constants
-  static const String _keyUserId = 'secure_userId';
-  static const String _keyDisplayName = 'secure_displayName';
-  static const String _keyAccessToken = 'secure_accessToken';
-  static const String _keyRefreshToken = 'secure_refreshToken';
-  static const String _keyTokenExpiration = 'secure_tokenExpiration';
-  static const String _keyRefreshTokenDate = 'secure_refreshTokenDate';
-  static const String _keyLoginAttempts = 'secure_loginAttempts';
-  static const String _keyLoginLockoutUntil = 'secure_loginLockoutUntil';
-
   /// Store user ID securely
   Future<void> setUserId(String userId) async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyUserId, userId);
+      await prefs.setString(Config.secureUserIdKey, userId);
     } else {
-      await _secureStorage.write(key: _keyUserId, value: userId);
+      await _secureStorage.write(key: Config.secureUserIdKey, value: userId);
     }
   }
 
@@ -39,9 +30,9 @@ class SecureStorage {
   Future<String?> getUserId() async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_keyUserId);
+      return prefs.getString(Config.secureUserIdKey);
     } else {
-      return await _secureStorage.read(key: _keyUserId);
+      return await _secureStorage.read(key: Config.secureUserIdKey);
     }
   }
 
@@ -49,9 +40,9 @@ class SecureStorage {
   Future<void> setDisplayName(String displayName) async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyDisplayName, displayName);
+      await prefs.setString(Config.secureDisplayNameKey, displayName);
     } else {
-      await _secureStorage.write(key: _keyDisplayName, value: displayName);
+      await _secureStorage.write(key: Config.secureDisplayNameKey, value: displayName);
     }
   }
 
@@ -59,9 +50,9 @@ class SecureStorage {
   Future<String?> getDisplayName() async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_keyDisplayName);
+      return prefs.getString(Config.secureDisplayNameKey);
     } else {
-      return await _secureStorage.read(key: _keyDisplayName);
+      return await _secureStorage.read(key: Config.secureDisplayNameKey);
     }
   }
 
@@ -69,9 +60,9 @@ class SecureStorage {
   Future<void> setAccessToken(String token) async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyAccessToken, token);
+      await prefs.setString(Config.secureAccessTokenKey, token);
     } else {
-      await _secureStorage.write(key: _keyAccessToken, value: token);
+      await _secureStorage.write(key: Config.secureAccessTokenKey, value: token);
     }
   }
 
@@ -79,9 +70,9 @@ class SecureStorage {
   Future<String?> getAccessToken() async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_keyAccessToken);
+      return prefs.getString(Config.secureAccessTokenKey);
     } else {
-      return await _secureStorage.read(key: _keyAccessToken);
+      return await _secureStorage.read(key: Config.secureAccessTokenKey);
     }
   }
 
@@ -89,9 +80,9 @@ class SecureStorage {
   Future<void> setRefreshToken(String token) async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyRefreshToken, token);
+      await prefs.setString(Config.secureRefreshTokenKey, token);
     } else {
-      await _secureStorage.write(key: _keyRefreshToken, value: token);
+      await _secureStorage.write(key: Config.secureRefreshTokenKey, value: token);
     }
   }
 
@@ -99,9 +90,9 @@ class SecureStorage {
   Future<String?> getRefreshToken() async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_keyRefreshToken);
+      return prefs.getString(Config.secureRefreshTokenKey);
     } else {
-      return await _secureStorage.read(key: _keyRefreshToken);
+      return await _secureStorage.read(key: Config.secureRefreshTokenKey);
     }
   }
 
@@ -109,9 +100,9 @@ class SecureStorage {
   Future<void> setTokenExpiration(int expirationTimestamp) async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_keyTokenExpiration, expirationTimestamp);
+      await prefs.setInt(Config.secureTokenExpirationKey, expirationTimestamp);
     } else {
-      await _secureStorage.write(key: _keyTokenExpiration, value: expirationTimestamp.toString());
+      await _secureStorage.write(key: Config.secureTokenExpirationKey, value: expirationTimestamp.toString());
     }
   }
 
@@ -119,9 +110,9 @@ class SecureStorage {
   Future<int?> getTokenExpiration() async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getInt(_keyTokenExpiration);
+      return prefs.getInt(Config.secureTokenExpirationKey);
     } else {
-      final value = await _secureStorage.read(key: _keyTokenExpiration);
+      final value = await _secureStorage.read(key: Config.secureTokenExpirationKey);
       return value != null ? int.tryParse(value) : null;
     }
   }
@@ -130,9 +121,9 @@ class SecureStorage {
   Future<void> setRefreshTokenDate(String isoDate) async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyRefreshTokenDate, isoDate);
+      await prefs.setString(Config.secureRefreshTokenDateKey, isoDate);
     } else {
-      await _secureStorage.write(key: _keyRefreshTokenDate, value: isoDate);
+      await _secureStorage.write(key: Config.secureRefreshTokenDateKey, value: isoDate);
     }
   }
 
@@ -140,9 +131,9 @@ class SecureStorage {
   Future<String?> getRefreshTokenDate() async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_keyRefreshTokenDate);
+      return prefs.getString(Config.secureRefreshTokenDateKey);
     } else {
-      return await _secureStorage.read(key: _keyRefreshTokenDate);
+      return await _secureStorage.read(key: Config.secureRefreshTokenDateKey);
     }
   }
 
@@ -150,9 +141,9 @@ class SecureStorage {
   Future<void> setLoginAttempts(int attempts) async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_keyLoginAttempts, attempts);
+      await prefs.setInt(Config.secureLoginAttemptsKey, attempts);
     } else {
-      await _secureStorage.write(key: _keyLoginAttempts, value: attempts.toString());
+      await _secureStorage.write(key: Config.secureLoginAttemptsKey, value: attempts.toString());
     }
   }
 
@@ -160,9 +151,9 @@ class SecureStorage {
   Future<int> getLoginAttempts() async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getInt(_keyLoginAttempts) ?? 0;
+      return prefs.getInt(Config.secureLoginAttemptsKey) ?? 0;
     } else {
-      final value = await _secureStorage.read(key: _keyLoginAttempts);
+      final value = await _secureStorage.read(key: Config.secureLoginAttemptsKey);
       return value != null ? int.tryParse(value) ?? 0 : 0;
     }
   }
@@ -171,9 +162,9 @@ class SecureStorage {
   Future<void> setLoginLockoutUntil(int timestamp) async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_keyLoginLockoutUntil, timestamp);
+      await prefs.setInt(Config.secureLoginLockoutUntilKey, timestamp);
     } else {
-      await _secureStorage.write(key: _keyLoginLockoutUntil, value: timestamp.toString());
+      await _secureStorage.write(key: Config.secureLoginLockoutUntilKey, value: timestamp.toString());
     }
   }
 
@@ -181,9 +172,9 @@ class SecureStorage {
   Future<int?> getLoginLockoutUntil() async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getInt(_keyLoginLockoutUntil);
+      return prefs.getInt(Config.secureLoginLockoutUntilKey);
     } else {
-      final value = await _secureStorage.read(key: _keyLoginLockoutUntil);
+      final value = await _secureStorage.read(key: Config.secureLoginLockoutUntilKey);
       return value != null ? int.tryParse(value) : null;
     }
   }
@@ -192,11 +183,11 @@ class SecureStorage {
   Future<void> resetLoginAttempts() async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_keyLoginAttempts);
-      await prefs.remove(_keyLoginLockoutUntil);
+      await prefs.remove(Config.secureLoginAttemptsKey);
+      await prefs.remove(Config.secureLoginLockoutUntilKey);
     } else {
-      await _secureStorage.delete(key: _keyLoginAttempts);
-      await _secureStorage.delete(key: _keyLoginLockoutUntil);
+      await _secureStorage.delete(key: Config.secureLoginAttemptsKey);
+      await _secureStorage.delete(key: Config.secureLoginLockoutUntilKey);
     }
   }
 
@@ -204,19 +195,19 @@ class SecureStorage {
   Future<void> clearAuthData() async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_keyUserId);
-      await prefs.remove(_keyAccessToken);
-      await prefs.remove(_keyRefreshToken);
-      await prefs.remove(_keyTokenExpiration);
-      await prefs.remove(_keyRefreshTokenDate);
+      await prefs.remove(Config.secureUserIdKey);
+      await prefs.remove(Config.secureAccessTokenKey);
+      await prefs.remove(Config.secureRefreshTokenKey);
+      await prefs.remove(Config.secureTokenExpirationKey);
+      await prefs.remove(Config.secureRefreshTokenDateKey);
       // Don't clear login attempts when logging out
       // This prevents bypassing lockout by logging out
     } else {
-      await _secureStorage.delete(key: _keyUserId);
-      await _secureStorage.delete(key: _keyAccessToken);
-      await _secureStorage.delete(key: _keyRefreshToken);
-      await _secureStorage.delete(key: _keyTokenExpiration);
-      await _secureStorage.delete(key: _keyRefreshTokenDate);
+      await _secureStorage.delete(key: Config.secureUserIdKey);
+      await _secureStorage.delete(key: Config.secureAccessTokenKey);
+      await _secureStorage.delete(key: Config.secureRefreshTokenKey);
+      await _secureStorage.delete(key: Config.secureTokenExpirationKey);
+      await _secureStorage.delete(key: Config.secureRefreshTokenDateKey);
       // Don't clear login attempts when logging out
     }
   }

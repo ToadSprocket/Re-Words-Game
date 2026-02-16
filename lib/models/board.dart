@@ -262,7 +262,6 @@ class Board {
   /// This is the preferred way to update Board state (immutable pattern).
   Board copyWith({
     String? gameId,
-    String? gameHashCode,
     String? gridLetters,
     String? wildcardLetters,
     List<Tile>? gridTiles,
@@ -425,15 +424,37 @@ class Board {
   /// Serializes the entire board to JSON and saves it.
   /// Returns true if save was successful, false if an error occurred.
   Future<bool> saveBoardToStorage() async {
+    // Track storage write timing in UTC so app-side duration can be
+    // compared to server/API timing when diagnosing mobile delays.
+    final boardSaveStopwatch = Stopwatch()..start();
+    final boardSaveStartedUtc = DateTime.now().toUtc().toIso8601String();
+    LogService.logEvent("BRDSTOR:Save:Begin:utc=$boardSaveStartedUtc");
+
     try {
       final prefs = await SharedPreferences.getInstance();
-      final boardStateJson = jsonEncode(this.toJson());
+      final boardStateJson = jsonEncode(toJson());
       await prefs.setString(Config.boardStateKeyName, boardStateJson);
       LogService.logInfo("Board State Saved: ID: $gameId");
+
+      boardSaveStopwatch.stop();
+      final boardSaveEndedUtc = DateTime.now().toUtc().toIso8601String();
+      LogService.logEvent(
+        "BRDSTOR:Save:End:status=success:gameId=$gameId:elapsedMs=${boardSaveStopwatch.elapsedMilliseconds}:utc=$boardSaveEndedUtc",
+      );
+
+      // Keep legacy event code for compatibility with any existing filters.
       LogService.logEvent("SBSTS:Success:$gameId");
       return true;
     } catch (e) {
       LogService.logError("Error saving board state: $e");
+
+      boardSaveStopwatch.stop();
+      final boardSaveEndedUtc = DateTime.now().toUtc().toIso8601String();
+      LogService.logEvent(
+        "BRDSTOR:Save:End:status=failure:elapsedMs=${boardSaveStopwatch.elapsedMilliseconds}:utc=$boardSaveEndedUtc",
+      );
+
+      // Keep legacy event code for compatibility with any existing filters.
       LogService.logEvent("SBSTS:Failure");
       return false;
     }
@@ -442,11 +463,23 @@ class Board {
   /// Loads a previously saved board state from SharedPreferences.
   /// Returns null if no saved data exists or if parsing fails.
   static Future<Board?> loadBoardFromStorage() async {
+    // Track storage read timing in UTC for startup/board-load diagnostics.
+    final boardLoadStopwatch = Stopwatch()..start();
+    final boardLoadStartedUtc = DateTime.now().toUtc().toIso8601String();
+    LogService.logEvent("BRDSTOR:Load:Begin:utc=$boardLoadStartedUtc");
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final boardStateJson = prefs.getString(Config.boardStateKeyName);
       if (boardStateJson == null) {
         LogService.logError("No board data found in storage");
+
+        boardLoadStopwatch.stop();
+        final boardLoadEndedUtc = DateTime.now().toUtc().toIso8601String();
+        LogService.logEvent(
+          "BRDSTOR:Load:End:status=not_found:elapsedMs=${boardLoadStopwatch.elapsedMilliseconds}:utc=$boardLoadEndedUtc",
+        );
+
         return null;
       }
 
@@ -454,11 +487,27 @@ class Board {
       final board = Board.fromJson(boardJson);
 
       LogService.logInfo("Board Loaded From Storage: ID: ${board.gameId}");
+
+      boardLoadStopwatch.stop();
+      final boardLoadEndedUtc = DateTime.now().toUtc().toIso8601String();
+      LogService.logEvent(
+        "BRDSTOR:Load:End:status=success:gameId=${board.gameId}:elapsedMs=${boardLoadStopwatch.elapsedMilliseconds}:utc=$boardLoadEndedUtc",
+      );
+
+      // Keep legacy event code for compatibility with any existing filters.
       LogService.logEvent("SBSTS:Success:${board.gameId}");
 
       return board;
     } catch (e) {
       LogService.logError("Error loading board state: $e");
+
+      boardLoadStopwatch.stop();
+      final boardLoadEndedUtc = DateTime.now().toUtc().toIso8601String();
+      LogService.logEvent(
+        "BRDSTOR:Load:End:status=failure:elapsedMs=${boardLoadStopwatch.elapsedMilliseconds}:utc=$boardLoadEndedUtc",
+      );
+
+      // Keep legacy event code for compatibility with any existing filters.
       LogService.logEvent("SBSTS:Failure");
       return null;
     }

@@ -37,6 +37,10 @@ class ApiService with ChangeNotifier {
   // Token refresh lock to prevent race conditions
   Completer<void>? _refreshingToken;
 
+  // Once we confirm an auth failure (e.g., refresh token invalid), we stop
+  // additional refresh attempts until new credentials are issued.
+  bool _hasAuthFailure = false;
+
   bool get loggedIn => _loggedIn; // Getter
 
   set loggedIn(bool value) {
@@ -96,6 +100,10 @@ class ApiService with ChangeNotifier {
   Future<void> _updateTokens(SecurityData security) async {
     final secureStorage = SecureStorage();
 
+    // Any successful token update means auth is healthy again, so clear
+    // the auth-failure guard and allow normal refresh flow.
+    _hasAuthFailure = false;
+
     // Store tokens securely
     await secureStorage.setUserId(security.userId);
     await secureStorage.setDisplayName(security.displayName ?? '');
@@ -141,6 +149,13 @@ class ApiService with ChangeNotifier {
 
   /// **Refresh token if needed**
   Future<bool> _refreshTokenIfNeeded() async {
+    // If we already know auth is invalid, do not attempt refresh again.
+    // This prevents repeated refresh/logout cascades while requests are in-flight.
+    if (_hasAuthFailure) {
+      LogService.logError("🚫 Skipping token refresh because auth is already marked as failed.");
+      return false;
+    }
+
     // If there's already a refresh operation in progress, wait for it to complete
     if (_refreshingToken != null) {
       LogService.logDebug("⏳ Token refresh already in progress. Waiting for it to complete...");
@@ -205,7 +220,13 @@ class ApiService with ChangeNotifier {
               return true;
             } else if (response.statusCode == 401) {
               LogService.logError("🚨 Refresh token expired or invalid. Logging out user.");
-              logout(); // Clear tokens and redirect to login
+              // Mark auth as failed first so parallel callers do not retry refresh.
+              _hasAuthFailure = true;
+
+              // Await logout to fully clear in-memory + persisted credentials
+              // before any follow-up request path can continue.
+              await logout();
+
               _refreshingToken!.completeError("Refresh token expired or invalid");
               _refreshingToken = null;
               return false;
@@ -237,7 +258,13 @@ class ApiService with ChangeNotifier {
               return true;
             } else if (response.statusCode == 401) {
               LogService.logError("🚨 Refresh token expired or invalid. Logging out user.");
-              logout(); // Clear tokens and redirect to login
+              // Mark auth as failed first so parallel callers do not retry refresh.
+              _hasAuthFailure = true;
+
+              // Await logout to fully clear in-memory + persisted credentials
+              // before any follow-up request path can continue.
+              await logout();
+
               _refreshingToken!.completeError("Refresh token expired or invalid");
               _refreshingToken = null;
               return false;
@@ -398,6 +425,13 @@ class ApiService with ChangeNotifier {
   /// **Fetch Today's Game**
   Future<ApiResponse> getGameToday(SubmitScoreRequest scoreRequest) async {
     LogService.logInfo("getGameToday called");
+
+    // Measure end-to-end board fetch timing in UTC for comparison with
+    // server logs and to diagnose intermittent mobile startup delays.
+    final gameTodayStopwatch = Stopwatch()..start();
+    final gameTodayStartedUtc = DateTime.now().toUtc().toIso8601String();
+    LogService.logEvent("API:GameToday:Begin:utc=$gameTodayStartedUtc");
+
     await _getTokens(); // Ensure tokens are loaded
 
     // Check if user is logged in - if not, we need to register first
@@ -409,7 +443,7 @@ class ApiService with ChangeNotifier {
       String platform = 'Windows'; // Default
 
       try {
-        final registerResponse = await register(locale, platform);
+        await register(locale, platform);
         // Registration successful, now we have tokens
         LogService.logInfo("✅ Anonymous registration successful, proceeding with getGameToday");
       } catch (e) {
@@ -437,7 +471,15 @@ class ApiService with ChangeNotifier {
 
     try {
       final response = await _makeApiRequest(false, '${Config.apiUrl}/game/today', headers, body);
-      return _parseResponse(response);
+      final parsedResponse = _parseResponse(response);
+
+      gameTodayStopwatch.stop();
+      final gameTodayEndedUtc = DateTime.now().toUtc().toIso8601String();
+      LogService.logEvent(
+        "API:GameToday:End:status=success:elapsedMs=${gameTodayStopwatch.elapsedMilliseconds}:utc=$gameTodayEndedUtc",
+      );
+
+      return parsedResponse;
     } catch (e) {
       LogService.logError("🚨 Error in getGameToday: $e");
 
@@ -453,9 +495,23 @@ class ApiService with ChangeNotifier {
 
           // Retry the request
           final response = await _makeApiRequest(false, '${Config.apiUrl}/game/today', headers, body);
-          return _parseResponse(response);
+          final parsedResponse = _parseResponse(response);
+
+          gameTodayStopwatch.stop();
+          final gameTodayEndedUtc = DateTime.now().toUtc().toIso8601String();
+          LogService.logEvent(
+            "API:GameToday:End:status=success_after_retry:elapsedMs=${gameTodayStopwatch.elapsedMilliseconds}:utc=$gameTodayEndedUtc",
+          );
+
+          return parsedResponse;
         }
       }
+
+      gameTodayStopwatch.stop();
+      final gameTodayEndedUtc = DateTime.now().toUtc().toIso8601String();
+      LogService.logEvent(
+        "API:GameToday:End:status=failure:elapsedMs=${gameTodayStopwatch.elapsedMilliseconds}:utc=$gameTodayEndedUtc",
+      );
 
       // Re-throw the exception if we couldn't handle it
       rethrow;
@@ -672,29 +728,6 @@ class ApiService with ChangeNotifier {
     }
   }
 
-  /// **Parse API Response from Dio client**
-  ApiResponse _parseResponseDio(Response response) {
-    final data = response.data;
-    if (response.statusCode == 200) {
-      return ApiResponse(
-        security:
-            data.containsKey('userId')
-                ? SecurityData(
-                  userId: data['userId'],
-                  accessToken: data['access_token'],
-                  refreshToken: data['refresh_token'],
-                  expirationSeconds: data['expires_in']?.toString(),
-                  displayName: data['displayName'],
-                )
-                : null,
-        gameData: data.containsKey('grid') ? GameData.fromJson(data) : null,
-        highScoreData: data.containsKey('highScores') ? HighScoreData.fromJson(data) : null,
-      );
-    } else {
-      throw ApiException(statusCode: response.statusCode ?? 0, detail: 'Request failed: ${response.data}');
-    }
-  }
-
   /// **Unified API Request Handler with enhanced error handling**
   Future<http.Response> _makeApiRequest(bool isGet, String url, Map<String, String> headers, String? body) async {
     final secureStorage = SecureStorage();
@@ -717,6 +750,10 @@ class ApiService with ChangeNotifier {
         if (latestToken != null) {
           headers['Authorization'] = 'Bearer $latestToken';
         }
+      } else {
+        // If pre-request refresh fails, do not send the API request using a
+        // stale/invalid token. Fail fast and let callers handle auth flow.
+        throw ApiException(statusCode: 401, detail: 'Token refresh failed - Please log in again');
       }
     }
 
