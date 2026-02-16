@@ -1,9 +1,6 @@
 // File: /lib/components/error_boundary.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import '../logic/logging_handler.dart';
-import '../logic/error_handler.dart';
 import '../logic/error_reporting.dart';
 import '../managers/gameLayoutManager.dart';
 
@@ -27,12 +24,47 @@ class ErrorBoundaryState extends State<ErrorBoundary> {
   Object? _error;
   StackTrace? _stackTrace;
 
+  @override
+  void initState() {
+    super.initState();
+    // Listen for globally reported uncaught errors. ErrorReporting owns global
+    // handler lifecycle; this boundary only decides how to render fallback UI.
+    ErrorReporting.latestReportedError.addListener(_handleReportedErrorChanged);
+  }
+
+  @override
+  void dispose() {
+    // Remove listener to avoid updating state after this boundary is unmounted.
+    ErrorReporting.latestReportedError.removeListener(_handleReportedErrorChanged);
+    super.dispose();
+  }
+
+  void _handleReportedErrorChanged() {
+    final reported = ErrorReporting.latestReportedError.value;
+    if (!mounted || reported == null) return;
+
+    // Preserve the first visible error until the user explicitly retries,
+    // which avoids replacing the UI while they are reading the fallback.
+    if (_error != null) return;
+
+    setState(() {
+      _error = reported.error;
+      // Ensure custom builders always receive a stack trace, even when the
+      // framework source does not provide one for this error signal.
+      _stackTrace = reported.stackTrace ?? StackTrace.current;
+    });
+  }
+
   /// Reset the error state to show the child widget again
   void resetError() {
     setState(() {
       _error = null;
       _stackTrace = null;
     });
+
+    // Clear the shared latest-error payload so newly mounted boundaries do not
+    // immediately re-render the same stale failure after a successful retry.
+    ErrorReporting.latestReportedError.value = null;
   }
 
   @override
@@ -77,84 +109,7 @@ class ErrorBoundaryState extends State<ErrorBoundary> {
       );
     }
 
-    // No error, render the child widget inside an error catcher
-    return _ErrorCatcher(onError: _captureError, child: widget.child);
-  }
-
-  void _captureError(Object error, StackTrace stackTrace) {
-    // Log the error
-    LogService.logError('UI Error: $error');
-
-    // Only log stack traces if the flag is enabled
-    if (ErrorReporting.logStackTraces) {
-      LogService.logError('Stack trace: $stackTrace');
-    }
-
-    // Track the error
-    ErrorHandler.trackError(
-      ErrorHandler.UNKNOWN_ERROR,
-      error.toString(),
-      severity: ErrorHandler.SEVERITY_HIGH,
-      // Only pass stack trace if logging is enabled
-      stackTrace: ErrorReporting.logStackTraces ? stackTrace : null,
-    );
-
-    // Force a rebuild with the error state
-    setState(() {
-      _error = error;
-      _stackTrace = stackTrace;
-    });
-  }
-}
-
-/// A widget that catches errors in its child widget
-class _ErrorCatcher extends StatefulWidget {
-  final Widget child;
-  final void Function(Object error, StackTrace stackTrace) onError;
-
-  const _ErrorCatcher({Key? key, required this.child, required this.onError}) : super(key: key);
-
-  @override
-  _ErrorCatcherState createState() => _ErrorCatcherState();
-}
-
-class _ErrorCatcherState extends State<_ErrorCatcher> {
-  // Store the previous error handler
-  FlutterExceptionHandler? _previousErrorHandler;
-
-  @override
-  Widget build(BuildContext context) {
+    // No error currently captured, so render the protected subtree.
     return widget.child;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    // Store the previous error handler and set our custom one
-    // Use a post-frame callback to avoid setting during build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _previousErrorHandler = FlutterError.onError;
-      FlutterError.onError = _handleFlutterError;
-    });
-  }
-
-  @override
-  void dispose() {
-    // Restore the previous error handler if it exists
-    if (_previousErrorHandler != null) {
-      FlutterError.onError = _previousErrorHandler;
-    } else {
-      FlutterError.onError = FlutterError.presentError;
-    }
-    super.dispose();
-  }
-
-  void _handleFlutterError(FlutterErrorDetails details) {
-    // Use a post-frame callback to avoid setState during build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        widget.onError(details.exception, details.stack ?? StackTrace.current);
-      }
-    });
   }
 }

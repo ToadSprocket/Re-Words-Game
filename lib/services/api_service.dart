@@ -276,7 +276,10 @@ class ApiService with ChangeNotifier {
             }
           }
         },
-        maxRetries: 2,
+        // Keep token refresh retries conservative to prevent auth-loop churn
+        // while still tolerating brief transient connectivity failures.
+        maxRetries: Config.tokenRefreshMaxRetries,
+        delay: Duration(milliseconds: Config.apiRetryBaseDelayMilliseconds),
         retryIf: (e) => e is! ApiException || e.statusCode != 401, // Don't retry auth failures
         onRetry: (e, attempt) {
           LogService.logInfo("🔄 Retrying token refresh (attempt $attempt): ${e.toString()}");
@@ -732,6 +735,10 @@ class ApiService with ChangeNotifier {
   Future<http.Response> _makeApiRequest(bool isGet, String url, Map<String, String> headers, String? body) async {
     final secureStorage = SecureStorage();
 
+    // Select retry limits by request type so safer/idempotent requests can be
+    // retried more than non-idempotent ones without risking duplicate effects.
+    final requestMaxRetries = isGet ? Config.apiIdempotentRequestMaxRetries : Config.apiNonIdempotentRequestMaxRetries;
+
     // Check connectivity first
     if (!await ConnectivityMonitor().checkConnection()) {
       LogService.logError("🚨 Cannot make API request: No network connection");
@@ -801,7 +808,10 @@ class ApiService with ChangeNotifier {
 
         return response;
       },
-      maxRetries: 2,
+      // Keep request retries bounded so user-facing error handling remains
+      // responsive and we avoid runaway retry chains.
+      maxRetries: requestMaxRetries,
+      delay: Duration(milliseconds: Config.apiRetryBaseDelayMilliseconds),
       retryIf: (e) {
         // Only retry network errors and server errors, not client errors
         if (e is ApiException) {

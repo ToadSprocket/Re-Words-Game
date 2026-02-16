@@ -72,6 +72,9 @@ class AppStyles {
   static const double dialogButtonPadding = 8.0;
   static const Color dialogIconColor = Color(0xFFFFFFFF);
 
+  // Animation Colors
+  static const Color animationBackground = Color.fromARGB(255, 2, 2, 2);
+
   // ThemeData
   static ThemeData get appTheme => ThemeData(
     fontFamily: 'Roboto',

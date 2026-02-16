@@ -4,12 +4,26 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../logic/logging_handler.dart';
 
+/// Lightweight payload used to broadcast uncaught framework/platform errors
+/// to interested UI listeners (such as the top-level ErrorBoundary).
+class ReportedError {
+  final Object error;
+  final StackTrace? stackTrace;
+  final String source;
+
+  const ReportedError({required this.error, required this.stackTrace, required this.source});
+}
+
 /// A class that handles structured error reporting and analytics.
 ///
 /// This class provides methods to initialize error reporting services,
 /// set up global error handlers, and report errors to analytics services.
 class ErrorReporting {
   static bool _initialized = false;
+
+  // Keep the latest reported error in a notifier so UI surfaces can react
+  // without taking ownership of global Flutter error handler lifecycle.
+  static final ValueNotifier<ReportedError?> latestReportedError = ValueNotifier<ReportedError?>(null);
 
   /// Flag to control whether stack traces are logged
   /// Set to false by default to suppress stack traces
@@ -61,6 +75,10 @@ class ErrorReporting {
       //
       // Example implementation for Sentry:
       // Sentry.captureException(error, stackTrace: stackTrace);
+
+      // Publish the error after logging so app-level UI boundaries can decide
+      // whether to render fallback UI for this failure source.
+      latestReportedError.value = ReportedError(error: error, stackTrace: stackTrace, source: source);
     } catch (e) {
       LogService.logError('🚨 Failed to report error: $e');
     }

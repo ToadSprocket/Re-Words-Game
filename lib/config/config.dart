@@ -52,6 +52,36 @@ class Config {
   // This value is a candidate for Firebase Remote Config in a future release.
   static int expiredBoardGracePeriodMinutes = 120;
 
+  // API timing + retry settings
+  // Keep these as non-const values so they can be tuned quickly during
+  // development/testing without touching request call sites.
+  //
+  // Timeout intent:
+  // - connect timeout: fail fast when no route/socket can be established
+  // - send timeout: request payload upload took too long
+  // - receive timeout: server response exceeded expected SLA threshold
+  //
+  // Product guidance: responses beyond ~20 seconds are considered unhealthy
+  // for this app's small, optimized payloads.
+  static int apiConnectTimeoutSeconds = 5;
+  static int apiSendTimeoutSeconds = 10;
+  static int apiReceiveTimeoutSeconds = 20;
+
+  // Retry policy is intentionally conservative to avoid retry storms and
+  // duplicate side effects while still tolerating brief transient failures.
+  // Idempotent calls (e.g., GET) are safer to retry because replaying the
+  // request should not create duplicate side effects on the server.
+  static int apiIdempotentRequestMaxRetries = 2;
+
+  // Non-idempotent calls (most POST operations) should retry less aggressively
+  // to reduce the risk of accidental duplicate state changes.
+  static int apiNonIdempotentRequestMaxRetries = 1;
+
+  // Token refresh is treated separately from business endpoints and remains
+  // conservative because failed auth paths are already surfaced to the user.
+  static int tokenRefreshMaxRetries = 2;
+  static int apiRetryBaseDelayMilliseconds = 500;
+
   // Obfuscated API key and salt as integer arrays
   static const List<int> _obfuscatedApiKey = [
     112,

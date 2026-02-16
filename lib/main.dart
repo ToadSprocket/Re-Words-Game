@@ -136,6 +136,9 @@ class _ReWordAppState extends State<ReWordApp> {
     return MaterialApp(
       title: 'Re-Word Game',
       theme: AppStyles.appTheme,
+      // Keep a single top-level ErrorBoundary around the app home tree.
+      // ErrorReporting owns global handler registration, while this boundary
+      // only controls fallback rendering for uncaught UI failures.
       home: ErrorBoundary(
         child: OrientationBuilder(
           builder: (context, orientation) {
@@ -160,10 +163,6 @@ class _ReWordAppState extends State<ReWordApp> {
           },
         ),
       ),
-      builder: (context, child) {
-        // Add error handling at the app level
-        return ErrorBoundary(child: child ?? const SizedBox());
-      },
     );
   }
 }

@@ -157,7 +157,7 @@ class _IntroAnimationState extends State<IntroAnimation> with TickerProviderStat
         }).toList();
 
     return Container(
-      color: const Color.fromARGB(255, 2, 2, 2),
+      color: AppStyles.animationBackground,
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

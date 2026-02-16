@@ -23,9 +23,11 @@ class SecureHttpClient {
     _dio = Dio(
       BaseOptions(
         baseUrl: Config.apiUrl,
-        connectTimeout: const Duration(seconds: 3),
-        receiveTimeout: const Duration(seconds: 3),
-        sendTimeout: const Duration(seconds: 3),
+        // Centralize timeout tuning in Config so API responsiveness thresholds
+        // can be adjusted without touching network call sites.
+        connectTimeout: Duration(seconds: Config.apiConnectTimeoutSeconds),
+        receiveTimeout: Duration(seconds: Config.apiReceiveTimeoutSeconds),
+        sendTimeout: Duration(seconds: Config.apiSendTimeoutSeconds),
       ),
     );
 
