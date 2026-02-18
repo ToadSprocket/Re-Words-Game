@@ -3,8 +3,10 @@
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 
+/// Supported gameplay modes used for timer, theming, and mode labeling.
 enum GameMode { classic, scribe, wordsmith, master }
 
+/// Centralized mode metadata mapping to keep UI + gameplay rules in sync.
 extension GameModeExtension on GameMode {
   /// Returns the time limit in minutes for this game mode.
   /// A value of 0 indicates no time limit.
@@ -21,6 +23,7 @@ extension GameModeExtension on GameMode {
     }
   }
 
+  /// Friendly mode label used in dialogs and score/summary UI.
   String get displayName {
     switch (this) {
       case GameMode.classic:
@@ -34,6 +37,7 @@ extension GameModeExtension on GameMode {
     }
   }
 
+  /// Marketing/UX description used in mode explanation surfaces.
   String get description {
     switch (this) {
       case GameMode.classic:
@@ -47,6 +51,7 @@ extension GameModeExtension on GameMode {
     }
   }
 
+  /// Mode accent color used by tiles, labels, and mode tags.
   Color get color {
     switch (this) {
       case GameMode.classic:
@@ -60,6 +65,7 @@ extension GameModeExtension on GameMode {
     }
   }
 
+  /// Icon paired with mode labels to reinforce time-pressure tier.
   IconData get icon {
     switch (this) {
       case GameMode.classic:

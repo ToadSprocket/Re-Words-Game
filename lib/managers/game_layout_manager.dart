@@ -9,6 +9,10 @@ import '../logic/logging_handler.dart';
 import '../config/debugConfig.dart';
 import '../utils/device_utils.dart';
 
+/// Centralized layout calculator used by game UI components.
+///
+/// This manager converts raw screen/device metrics into concrete dimensions,
+/// font sizes, and styles so each component can render from shared values.
 class GameLayoutManager {
   static final GameLayoutManager _instance = GameLayoutManager._internal();
 
@@ -193,6 +197,10 @@ class GameLayoutManager {
     );
   }
 
+  /// Rebuilds shared dialog text styles after font values are recalculated.
+  ///
+  /// Keeping this in one place ensures all dialog variants stay visually
+  /// aligned when screen size/orientation triggers a layout recalculation.
   void initializeFontStyles() {
     dialogTitleStyle = TextStyle(
       fontSize: dialogTitleFontSize,
@@ -217,6 +225,11 @@ class GameLayoutManager {
     );
   }
 
+  /// Recomputes responsive dimensions for the entire game shell.
+  ///
+  /// This method is intentionally stateful: it caches prior dimensions and
+  /// exits early when width/height/orientation are unchanged to avoid costly
+  /// rebuild-time recalculation churn.
   void calculateLayoutSizes(BuildContext context) {
     screenWidth = MediaQuery.of(context).size.width;
     screenHeight = MediaQuery.of(context).size.height;

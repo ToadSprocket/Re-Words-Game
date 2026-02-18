@@ -24,12 +24,16 @@ class WordUtilities {
     required double fontSize,
     required double spacing,
   }) {
+    // Return one empty column so UI renderers can keep a stable column layout
+    // contract even when no words have been played yet.
     if (words.isEmpty) return [[]];
 
     final wordsPerColumn = _wordsPerColumn(columnHeight, fontSize, spacing);
     final totalWords = words.length;
     final numColumns = (totalWords / wordsPerColumn).ceil();
 
+    // Build fixed-size chunks so each rendered column has predictable height
+    // and scrolling behavior under dynamic font/spacing values.
     List<List<String>> columns = [];
     for (int i = 0; i < numColumns; i++) {
       final start = i * wordsPerColumn;
@@ -54,6 +58,8 @@ class WordUtilities {
     double multiplier = 0;
     for (var tile in tiles) {
       if (tile.isHybrid) {
+        // Hybrid tiles contribute additive multiplier value that is applied by
+        // scoring logic after base word-value calculation.
         multiplier += tile.value;
       }
     }

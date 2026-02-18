@@ -4,7 +4,15 @@ import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../managers/gameManager.dart';
 
+/// Guidance dialog shown on Android tablets for aspect-ratio setup.
+///
+/// This exists to reduce layout clipping reports on tablet devices where the
+/// default app aspect behavior can letterbox unless users opt into fullscreen.
 class AndroidTabletDialog {
+  /// Presents a modal, non-dismissible setup prompt before gameplay continues.
+  ///
+  /// We intentionally require explicit acknowledgement so users see the one-time
+  /// tablet guidance before interacting with the board UI.
   static Future<void> show(BuildContext context) async {
     // Access layout from GameManager singleton
     final layout = GameManager().layoutManager!;

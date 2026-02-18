@@ -1,5 +1,8 @@
 // File: /lib/models/api_models.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
+
+/// Standard wrapper used by service calls so UI code can read success payloads
+/// and transport-level errors from a single response object.
 class ApiResponse {
   final String? message;
   final SecurityData? security;
@@ -20,6 +23,10 @@ class SecurityData {
   SecurityData({required this.userId, this.accessToken, this.refreshToken, this.expirationSeconds, this.displayName});
 }
 
+/// Board payload returned by `/game/today`.
+///
+/// The API sends grid/wildcards as compact strings; parsing into tile objects
+/// is intentionally handled by board/game logic layers.
 class GameData {
   final String gameId;
   final String gridLetters;
@@ -60,6 +67,7 @@ class ApiException implements Exception {
   String toString() => 'ApiException(statusCode: $statusCode, detail: $detail)';
 }
 
+/// High-score envelope used by both game-specific and daily score requests.
 class HighScoreData {
   final String? gameId;
   final String? date;
@@ -118,6 +126,10 @@ class HighScore {
   }
 }
 
+/// Request DTO for score submission and board refresh sync.
+///
+/// `isPlayingExpired` lets backend policy distinguish normal play from an
+/// explicit user decision to continue after expiration.
 class SubmitScoreRequest {
   String userId;
   String gameId;
@@ -149,6 +161,8 @@ class SubmitScoreRequest {
   });
 
   Map<String, dynamic> toJson() {
+    // Keep JSON field names aligned with backend contract to avoid accidental
+    // score ingestion or leaderboard regression from key drift.
     return {
       "userId": userId,
       "gameId": gameId,
