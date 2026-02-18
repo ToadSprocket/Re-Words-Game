@@ -2,9 +2,9 @@
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
-import '../managers/gameLayoutManager.dart';
+import '../managers/game_layout_manager.dart';
 import '../managers/gameManager.dart';
-import '../models/boardState.dart';
+import '../models/board_state.dart';
 
 // Displays the score and word count above the grid
 class GameScores extends StatelessWidget {

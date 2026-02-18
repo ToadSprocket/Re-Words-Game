@@ -1,4 +1,4 @@
-// File: /lib/utils/wordUtilities.dart
+// File: /lib/utils/word_utilities.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 
 import '../models/tile.dart';

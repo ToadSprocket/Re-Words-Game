@@ -1,238 +1,27 @@
 // File: /lib/dialogs/login_dialog.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
-import 'package:reword_game/logic/logging_handler.dart';
-import '../styles/app_styles.dart';
-import '../logic/security.dart';
-import 'register_dialog.dart';
-import 'password_recovery_dialog.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import '../managers/gameManager.dart';
 
 class LoginDialog {
+  /// Temporary auth stub while account flows are moved to platform-linked IDs.
+  ///
+  /// Returns `false` so existing call sites that expect a login outcome keep
+  /// their current control flow without unintended follow-up navigation.
   static Future<bool> show(BuildContext context, GameManager gm) async {
-    final userNameController = TextEditingController();
-    final passwordController = TextEditingController();
-    String? errorMessage;
-    bool loginSuccess = false;
-    bool isLoading = false;
-    final loginSecurity = LoginSecurity();
-
-    void attemptLogin(StateSetter setState) async {
-      if (isLoading) return;
-
-      // First check if login is locked out
-      final lockoutStatus = await loginSecurity.checkLockoutStatus();
-      if (lockoutStatus['isLocked']) {
-        setState(() {
-          final remainingTime = LoginSecurity.formatLockoutTime(lockoutStatus['remainingSeconds']);
-          errorMessage = "Too many failed attempts. Please try again in $remainingTime.";
-          isLoading = false;
-        });
-        return;
-      }
-
-      String username = userNameController.text.trim();
-      String password = passwordController.text.trim();
-
-      try {
-        setState(() {
-          isLoading = true;
-          errorMessage = null;
-        });
-
-        if (username.isEmpty || password.isEmpty) {
-          setState(() {
-            errorMessage = "Please enter both username and password.";
-            isLoading = false;
-          });
-          return;
-        }
-
-        final response = await gm.apiService.login(username, password);
-        if (response == null) {
-          // Record failed login attempt
-          final failureResult = await loginSecurity.recordFailedAttempt();
-
-          if (failureResult['isLocked']) {
-            // Account is now locked
-            final remainingTime = LoginSecurity.formatLockoutTime(failureResult['remainingSeconds']);
-            setState(() {
-              errorMessage = "Too many failed attempts. Please try again in $remainingTime.";
-              isLoading = false;
-            });
-          } else {
-            // Show attempts remaining
-            final attemptsRemaining = failureResult['attemptsRemaining'];
-            setState(() {
-              errorMessage =
-                  "Invalid username or password. $attemptsRemaining ${attemptsRemaining == 1 ? 'attempt' : 'attempts'} remaining.";
-              isLoading = false;
-            });
-          }
-          return;
-        }
-
-        // Login successful - reset attempt counter
-        await loginSecurity.resetAttempts();
-        loginSuccess = true;
-        Navigator.pop(context);
-      } catch (e) {
-        LogService.logError("Fatal Error Encountered: $e");
-        setState(() {
-          errorMessage = "An error occurred. Please try again later.";
-          isLoading = false;
-        });
-      }
-    }
-
     await showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppStyles.dialogBorderRadius),
-                side: BorderSide(color: AppStyles.dialogBorderColor, width: AppStyles.dialogBorderWidth),
-              ),
-              backgroundColor: AppStyles.dialogBackgroundColor,
-              child: Container(
-                width: gm.layoutManager!.dialogMaxWidth,
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Title & Close Button
-                    Stack(children: [Center(child: Text('Reword Login', style: gm.layoutManager!.dialogTitleStyle))]),
-                    const SizedBox(height: 16.0),
-
-                    // Input Fields (Centered)
-                    SizedBox(
-                      width: gm.layoutManager!.dialogMaxWidth * 0.8,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Username or Email Address', style: gm.layoutManager!.dialogInputContentStyle),
-                          const SizedBox(height: 4.0),
-                          TextFormField(
-                            controller: userNameController,
-                            style: gm.layoutManager!.dialogInputContentStyle,
-                            enabled: !isLoading,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(vertical: 6.0, horizontal: 10.0),
-                            ),
-                          ),
-                          const SizedBox(height: 12.0),
-
-                          Text('Password', style: gm.layoutManager!.dialogInputTitleStyle),
-                          const SizedBox(height: 4.0),
-                          TextFormField(
-                            controller: passwordController,
-                            style: gm.layoutManager!.dialogInputContentStyle,
-                            enabled: !isLoading,
-                            obscureText: true,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(vertical: 6.0, horizontal: 10.0),
-                            ),
-                            textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (_) => !isLoading ? attemptLogin(setState) : null,
-                          ),
-
-                          // Forgot Password Link
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextButton(
-                              onPressed:
-                                  isLoading
-                                      ? null
-                                      : () {
-                                        Navigator.pop(context);
-                                        ForgotPasswordDialog.show(context, gm);
-                                      },
-                              style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft),
-                              child: Text('Forgot Password?', style: gm.layoutManager!.dialogLinkStyle),
-                            ),
-                          ),
-                          Container(
-                            height: 34.0,
-                            alignment: Alignment.center,
-                            child:
-                                isLoading
-                                    ? const CircularProgressIndicator()
-                                    : errorMessage != null && errorMessage!.isNotEmpty
-                                    ? Text(
-                                      errorMessage!,
-                                      style: gm.layoutManager!.dialogErrorStyle,
-                                      textAlign: TextAlign.center,
-                                    )
-                                    : const SizedBox.shrink(),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 16.0),
-
-                    // Login & Cancel Buttons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton(
-                          onPressed:
-                              isLoading
-                                  ? null
-                                  : () {
-                                    loginSuccess = false;
-                                    Navigator.pop(context);
-                                  },
-                          style: gm.layoutManager!.buttonStyle(context),
-                          child: const Text('Cancel'),
-                        ),
-                        const SizedBox(width: 16.0),
-                        ElevatedButton(
-                          onPressed: isLoading ? null : () => attemptLogin(setState),
-                          style: gm.layoutManager!.buttonStyle(context),
-                          child: const Text('Login'),
-                        ),
-                      ],
-                    ),
-
-                    // Only show signup option for non-web users
-                    if (!kIsWeb) ...[
-                      const SizedBox(height: 16.0),
-                      // "Don't have an account?" Text & Sign Up Button
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text("Don't have an account? ", style: gm.layoutManager!.dialogContentStyle),
-                          TextButton(
-                            onPressed:
-                                isLoading
-                                    ? null
-                                    : () {
-                                      Navigator.pop(context);
-                                      RegisterDialog.show(context, gm);
-                                    },
-                            style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                            child: Text('Sign Up', style: gm.layoutManager!.dialogLinkStyle),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            );
-          },
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text('Sign-in Update', style: gm.layoutManager?.dialogTitleStyle),
+          content: Text('Sign-in is being upgraded. Coming soon.', style: gm.layoutManager?.dialogContentStyle),
+          actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('OK'))],
         );
       },
     );
 
-    return loginSuccess;
+    // Keep returning false to preserve existing callers that branch on login
+    // result while this temporary stub is active.
+    return false;
   }
 }

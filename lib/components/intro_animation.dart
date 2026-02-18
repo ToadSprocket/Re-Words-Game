@@ -1,7 +1,7 @@
 // File: /lib/components/intro_animation.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
-import '../managers/gameLayoutManager.dart';
+import '../managers/game_layout_manager.dart';
 import '../managers/gameManager.dart';
 import '../styles/app_styles.dart';
 import 'dart:math' as math;

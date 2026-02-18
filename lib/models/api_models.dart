@@ -1,4 +1,4 @@
-// File: /lib/models/apiModels.dart
+// File: /lib/models/api_models.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 class ApiResponse {
   final String? message;

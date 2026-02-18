@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../styles/app_styles.dart';
-import '../models/apiModels.dart';
+import '../models/api_models.dart';
 import '../logic/logging_handler.dart';
 import 'login_dialog.dart';
 import '../managers/gameManager.dart';

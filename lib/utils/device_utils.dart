@@ -6,7 +6,7 @@ import 'dart:math';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import '../logic/logging_handler.dart';
-import '../models/layoutModels.dart';
+import '../models/layout_models.dart';
 
 /// Utility class for device-specific operations
 class DeviceUtils {

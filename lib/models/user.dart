@@ -1,6 +1,6 @@
 // File: /lib/models/user.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
-import 'apiModels.dart'; // For SecurityData
+import 'api_models.dart'; // For SecurityData
 
 /// User subscription/account type
 enum UserType {

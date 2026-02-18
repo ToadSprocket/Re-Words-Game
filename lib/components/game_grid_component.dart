@@ -1,9 +1,9 @@
 // File: /lib/components/game_grid_component.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
-import 'package:reword_game/managers/gameLayoutManager.dart';
+import 'package:reword_game/managers/game_layout_manager.dart';
 import '../models/tile.dart';
-import '../models/boardState.dart';
+import '../models/board_state.dart';
 import 'letter_square_component.dart';
 import '../managers/gameManager.dart';
 import '../config/debugConfig.dart';

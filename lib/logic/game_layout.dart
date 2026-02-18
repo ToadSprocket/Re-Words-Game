@@ -1,7 +1,7 @@
 // File: /lib/logic/game_layout.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
-import '../managers/gameLayoutManager.dart'; // Import GameLayoutManager
+import '../managers/game_layout_manager.dart'; // Import GameLayoutManager
 
 class GameLayout extends InheritedWidget {
   final GameLayoutManager gameLayoutManager;

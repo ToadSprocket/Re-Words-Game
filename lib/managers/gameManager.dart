@@ -5,18 +5,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Orientation; // For GlobalKey, BuildContext
 import '../components/game_grid_component.dart';
 import '../components/wildcard_column_component.dart';
-import 'package:reword_game/models/gameMode.dart';
+import 'package:reword_game/models/game_mode.dart';
 import 'dart:async';
 import 'dart:io';
 import '../models/board.dart';
-import '../models/boardState.dart';
+import '../models/board_state.dart';
 import '../models/tile.dart';
-import '../models/apiModels.dart';
+import '../models/api_models.dart';
 import '../services/api_service.dart';
 import '../services/word_service.dart';
 import '../managers/userManager.dart';
-import '../utils/wordUtilities.dart';
-import '../managers/gameLayoutManager.dart';
+import '../utils/word_utilities.dart';
+import '../managers/game_layout_manager.dart';
 import '../config/debugConfig.dart';
 import '../logic/logging_handler.dart';
 

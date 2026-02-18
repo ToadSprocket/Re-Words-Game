@@ -2,7 +2,7 @@
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
-import '../managers/gameLayoutManager.dart';
+import '../managers/game_layout_manager.dart';
 
 /// An enhanced error dialog that provides more context and options than the basic FailureDialog.
 ///

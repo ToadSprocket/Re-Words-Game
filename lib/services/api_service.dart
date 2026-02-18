@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
 import '../logic/security.dart';
 import '../config/config.dart';
-import '../models/apiModels.dart';
+import '../models/api_models.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -307,124 +307,6 @@ class ApiService with ChangeNotifier {
     return apiResponse;
   }
 
-  /// **Update User Profile**
-  Future<ApiResponse> updateProfile({
-    required String userName,
-    required String displayName,
-    required String password,
-    String? email,
-  }) async {
-    await _getTokens(); // Ensure tokens are loaded
-
-    final headers = {
-      'X-API-Key': Security.generateApiKeyHash(),
-      'Authorization': 'Bearer $accessToken',
-      'Content-Type': 'application/json',
-    };
-
-    final body = jsonEncode({
-      "userId": userId,
-      "userName": userName,
-      "displayName": displayName,
-      "password": password,
-      if (email != null && email.isNotEmpty) "email": email, // Optional email
-    });
-
-    try {
-      final response = await _makeApiRequest(
-        false, // POST request
-        '${Config.apiUrl}/users/updateprofile',
-        headers,
-        body,
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        {
-          loggedIn = true;
-        }
-
-        // 🔹 Store new tokens
-        await _updateTokens(
-          SecurityData(
-            userId: data["userId"],
-            accessToken: data["access_token"],
-            refreshToken: data["refresh_token"],
-            expirationSeconds: data["expires_in"].toString(),
-          ),
-        );
-
-        return ApiResponse(message: data["message"]);
-      } else {
-        // Handle API errors and return structured messages
-        return ApiResponse(message: "An unknown error occurred");
-      }
-    } catch (e) {
-      LogService.logError('🚨 Profile update failed: $e');
-      return ApiResponse(message: "Server error. Please try again later.");
-    }
-  }
-
-  /// **Login User & Refresh Tokens**
-  ///
-  /// This method intentionally does NOT use the retry mechanism to ensure
-  /// that each login attempt is counted exactly once by the security system.
-  Future<ApiResponse?> login(String username, String password) async {
-    final headers = {'X-API-Key': Security.generateApiKeyHash(), 'Content-Type': 'application/json'};
-    final body = jsonEncode({'userName': username, 'password': password});
-    final url = Uri.parse('${Config.apiUrl}/users/login');
-
-    try {
-      // Check connectivity first
-      if (!await ConnectivityMonitor().checkConnection()) {
-        LogService.logError("🚨 Cannot login: No network connection");
-        OfflineModeHandler.enterOfflineMode();
-        throw ApiException(statusCode: 0, detail: 'No network connection');
-      }
-
-      // Make a direct HTTP request without retries
-      LogService.logInfo("🔑 Attempting login for user: $username");
-      final response = await http.post(url, headers: headers, body: body);
-
-      if (response.statusCode == 200) {
-        LogService.logInfo("✅ Login successful");
-        final apiResponse = _parseResponse(response);
-
-        // 🔄 Store new tokens on successful login
-        if (apiResponse.security != null) {
-          await _updateTokens(apiResponse.security!);
-          loggedIn = true; // 🔥 Set loggedIn = true on successful login
-          userId = apiResponse.security!.userId;
-          accessToken = apiResponse.security!.accessToken;
-          refreshToken = apiResponse.security!.refreshToken;
-          displayName = apiResponse.security!.displayName;
-          return apiResponse;
-        }
-      }
-
-      // Handle 401 (Unauthorized) - Login failed
-      if (response.statusCode == 401) {
-        LogService.logError("🚨 Login failed: Invalid credentials");
-        return null; // Login failed, return null to UI
-      }
-
-      // Handle server errors
-      if (response.statusCode >= 500) {
-        final errorMessage = ErrorMessages.getMessageForStatusCode(response.statusCode);
-        LogService.logError("🚨 Server error during login: $errorMessage");
-        return null;
-      }
-
-      // Handle other errors (e.g., 400)
-      LogService.logError("🚨 Unexpected login failure: ${response.body}");
-      return null;
-    } catch (e) {
-      LogService.logError("❌ Login Exception: $e");
-      return null;
-    }
-  }
-
   /// **Fetch Today's Game**
   Future<ApiResponse> getGameToday(SubmitScoreRequest scoreRequest) async {
     LogService.logInfo("getGameToday called");
@@ -567,41 +449,6 @@ class ApiService with ChangeNotifier {
     final response = await _makeApiRequest(false, '${Config.apiUrl}/scores/gamescores', headers, body);
 
     return _parseResponse(response);
-  }
-
-  /// **Submit High Score**
-  Future<bool> requestPasswordReset(String email) async {
-    final headers = {'X-API-Key': Security.generateApiKeyHash()};
-    final url = Uri.parse('${Config.apiUrl}/recovery/auth/request-reset?email=$email');
-
-    try {
-      final response = await http.post(url, headers: headers);
-      if (response.statusCode == 204) {
-        return true;
-      }
-    } catch (e) {
-      LogService.logError("🚨 Failed to request password reset: $e");
-    }
-    return false;
-  }
-
-  /// **Reset Password**
-  Future<bool> resetPassword(String email, String code, String newPassword) async {
-    final headers = {'X-API-Key': Security.generateApiKeyHash(), 'Content-Type': 'application/json'};
-
-    final url = Uri.parse(
-      '${Config.apiUrl}/recovery/auth/reset-password?email=$email&code=$code&new_password=$newPassword',
-    );
-
-    try {
-      final response = await http.post(url, headers: headers);
-      if (response.statusCode == 200) {
-        return true;
-      }
-    } catch (e) {
-      LogService.logError("🚨 Failed to reset password: $e");
-    }
-    return false;
   }
 
   /// **Delete User Account**

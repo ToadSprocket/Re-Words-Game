@@ -1,4 +1,4 @@
-// File: /lib/models/layoutModels.dart
+// File: /lib/models/layout_models.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/widgets.dart';
 

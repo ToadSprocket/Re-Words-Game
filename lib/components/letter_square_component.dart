@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
 import '../models/tile.dart';
-import '../managers/gameLayoutManager.dart';
+import '../managers/game_layout_manager.dart';
 import '../managers/gameManager.dart';
 
 class LetterSquareComponent extends StatelessWidget {

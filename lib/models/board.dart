@@ -2,11 +2,11 @@
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'dart:convert';
 import 'package:reword_game/logic/logging_handler.dart';
-import 'package:reword_game/models/gameMode.dart';
+import 'package:reword_game/models/game_mode.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'tile.dart';
-import 'apiModels.dart';
-import 'boardState.dart';
+import 'api_models.dart';
+import 'board_state.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tzd;
 import 'package:flutter_timezone/flutter_timezone.dart';

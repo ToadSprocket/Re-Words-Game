@@ -1,7 +1,7 @@
 // File: /lib/components/game_title_component.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
-import 'package:reword_game/managers/gameLayoutManager.dart';
+import 'package:reword_game/managers/game_layout_manager.dart';
 import '../styles/app_styles.dart';
 import 'dart:math' as math;
 import 'dart:async';

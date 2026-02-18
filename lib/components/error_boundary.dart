@@ -2,7 +2,7 @@
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../logic/error_reporting.dart';
-import '../managers/gameLayoutManager.dart';
+import '../managers/game_layout_manager.dart';
 
 /// A widget that catches errors in its child widget tree and displays a fallback UI.
 ///

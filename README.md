@@ -1,6 +1,12 @@
 # reword_game
 
-A new Flutter project.
+Re-Word Game Flutter client.
+
+## Project Docs
+
+- [B.13 Backend Active Endpoints](docs/B13_backend_active_endpoints.md)
+- [B.15 Dart/Flutter Style Guide](docs/B15_style_guide.md)
+- [B.15 Structure & Naming Audit](docs/B15_structure_and_naming_audit.md)
 
 ## Getting Started
 

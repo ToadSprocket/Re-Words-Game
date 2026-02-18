@@ -2,7 +2,7 @@
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../utils/device_utils.dart';
-import '../models/layoutModels.dart';
+import '../models/layout_models.dart';
 import '../logic/logging_handler.dart';
 import '../config/debugConfig.dart';
 

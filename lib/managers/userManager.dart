@@ -101,28 +101,6 @@ class UserManager {
     return false;
   }
 
-  /// Login existing user via ApiService
-  /// Returns true if login successful, false otherwise
-  Future<bool> login(String username, String password) async {
-    final response = await _apiService.login(username, password);
-
-    if (response != null && response.security != null) {
-      // Create User from the security data returned
-      currentUser = User.fromSecurityData(response.security!);
-
-      // ApiService already updated its tokens in login()
-      // But let's make sure we're in sync
-      _apiService.userId = currentUser?.userId;
-      _apiService.accessToken = currentUser?.accessToken;
-      _apiService.refreshToken = currentUser?.refreshToken;
-
-      await saveToStorage();
-      return true;
-    }
-
-    return false;
-  }
-
   /// Logout user - clears both UserManager and ApiService
   Future<void> logout() async {
     // Clear ApiService tokens (clears SecureStorage too)

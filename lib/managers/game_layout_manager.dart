@@ -1,4 +1,4 @@
-// File: /lib/managers/gameLayoutManager.dart
+// File: /lib/managers/game_layout_manager.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;

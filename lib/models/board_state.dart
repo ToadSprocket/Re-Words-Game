@@ -1,4 +1,4 @@
-// File: /lib/models/boardState.dart
+// File: /lib/models/board_state.dart
 // Copyright © 2026 Digital Relics. All Rights Reserved.
 import 'package:flutter/material.dart';
 import '../styles/app_styles.dart';
