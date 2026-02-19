@@ -11,6 +11,7 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tzd;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import '../config/config.dart';
+import 'package:uuid/uuid.dart';
 
 /// Represents the game board state for the Re-Word puzzle game.
 ///
@@ -66,6 +67,9 @@ class Board {
 
   /// Unique identifier for this puzzle from the API.
   final String gameId;
+
+  /// Unique Session Identifier for this board.
+  final String sessionId;
 
   // ─────────────────────────────────────────────────────────────────────────
   // PUZZLE CONFIGURATION (from API)
@@ -166,6 +170,7 @@ class Board {
 
   Board({
     required this.gameId,
+    required this.sessionId,
     required this.gridLetters,
     required this.wildcardLetters,
     required this.gridTiles,
@@ -196,6 +201,7 @@ class Board {
   Map<String, dynamic> toJson() {
     return {
       'gameId': gameId,
+      'sessionId': sessionId,
       'gridLetters': gridLetters,
       'wildcardLetters': wildcardLetters,
       'gridTiles': gridTiles.map((t) => t.toJson()).toList(),
@@ -227,6 +233,7 @@ class Board {
   factory Board.fromJson(Map<String, dynamic> json) {
     return Board(
       gameId: json['gameId'],
+      sessionId: json['sessionId'],
       gridLetters: json['gridLetters'],
       wildcardLetters: json['wildcardLetters'],
       gridTiles: (json['gridTiles'] as List).map((t) => Tile.fromJson(t)).toList(),
@@ -262,6 +269,7 @@ class Board {
   /// This is the preferred way to update Board state (immutable pattern).
   Board copyWith({
     String? gameId,
+    String? sessionId,
     String? gridLetters,
     String? wildcardLetters,
     List<Tile>? gridTiles,
@@ -288,6 +296,7 @@ class Board {
   }) {
     return Board(
       gameId: gameId ?? this.gameId,
+      sessionId: sessionId ?? this.sessionId,
       gridLetters: gridLetters ?? this.gridLetters,
       wildcardLetters: wildcardLetters ?? this.wildcardLetters,
       gridTiles: gridTiles ?? List.from(this.gridTiles),
@@ -319,6 +328,7 @@ class Board {
   /// Does NOT clear puzzle configuration (gameId, gridLetters, etc.).
   Board startNewBoard() {
     return copyWith(
+      sessionId: Uuid().v4(),
       secondsPlayed: 0,
       sessionStartDateTime: null,
       boardElapsedTime: 0,
@@ -338,6 +348,7 @@ class Board {
   /// Use this when loading a completely new puzzle from the API.
   Board resetBoard() {
     return copyWith(
+      sessionId: Uuid().v4(),
       secondsPlayed: 0,
       sessionStartDateTime: null,
       boardElapsedTime: 0,
@@ -360,6 +371,7 @@ class Board {
   /// Checks: gameId exists, letters exist, grid has 49 tiles, wildcards exist.
   bool isBoardValid() {
     return gameId.isNotEmpty &&
+        sessionId.isNotEmpty &&
         gridLetters.isNotEmpty &&
         wildcardLetters.isNotEmpty &&
         gridTiles.length == 49 &&
@@ -397,6 +409,7 @@ class Board {
   Future<Board> fromApiData(GameData gameData, Orientation currentOrientation) async {
     return copyWith(
       secondsPlayed: 0,
+      sessionId: Uuid().v4(),
       sessionStartDateTime: null,
       boardElapsedTime: 0,
       sessionStartedAt: DateTime.now().toUtc(),
@@ -592,7 +605,8 @@ class Board {
   /// Gets the user's timezone location for date/time calculations.
   /// Uses FlutterTimezone to detect the device's local timezone.
   Future<tzd.Location> _getCurrentTimezoneLocation() async {
-    String localTimeZone = await FlutterTimezone.getLocalTimezone();
+    // flutter_timezone 5.x returns TimezoneInfo — extract the IANA identifier string
+    String localTimeZone = (await FlutterTimezone.getLocalTimezone()).identifier;
     tz.initializeTimeZones();
     final location = tzd.getLocation(localTimeZone);
     return location;

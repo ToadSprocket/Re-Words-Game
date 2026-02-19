@@ -14,7 +14,8 @@ class ConnectivityMonitor {
   factory ConnectivityMonitor() => _instance;
 
   final Connectivity _connectivity = Connectivity();
-  StreamSubscription<ConnectivityResult>? _subscription;
+  // connectivity_plus 7.x streams List<ConnectivityResult> instead of single values
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
   bool _isConnected = true;
 
   // Stream controller to broadcast connectivity changes
@@ -42,10 +43,12 @@ class ConnectivityMonitor {
     }
   }
 
-  /// Update connection status based on connectivity result
-  void _updateConnectionStatus(ConnectivityResult result) {
+  /// Update connection status based on connectivity result list
+  /// connectivity_plus 7.x returns a list of active connection types
+  void _updateConnectionStatus(List<ConnectivityResult> results) {
     final wasConnected = _isConnected;
-    _isConnected = result != ConnectivityResult.none;
+    // Connected if the list contains any result other than 'none'
+    _isConnected = results.isNotEmpty && !results.contains(ConnectivityResult.none);
 
     // Only notify if status changed
     if (wasConnected != _isConnected) {
@@ -60,8 +63,9 @@ class ConnectivityMonitor {
   /// Check if currently connected
   Future<bool> checkConnection() async {
     try {
-      final result = await _connectivity.checkConnectivity();
-      return result != ConnectivityResult.none;
+      final results = await _connectivity.checkConnectivity();
+      // Connected if the list contains any result other than 'none'
+      return results.isNotEmpty && !results.contains(ConnectivityResult.none);
     } catch (e) {
       LogService.logError('🚨 Error checking connection: $e');
       return false;

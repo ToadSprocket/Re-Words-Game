@@ -13,8 +13,9 @@ class SecureStorage {
 
   SecureStorage._internal();
 
-  // Create storage instance with AES encryption for native platforms
-  final _secureStorage = const FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
+  // Create storage instance for native platforms
+  // flutter_secure_storage 10.x auto-migrates to custom ciphers; encryptedSharedPreferences removed
+  final _secureStorage = const FlutterSecureStorage();
 
   /// Store user ID securely
   Future<void> setUserId(String userId) async {

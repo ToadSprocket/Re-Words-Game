@@ -5,7 +5,7 @@ class Config {
   static const String MAJOR = "2";
   static const String MINOR = "1";
   static const String PATCH = "2";
-  static const String BUILD = "03";
+  static const String BUILD = "04";
   static const String PHASE = "B";
 
   static const String buildVersion = '$MAJOR.$MINOR.$PATCH.$BUILD-$PHASE';

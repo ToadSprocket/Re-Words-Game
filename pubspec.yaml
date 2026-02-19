@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.1.0+3
+version: 2.1.0+4
 
 environment:
   sdk: ^3.7.0
@@ -36,17 +36,18 @@ dependencies:
   universal_html: ^2.2.4
   shared_preferences: ^2.2.0  
   http: ^1.1.0
-  window_manager: ^0.4.3
-  timezone: ^0.10.0
-  flutter_timezone: ^4.1.0
-  intl: ^0.17.0
-  email_validator: ^2.1.17
+  window_manager: ^0.5.1
+  timezone: ^0.11.0
+  flutter_timezone: ^5.0.1
+  intl: ^0.20.2
+  email_validator: ^3.0.0
   provider: ^6.0.0
   path: ^1.8.3
   url_launcher: ^6.2.5
-  flutter_secure_storage: ^8.0.0  # For secure storage of sensitive data
-  connectivity_plus: ^5.0.2       # For network connectivity monitoring
-  flutter_launcher_icons: ^0.13.1
+  flutter_secure_storage: ^10.0.0  # For secure storage of sensitive data
+  connectivity_plus: ^7.0.0       # For network connectivity monitoring
+  flutter_launcher_icons: ^0.14.4
+  uuid: ^4.5.2
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -63,7 +64,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

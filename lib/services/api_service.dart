@@ -338,7 +338,8 @@ class ApiService with ChangeNotifier {
     }
 
     // ✅ Get the player's timezone
-    String localTimeZone = await FlutterTimezone.getLocalTimezone();
+    // flutter_timezone 5.x returns TimezoneInfo — extract the IANA identifier string
+    String localTimeZone = (await FlutterTimezone.getLocalTimezone()).identifier;
     tz.initializeTimeZones();
     final location = tz.getLocation(localTimeZone); // e.g., "America/Los_Angeles"
 
@@ -408,7 +409,8 @@ class ApiService with ChangeNotifier {
     await _getTokens(); // Ensure tokens are loaded
 
     // ✅ Get the player's timezone
-    String localTimeZone = await FlutterTimezone.getLocalTimezone();
+    // flutter_timezone 5.x returns TimezoneInfo — extract the IANA identifier string
+    String localTimeZone = (await FlutterTimezone.getLocalTimezone()).identifier;
     tz.initializeTimeZones();
     final location = tz.getLocation(localTimeZone);
 
@@ -432,7 +434,8 @@ class ApiService with ChangeNotifier {
     await _getTokens(); // Ensure tokens are loaded
 
     // ✅ Get the player's timezone
-    String localTimeZone = await FlutterTimezone.getLocalTimezone();
+    // flutter_timezone 5.x returns TimezoneInfo — extract the IANA identifier string
+    String localTimeZone = (await FlutterTimezone.getLocalTimezone()).identifier;
     tz.initializeTimeZones();
     final location = tz.getLocation(localTimeZone);
 
@@ -499,7 +502,8 @@ class ApiService with ChangeNotifier {
     }
 
     // ✅ Get the player's timezone
-    String localTimeZone = await FlutterTimezone.getLocalTimezone();
+    // flutter_timezone 5.x returns TimezoneInfo — extract the IANA identifier string
+    String localTimeZone = (await FlutterTimezone.getLocalTimezone()).identifier;
     tz.initializeTimeZones();
     final location = tz.getLocation(localTimeZone); // e.g., "America/Los_Angeles"
 

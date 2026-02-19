@@ -128,6 +128,7 @@ class GameManager extends ChangeNotifier {
     // Return a minimal empty board
     return Board(
       gameId: '',
+      sessionId: '',
       gridLetters: '',
       wildcardLetters: '',
       gridTiles: [],
