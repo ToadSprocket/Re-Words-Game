@@ -43,6 +43,8 @@ Core fields:
   "userPlatform": "ios",
   "userAlias": "Sprockett",
   "userStatusTypeId": 1,
+  "isActive": true,
+  "isDeleted": false,
   "createdAtUtc": "Date",
   "updatedAtUtc": "Date",
   "lastSeenAtUtc": "Date",
@@ -159,11 +161,10 @@ Purpose: leaderboard-ready score records.
   "boardId": "abd123",
   "sessionId": "uuid-v4",
   "userId": "uuid-v4",
-  "leaderboardTypeId": 1,
+  "leaderboardGameTypeId": 1,
   "leaderboardCategoryTypeId": 1,
   "score": 1250,
   "wordCount": 41,
-  "timePlayedSeconds": 732,
   "createdAtUtc": "Date"
 }
 ```
@@ -171,7 +172,7 @@ Purpose: leaderboard-ready score records.
 Indexes:
 
 - unique: `{ highScoreId: 1 }`
-- index: `{ boardId: 1, leaderboardTypeId: 1, leaderboardCategoryTypeId: 1, score: -1, timePlayedSeconds: 1 }`
+- index: `{ boardId: 1, leaderboardTypeId: 1, leaderboardCategoryTypeId: 1, score: -1 }`
 - index: `{ userId: 1, createdAtUtc: -1 }`
 - index: `{ leaderboardTypeId: 1, leaderboardCategoryTypeId: 1 }`
 
@@ -236,13 +237,13 @@ Indexes:
 
 ## Type/Lookup Collections
 
-## 8) `leaderboard_types`
+## 8) `leaderboard_game_types`
 
 ```json
 {
   "_id": "<ObjectId>",
-  "leaderboardTypeId": 1,
-  "leaderboardTypeDescription": "Pro Level",
+  "leaderboardGameTypeId": 1,
+  "leaderboardGameTypeDescription": "Classic", // Scribe, Wordsmith, Master (tied to game_mode.dart types)
   "isActive": true,
   "sortOrder": 10,
   "createdAtUtc": "Date",
@@ -260,9 +261,8 @@ Indexes:
 {
   "_id": "<ObjectId>",
   "leaderboardCategoryTypeId": 1,
-  "leaderboardCategoryTypeDescription": "Daily Leaderboard",
+  "leaderboardCategoryTypeDescription": "Daily Leaderboard", // Weekly, Monthly, All Time?
   "isActive": true,
-  "sortOrder": 10,
   "createdAtUtc": "Date",
   "updatedAtUtc": "Date"
 }
@@ -278,9 +278,8 @@ Indexes:
 {
   "_id": "<ObjectId>",
   "userStatusTypeId": 1,
-  "userStatusTypeDescription": "Active",
+  "userStatusTypeDescription": "guest", // guest, paid, pro?
   "isActive": true,
-  "sortOrder": 10,
   "createdAtUtc": "Date",
   "updatedAtUtc": "Date"
 }
@@ -296,9 +295,8 @@ Indexes:
 {
   "_id": "<ObjectId>",
   "userIdentityStateTypeId": 1,
-  "userIdentityStateTypeDescription": "unlinked",
+  "userIdentityStateTypeDescription": "unlinked", // linked
   "isActive": true,
-  "sortOrder": 10,
   "createdAtUtc": "Date",
   "updatedAtUtc": "Date"
 }
