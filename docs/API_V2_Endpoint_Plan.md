@@ -125,9 +125,7 @@ Finalize a session and persist leaderboard-relevant output.
   "wildcardUses": 3,
   "completionRate": 78,
   "longestWordLength": 9,
-  "words": [
-    { "word": "SEISE", "score": 42, "usedWildcards": 1 }
-  ]
+  "longestWord": "colorados"
 }
 ```
 
