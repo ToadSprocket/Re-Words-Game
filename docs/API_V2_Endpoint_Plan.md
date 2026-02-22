@@ -40,7 +40,8 @@ Shared metadata (body or headers as needed):
 
 ### Purpose
 
-Primary startup endpoint. Handles identity bootstrap + session + board payload in one request.
+Primary startup endpoint. Handles identity bootstrap + session + board payload in one request. UserId is passed in
+to see if user already exists.
 
 ### Responsibilities
 
@@ -54,6 +55,7 @@ Primary startup endpoint. Handles identity bootstrap + session + board payload i
 
 ```json
 {
+  "userId": "UUID-V4"
   "platform": "ios",
   "locale": "en-us",
   "timezone": "America/Los_Angeles",
