@@ -60,8 +60,6 @@ to see if user already exists.
   "locale": "en-us",
   "timezone": "America/Los_Angeles",
   "clientVersion": "2.1.0+3",
-  "leaderboardTypeId": 1,
-  "leaderboardCategoryTypeId": 1,
   "resumeSessionId": null
 }
 ```
