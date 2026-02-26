@@ -144,7 +144,7 @@ String token = await credential.user!.getIdToken();
 - ✅ Play game (Classic mode only)
 - ✅ Sessions saved to server
 - ✅ Stats tracked
-- ✅ Account persists across devices
+- ❌ Cannot Account persists across devices
 - ❌ Cannot submit to leaderboards (requires purchase)
 - ❌ Cannot access paid game modes
 - ❌ Cannot use cloud sync
