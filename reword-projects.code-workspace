@@ -1,0 +1,29 @@
+{
+	"folders": [
+		{
+			"name": "Re-Word Game (Flutter)",
+			"path": "."
+		},
+		{
+			"name": "Re-Word API",
+			"path": "..\\reword-api"
+		},
+		{
+			"name": "Re-Word Utilities",
+			"path": "..\\reword-utilities"
+		},
+		{
+			"name": "Re-Words Wiki",
+			"path": "..\\Re-Words-Game.wiki"
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"**/node_modules": true,
+			"**/__pycache__": true,
+			"**/venv": true,
+			"**/venvs": true,
+			"**/.git": false
+		}
+	}
+}

@@ -306,13 +306,31 @@ Indexes:
 
 ---
 
+## 12) `user_authorization_types`
+
+```json
+{
+  "_id": "<ObjectId>",
+  "userAuthorizationTypeId": 1,
+  "userAuthorizationTypeDescription": "iOS", // Google, Email/Password
+  "isActive": true,
+  "createdAtUtc": "Date",
+  "updatedAtUtc": "Date"
+}
+```
+
+Indexes:
+
+- unique: `{ userAuthorizationTypeId: 1 }`
+---
+
 ## Optional Operations Collections
 
-## 12) `schema_versions`
+## 13) `schema_versions`
 
 Tracks schema migration history.
 
-## 13) `audit_events`
+## 14) `audit_events`
 
 Tracks admin/manual mutation events for traceability.
 

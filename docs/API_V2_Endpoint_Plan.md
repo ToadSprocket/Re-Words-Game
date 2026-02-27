@@ -60,7 +60,13 @@ to see if user already exists.
   "locale": "en-us",
   "timezone": "America/Los_Angeles",
   "clientVersion": "2.1.0+3",
-  "resumeSessionId": null
+  "resumeSessionId": null,
+  "timePlayedSeconds": 732,
+  "score": 104423,
+  "wildcardUses": 4,
+  "completionRatio": 78,
+  "wordCount": 48, 
+  "longestWord": "colorado"
 }
 ```
 
