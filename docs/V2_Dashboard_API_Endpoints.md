@@ -205,6 +205,12 @@ GET /api/v2/dashboard/overview?date=2026-02-25
     "windows": 345,
     "linux": 73
   },
+  "authProviders": {
+    "apple": 5234,
+    "google": 3892,
+    "email": 1108,
+    "anonymous": 12890
+  },
   "topLocales": [
     { "locale": "en-us", "count": 8934 },
     { "locale": "en-gb", "count": 2341 },

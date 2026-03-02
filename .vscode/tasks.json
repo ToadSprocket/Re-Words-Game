@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "MongoDB Tunnel (V2)",
+      "type": "shell",
+      "command": "ssh",
+      "args": [
+        "-p",
+        "2222",
+        "-L",
+        "27018:localhost:27018",
+        "gameadmin@217.196.50.21"
+      ],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

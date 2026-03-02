@@ -188,6 +188,7 @@ Purpose: Firebase/RevenueCat identity mapping to internal user.
   "revenueCatAppUserId": "abc123",
   "userStatusTypeId": 1,
   "userIdentityStateTypeId": 1,
+  "userAuthorizationTypeId": 1,
   "createdAtUtc": "Date",
   "updatedAtUtc": "Date",
   "lastAuthenticatedAtUtc": "Date"
@@ -200,6 +201,7 @@ Indexes:
 - unique: `{ userId: 1 }`
 - unique (if strict 1:1): `{ revenueCatAppUserId: 1 }`
 - index: `{ userStatusTypeId: 1, userIdentityStateTypeId: 1 }`
+- index: `{ userAuthorizationTypeId: 1 }`
 
 ---
 
@@ -308,20 +310,30 @@ Indexes:
 
 ## 12) `user_authorization_types`
 
+Purpose: Tracks authentication provider type (Apple, Google, Email/Password).
+
 ```json
 {
   "_id": "<ObjectId>",
   "userAuthorizationTypeId": 1,
-  "userAuthorizationTypeDescription": "iOS", // Google, Email/Password
+  "userAuthorizationTypeDescription": "Apple", // Google, Email/Password, Anonymous
   "isActive": true,
   "createdAtUtc": "Date",
   "updatedAtUtc": "Date"
 }
 ```
 
+**Initial Values:**
+- `1` = Apple Sign In (iOS, Android, Web)
+- `2` = Google Sign In (All platforms)
+- `3` = Email/Password (Firebase Auth)
+- `4` = Anonymous (Guest, future use)
+
 Indexes:
 
 - unique: `{ userAuthorizationTypeId: 1 }`
+
+**Note:** This tracks the authentication provider used when the user first linked their account. Immutable once set.
 ---
 
 ## Optional Operations Collections

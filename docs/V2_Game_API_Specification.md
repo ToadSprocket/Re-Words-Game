@@ -192,7 +192,7 @@ String token = await credential.user!.getIdToken();
 
 ## Core Endpoints
 
-### 1. POST `/api/v2/game/bootstrap`
+### 1. POST `/api/v2/game/launch`
 
 **Purpose:** Primary endpoint called on app launch. Gets today's board and optionally saves previous session.
 
@@ -390,7 +390,7 @@ const board = db.game_boards.findOne({
 {
   "userId": "existing-guest-uuid",     // Their current guest ID
   "firebaseToken": "jwt-token",        // REQUIRED
-  "authProvider": "apple|google|email" // For analytics
+  "authProvider": "apple|google|email" // REQUIRED: Tracks which provider was used
 }
 ```
 
@@ -402,6 +402,8 @@ const board = db.game_boards.findOne({
   "linked": true,
   "userId": "existing-guest-uuid",     // Same ID, now linked
   "firebaseUid": "firebase-abc123",
+  "authProvider": "apple",             // Auth provider used
+  "userAuthorizationTypeId": 1,        // 1=Apple, 2=Google, 3=Email
   "userStatus": "guest",               // Still guest until purchase
   "userStatusTypeId": 1,
   "isAuthenticated": true,
@@ -418,6 +420,8 @@ const board = db.game_boards.findOne({
   "linked": true,
   "userId": "original-user-uuid",      // Different from request!
   "firebaseUid": "firebase-abc123",
+  "authProvider": "apple",             // Original auth provider
+  "userAuthorizationTypeId": 1,
   "userStatus": "paid",
   "userStatusTypeId": 2,
   "isAuthenticated": true,

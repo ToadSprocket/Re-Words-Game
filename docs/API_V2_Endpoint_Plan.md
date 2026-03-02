@@ -36,11 +36,11 @@ Shared metadata (body or headers as needed):
 
 ---
 
-## Endpoint 1 — `POST /v2/game/bootstrap`
+## Endpoint 1 — `POST /v2/game/launch`
 
 ### Purpose
 
-Primary startup endpoint. Handles identity bootstrap + session + board payload in one request. UserId is passed in
+Primary startup endpoint. Handles identity launch + session + board payload in one request. UserId is passed in
 to see if user already exists.
 
 ### Responsibilities
